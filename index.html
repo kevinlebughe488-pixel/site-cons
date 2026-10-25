@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tribune Supporters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout : site mobile d'abord. Bandeau vert "terrain" en tête, contenu sur fond crème, cartes blanches réservées aux objets (campagnes, formulaires). */
+:root{
+  --bg:#f2f4ee; --surface:#ffffff; --surface-2:#e8ece4;
+  --ink:#15211a; --muted:#56655c; --line:#d5dcd1;
+  --pitch:#1d5237; --pitch-2:#246444; --on-pitch:#f3f5ef; --pitch-line:rgba(243,245,239,.14);
+  --gold:#ecd083; --gold-ink:#7d5b0f; --on-gold:#2a2208;
+  --ok:#2c7a4f; --ok-bg:#e1f0e6; --warn:#9a6412; --warn-bg:#f8ecd2; --bad:#a8392a; --bad-bg:#f7e1dc; --info-bg:#e4ebf2; --info:#2f5577;
+  --focus:#c89a2a;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif;
+  --r:10px; --r-lg:16px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1712; --surface:#15221a; --surface-2:#1b2b21;
+  --ink:#e9eee7; --muted:#9fb0a4; --line:#2a3b30;
+  --pitch:#173f2b; --pitch-2:#1f5238; --on-pitch:#eef3ec; --pitch-line:rgba(238,243,236,.12);
+  --gold:#e3c26e; --gold-ink:#e8c874; --on-gold:#221a05;
+  --ok:#6cc594; --ok-bg:#183525; --warn:#e5b35b; --warn-bg:#352a14; --bad:#ef8b7a; --bad-bg:#3a1c17; --info-bg:#1a2833; --info:#8fb6d9;
+  --focus:#e3c26e; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1712; --surface:#15221a; --surface-2:#1b2b21;
+  --ink:#e9eee7; --muted:#9fb0a4; --line:#2a3b30;
+  --pitch:#173f2b; --pitch-2:#1f5238; --on-pitch:#eef3ec; --pitch-line:rgba(238,243,236,.12);
+  --gold:#e3c26e; --gold-ink:#e8c874; --on-gold:#221a05;
+  --ok:#6cc594; --ok-bg:#183525; --warn:#e5b35b; --warn-bg:#352a14; --bad:#ef8b7a; --bad-bg:#3a1c17; --info-bg:#1a2833; --info:#8fb6d9;
+  --focus:#e3c26e; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;margin:0}
+h1,h2,h3,h4{font-family:var(--f-display);font-weight:800;line-height:1.02;margin:0;text-wrap:balance;letter-spacing:.005em}
+h1{font-size:clamp(2.4rem,6vw,4.1rem)} h2{font-size:clamp(1.8rem,4vw,2.5rem)} h3{font-size:1.45rem;font-weight:700} h4{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin-inline:auto;padding-inline:20px}
+@media (max-width:480px){.wrap{padding-inline:16px}}
+.eyebrow{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--gold-ink)}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+/* bandeau démo */
+.demo{background:var(--gold);color:var(--on-gold);font-size:.85rem;padding-block:6px}
+.demo .wrap{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+.roles{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.roles span{font-weight:700;margin-right:4px}
+.roles button{border:1px solid rgba(42,34,8,.35);background:transparent;border-radius:999px;padding:2px 10px;cursor:pointer;font-size:.82rem;color:var(--on-gold)}
+.roles button[aria-pressed="true"]{background:var(--on-gold);color:var(--gold)}
+
+/* en-tête */
+header.top{background:var(--pitch);color:var(--on-pitch);position:sticky;top:env(safe-area-inset-top,0px);z-index:20;border-bottom:1px solid var(--pitch-line)}
+.top .wrap{display:flex;align-items:center;gap:20px;min-height:64px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--f-display);font-weight:800;font-size:1.6rem;letter-spacing:.04em;text-transform:uppercase}
+.logo small{display:block;font-family:var(--f-body);font-weight:600;font-size:.68rem;letter-spacing:.08em;opacity:.75;margin-top:-4px}
+nav.main{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
+nav.main a{text-decoration:none;padding:8px 12px;border-radius:8px;white-space:nowrap;font-weight:600;opacity:.85}
+nav.main a:hover{background:var(--pitch-line);opacity:1}
+nav.main a[aria-current="page"]{opacity:1;box-shadow:inset 0 -3px 0 var(--gold)}
+.top .account{display:flex;align-items:center;gap:8px;text-decoration:none;font-weight:600}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--gold);color:var(--on-gold);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+@media (max-width:760px){
+  .top .wrap{gap:6px;padding-block:8px}
+  nav.main{order:3;flex-basis:100%}
+  .top .account{margin-left:auto}
+}
+@media (max-width:480px){.top .logo small{display:none}}
+
+/* boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:var(--r);padding:12px 20px;font-weight:700;cursor:pointer;text-decoration:none;line-height:1.1;text-align:center;transition:transform .12s ease,background .12s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--pitch);color:var(--on-pitch)}
+.btn-primary:hover{background:var(--pitch-2)}
+.btn-gold{background:var(--gold);color:var(--on-gold)}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--muted)}
+.btn-sm{padding:7px 12px;font-size:.88rem;border-radius:8px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.on-pitch .btn-ghost{color:var(--on-pitch);border-color:var(--pitch-line)}
+
+/* puces d'état */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;line-height:1.4}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-publiee,.s-valide{background:var(--ok-bg);color:var(--ok)}
+.s-financee{background:var(--gold);color:var(--on-gold)}
+.s-revue{background:var(--info-bg);color:var(--info)}
+.s-brouillon{background:var(--surface-2);color:var(--muted)}
+.s-ajournee,.s-moyenne{background:var(--warn-bg);color:var(--warn)}
+.s-refusee,.s-elevee,.s-suspendue,.s-nonfinancee{background:var(--bad-bg);color:var(--bad)}
+.s-faible,.s-cloturee{background:var(--surface-2);color:var(--muted)}
+.tag{font-size:.78rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 8px;white-space:nowrap}
+
+/* barre de progression : ligne de but */
+.bar{height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden;position:relative}
+.bar i{display:block;height:100%;background:var(--pitch);border-radius:999px}
+.on-pitch .bar{background:var(--pitch-line)} .on-pitch .bar i{background:var(--gold)}
+
+/* hero */
+.hero{background:var(--pitch);color:var(--on-pitch);position:relative;overflow:hidden}
+svg.field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;padding-block:56px 64px;align-items:center}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p.lead{font-size:1.15rem;max-width:34em;margin-top:18px;opacity:.9}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.hero .facts{display:flex;gap:28px;flex-wrap:wrap;margin-top:34px;font-size:.9rem;opacity:.9}
+.hero .facts b{display:block;font-family:var(--f-display);font-size:1.9rem;line-height:1;color:var(--gold)}
+@media (max-width:860px){.hero .wrap{grid-template-columns:minmax(0,1fr);padding-block:36px 44px;gap:28px}}
+
+/* tableau d'affichage */
+.board{background:rgba(0,0,0,.22);border:1px solid var(--pitch-line);border-radius:var(--r-lg);padding:22px;backdrop-filter:blur(2px)}
+.board .head{display:flex;gap:12px;align-items:center}
+.board .head .club{font-weight:700}
+.board .score{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px;margin:22px 0 14px;font-family:var(--f-display)}
+.board .score .v{font-size:clamp(1.8rem,5vw,3.2rem);font-weight:800;line-height:.9;color:var(--gold)}
+.board .score .l{font-family:var(--f-body);font-size:.75rem;text-transform:uppercase;letter-spacing:.09em;opacity:.75;margin-top:6px}
+.board .score .sep{font-size:2rem;opacity:.5;padding-bottom:14px}
+.board .score .r{text-align:right}
+.board .score .r .v{color:var(--on-pitch)}
+.board .meta{display:flex;justify-content:space-between;font-size:.88rem;margin-top:10px;opacity:.9;gap:10px;flex-wrap:wrap}
+.board .btn{width:100%;margin-top:18px}
+
+/* sections */
+section.band{padding-block:56px}
+section.band + section.band{padding-top:8px}
+.sec-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.sec-head p{max-width:40em;margin-top:8px}
+
+/* grille de campagnes */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s}
+a.card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(20,40,28,.45)}
+.card .cover{aspect-ratio:16/8;position:relative;max-width:100%}
+.card .cover svg{position:absolute;inset:0;width:100%;height:100%}
+.card .cover .pill,.card .cover .tag{position:absolute;top:12px}
+.card .cover .pill{left:12px}
+.card .cover .tag{right:12px;background:var(--surface);}
+.card .body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.card .club-line{display:flex;align-items:center;gap:8px;font-size:.88rem;font-weight:600;color:var(--muted)}
+.card h3{font-size:1.35rem}
+.card .figs{display:flex;justify-content:space-between;font-size:.88rem;color:var(--muted);gap:8px;margin-top:auto}
+.card .figs b{color:var(--ink);font-size:1rem}
+
+/* flux de l'argent */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:14px;align-items:stretch}
+.flow .node{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px}
+.flow .node.hl{background:var(--gold);color:var(--on-gold);border-color:transparent}
+.flow .node .eyebrow{color:inherit;opacity:.75}
+.flow .node h4{margin:6px 0 6px}
+.flow .arrow{display:grid;place-items:center;color:var(--muted);font-size:1.4rem}
+@media (max-width:820px){.flow{grid-template-columns:1fr}.flow .arrow{transform:rotate(90deg);height:18px}}
+
+/* preuve */
+.proof{display:grid;grid-template-columns:1fr 1fr;gap:28px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:28px}
+@media (max-width:820px){.proof{grid-template-columns:1fr;padding:20px}}
+
+/* jalons */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.steps li{display:grid;grid-template-columns:34px 1fr auto;gap:12px;padding-bottom:18px;position:relative}
+.steps li::after{content:"";position:absolute;left:16px;top:32px;bottom:2px;width:2px;background:var(--line)}
+.steps li:last-child::after{display:none}
+.steps .dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;border:2px solid var(--line);background:var(--surface);color:var(--muted);z-index:1}
+.steps li.done .dot{background:var(--pitch);border-color:var(--pitch);color:var(--on-pitch)}
+.steps li.now .dot{border-color:var(--gold-ink);color:var(--gold-ink)}
+.steps .when{font-size:.85rem;color:var(--muted);white-space:nowrap}
+.steps b{display:block}
+
+/* page campagne */
+.camp-hero{background:var(--pitch);color:var(--on-pitch);position:relative;overflow:hidden}
+.camp-hero .wrap{position:relative;padding-block:28px 34px}
+.crumbs{font-size:.88rem;opacity:.8;margin-bottom:14px}
+.crumbs a{text-decoration:none}
+.camp-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:32px;padding-block:32px 60px;align-items:start}
+.camp-layout > *{min-width:0}
+@media (max-width:940px){.camp-layout{grid-template-columns:1fr}}
+.side{position:sticky;top:90px;display:grid;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px}
+.panel h3{margin-bottom:12px}
+.big{font-family:var(--f-display);font-weight:800;font-size:2.6rem;line-height:1}
+.subnav{display:flex;gap:6px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:24px;scrollbar-width:none}
+.subnav a{padding:10px 12px;text-decoration:none;font-weight:600;color:var(--muted);white-space:nowrap}
+.subnav a:hover{color:var(--ink)}
+.block{padding-bottom:36px;scroll-margin-top:90px}
+@media (max-width:760px){.block{scroll-margin-top:130px}}
+.block > h2{font-size:1.8rem;margin-bottom:14px}
+.block p + p{margin-top:12px}
+.alloc{display:grid;gap:12px}
+.alloc .row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.95rem}
+.alloc .row .bar{grid-column:1/-1;height:8px}
+.update{border-top:1px solid var(--line);padding-block:16px;display:grid;gap:6px}
+.update:first-of-type{border-top:0;padding-top:0}
+.docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.doc{border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;gap:10px;align-items:center;font-size:.9rem;background:var(--surface)}
+.doc .ic{width:34px;height:40px;border-radius:4px;background:var(--surface-2);display:grid;place-items:center;font-size:.65rem;font-weight:700;color:var(--muted);flex:none}
+.rules{display:grid;gap:10px;font-size:.92rem}
+.rules div{display:grid;grid-template-columns:22px 1fr;gap:8px}
+.rules .ck{color:var(--ok);font-weight:800}
+
+/* tableaux */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.76rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;background:var(--surface-2);white-space:nowrap}
+tr:last-child td,tr:last-child th{border-bottom:0}
+tbody th{white-space:normal;vertical-align:top;min-width:9em}
+td.r,th.r{text-align:right}
+td .acts{display:flex;gap:6px;flex-wrap:wrap}
+
+/* formulaires */
+.form{display:grid;gap:16px}
+.form > *,.two > *{min-width:0}
+input[type=file]{max-width:100%;font-size:.9rem}
+.field label{display:block;font-weight:600;margin-bottom:6px}
+.field .hint{font-size:.85rem;color:var(--muted);margin-top:4px}
+input[type=text],input[type=tel],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:11px 13px}
+input:focus,select:focus,textarea:focus{border-color:var(--pitch);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--pitch) 22%,transparent)}
+textarea{min-height:110px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--pitch);color:var(--on-pitch);border-color:var(--pitch)}
+.chip[disabled]{opacity:.5;cursor:not-allowed;border-style:dashed}
+.pay{display:grid;gap:10px}
+.pay label{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;border:1.5px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer;background:var(--surface)}
+.pay label:has(input:checked){border-color:var(--pitch);box-shadow:0 0 0 3px color-mix(in srgb,var(--pitch) 18%,transparent)}
+.pay label.off{opacity:.55;cursor:not-allowed}
+.check{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font-size:.93rem}
+.check input{margin-top:4px;width:18px;height:18px;accent-color:var(--pitch)}
+.note{border-radius:var(--r);padding:12px 14px;font-size:.92rem;display:grid;grid-template-columns:auto 1fr;gap:10px}
+.note.info{background:var(--info-bg);color:var(--ink)}
+.note.warn{background:var(--warn-bg);color:var(--ink)}
+.note b.ic{color:var(--info)} .note.warn b.ic{color:var(--warn)}
+.recap{display:grid;gap:8px;font-size:.95rem}
+.recap div{display:flex;justify-content:space-between;gap:12px}
+.recap div > *{min-width:0;overflow-wrap:anywhere}
+.recap div > :last-child{text-align:right}
+.recap .tot{border-top:1px solid var(--line);padding-top:10px;font-weight:700;font-size:1.05rem}
+
+.stepper{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.stepper span{font-size:.82rem;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.stepper span.on{background:var(--pitch);color:var(--on-pitch)}
+.stepper span.done{background:var(--ok-bg);color:var(--ok)}
+
+/* page simple */
+.page-head{background:var(--pitch);color:var(--on-pitch);position:relative;overflow:hidden}
+.page-head .wrap{position:relative;padding-block:36px 40px}
+.page-head p{max-width:42em;margin-top:10px;opacity:.9}
+.page{padding-block:32px 64px}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+.split > *{min-width:0}
+.split.half{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.split,.split.half{grid-template-columns:1fr}}
+
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;align-items:center}
+.filters select,.filters input{width:auto;min-width:0;padding:9px 12px}
+.filters input{flex:1 1 220px}
+
+/* back-office */
+.bo{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:70vh}
+.bo aside{background:var(--surface);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:2px}
+.bo aside .eyebrow{padding:0 10px 10px}
+.bo aside button{text-align:left;border:0;background:transparent;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.bo aside button:hover{background:var(--surface-2);color:var(--ink)}
+.bo aside button[aria-current="true"]{background:var(--pitch);color:var(--on-pitch)}
+.bo aside .count{font-size:.75rem;background:var(--bad);color:#fff;border-radius:999px;padding:0 7px}
+.bo main{padding:28px;min-width:0}
+.bo main > h2{margin-bottom:6px}
+@media (max-width:820px){
+  .bo{grid-template-columns:1fr}
+  .bo aside{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 16px}
+  .bo aside .eyebrow{display:none}
+  .bo aside button{white-space:nowrap}
+  .bo main{padding:20px 16px}
+}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-block:20px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.kpi .l{font-size:.8rem;color:var(--muted);font-weight:600}
+.kpi .v{font-family:var(--f-display);font-size:2rem;font-weight:800;line-height:1.1}
+.kpi .d{font-size:.8rem;color:var(--muted)}
+.kpi.alert{border-color:var(--bad)} .kpi.alert .v{color:var(--bad)}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
+.chart .b{fill:var(--pitch)} .chart .b.last{fill:var(--gold-ink)}
+.chart .g{stroke:var(--line)}
+.split3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:700px){.split3{grid-template-columns:1fr}}
+.log{font-size:.9rem}
+.log li{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.log{list-style:none;margin:0;padding:0}
+.log time{color:var(--muted);font-variant-numeric:tabular-nums}
+@media (max-width:560px){.log li{grid-template-columns:1fr;gap:0}}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:var(--r);font-weight:600;opacity:0;visibility:hidden;pointer-events:none;transition:.25s;z-index:50;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;visibility:visible;transform:translateX(-50%)}
+
+footer{background:var(--pitch);color:var(--on-pitch);padding-block:40px 30px;font-size:.92rem}
+footer .cols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px}
+footer h4{font-size:1rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+footer a{display:block;text-decoration:none;opacity:.8;padding:3px 0}
+footer a:hover{opacity:1}
+footer .legal{border-top:1px solid var(--pitch-line);margin-top:28px;padding-top:16px;opacity:.75;font-size:.84rem}
+@media (max-width:760px){footer .cols{grid-template-columns:1fr 1fr}footer .cols > :first-child{grid-column:1/-1}}
+
+.faq details{border-bottom:1px solid var(--line);padding-block:14px}
+.faq summary{font-weight:700;cursor:pointer}
+.faq details p{margin-top:8px;color:var(--muted)}
+.success{text-align:center;display:grid;gap:14px;justify-items:center;padding-block:20px}
+.success .tick{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-size:2rem;font-weight:800}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="demo"><div class="wrap">
+  <span><b>Maquette interactive</b> — clubs, montants et personnes fictifs. Aucun paiement réel.</span>
+  <div class="roles" role="group" aria-label="Changer de vue">
+    <span>Voir en tant que :</span>
+    <button type="button" data-role="supporter" aria-pressed="true">Supporter</button>
+    <button type="button" data-role="club" aria-pressed="false">Club</button>
+    <button type="button" data-role="admin" aria-pressed="false">Administrateur</button>
+  </div>
+</div></div>
+
+<header class="top"><div class="wrap">
+  <a class="logo" href="#accueil" aria-label="Tribune, accueil">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M1 17h32" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17" r="6" fill="none" stroke="var(--gold)" stroke-width="2.4"/></svg>
+    <span>Tribune<small>Les supporters financent leur club</small></span>
+  </a>
+  <nav class="main" id="nav" aria-label="Navigation principale"></nav>
+  <a class="account" id="account" href="#compte"></a>
+</div></header>
+
+<main id="app"></main>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div>
+      <div class="logo" style="margin-bottom:10px">Tribune</div>
+      <p style="opacity:.85;max-width:28em">Plateforme de financement participatif des clubs de football par leurs supporters. Chaque campagne est vérifiée avant publication et suivie jusqu'à sa clôture.</p>
+    </div>
+    <div><h4>Supporters</h4><a href="#campagnes">Toutes les campagnes</a><a href="#fonctionnement">Comment ça marche</a><a href="#compte">Mon compte</a></div>
+    <div><h4>Clubs</h4><a href="#club">Proposer une campagne</a><a href="#fonctionnement">Frais et règles</a><a href="#club">Publier une nouvelle</a></div>
+    <div><h4>Confiance</h4><a href="#fonctionnement">Sécurité des paiements</a><a href="#fonctionnement">Données personnelles</a><a href="#fonctionnement">Réclamations</a></div>
+  </div>
+  <div class="legal">Tribune n'est pas une banque : les paiements sont encaissés par un prestataire de paiement agréé et la plateforme conserve seulement la trace de chaque contribution. Commission unique de 5 % sur les fonds collectés, affichée avant chaque paiement.</div>
+</div></footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const usd=n=>n.toLocaleString('fr-FR',{maximumFractionDigits:2,minimumFractionDigits:(n%1?2:0)})+' $';
+const pct=(a,b)=>Math.min(100,Math.round(a/b*100));
+const COMMISSION=0.05, KYC_SEUIL=1000;
+
+/* ---------- données de démonstration ---------- */
+const clubs={
+  esk:{name:"AS Étoile de Kintambo",short:"ESK",c1:"#1d5237",c2:"#ecd083",where:"Kintambo, Kinshasa",since:1987},
+  flm:{name:"FC Lions de Matete",short:"FLM",c1:"#8a2a1f",c2:"#f2efe6",where:"Matete, Kinshasa",since:1994},
+  rnd:{name:"Racing Ngaliema Dames",short:"RND",c1:"#243f73",c2:"#f2c14e",where:"Ngaliema, Kinshasa",since:2011},
+  jsl:{name:"Jeunesse Sportive de Limete",short:"JSL",c1:"#4a2a6b",c2:"#e7e3ee",where:"Limete, Kinshasa",since:1979},
+};
+const campaigns=[
+  {id:"pelouse",club:"esk",title:"Une pelouse synthétique pour le stade de Kintambo",cat:"Infrastructure",type:"Don",status:"publiee",goal:60000,raised:41850,backers:812,days:18,start:"1 sept. 2026",end:"18 oct. 2026",
+   pitch:"Notre terrain en terre battue est impraticable six mois par an. Les matchs sont reportés, les jeunes se blessent. Avec une pelouse synthétique, le club peut jouer toute l'année, accueillir ses matchs à domicile et ouvrir le terrain aux écoles du quartier le mercredi.",
+   budget:[["Fourniture de la pelouse synthétique",38000],["Pose, drainage et nivellement",14000],["Buts, filets et poteaux de corner",4500],["Réserve pour imprévus",3500]],
+   miles:[["Devis signé avec le fournisseur","12 sept.",1],["Objectif de collecte atteint","18 oct.",0],["Travaux de drainage","nov. 2026",0],["Pose de la pelouse","déc. 2026",0],["Premier match à domicile","janv. 2027",0]],
+   news:[["26 sept.","70 % de l'objectif atteint","Merci aux 812 supporters. Le fournisseur a confirmé que le prix du devis tient jusqu'au 31 octobre."],["14 sept.","Le devis est signé","Nous avons choisi le fournisseur le moins cher des trois consultés. Les trois devis sont publiés dans les documents."],["2 sept.","La campagne est lancée","Objectif : 60 000 $ en 7 semaines."]],
+   docs:[["PDF","Devis retenu — pelouse"],["PDF","Comparatif des 3 devis"],["JPG","État actuel du terrain (12 photos)"],["PDF","Accord de la commune"]]},
+  {id:"ecole",club:"flm",title:"Équipements pour l'école de foot U13–U15",cat:"Formation des jeunes",type:"Don",status:"publiee",goal:8000,raised:6920,backers:241,days:6,start:"15 août 2026",end:"6 oct. 2026",
+   pitch:"Soixante-quatre enfants s'entraînent trois fois par semaine avec douze ballons. Cette campagne achète chaussures, ballons, chasubles et une trousse de soins pour la saison.",
+   budget:[["Chaussures (64 paires)",3800],["Ballons et chasubles",2100],["Trousse de soins",600],["Transport des équipements",1500]],
+   miles:[["Liste des enfants et des tailles","20 août",1],["Objectif de collecte atteint","6 oct.",0],["Achat et distribution","oct. 2026",0]],
+   news:[["22 sept.","Plus que 1 080 $","Le magasin nous garde le stock de chaussures jusqu'au 10 octobre."]],docs:[["PDF","Facture pro forma"],["XLS","Liste des tailles"]]},
+  {id:"minibus",club:"jsl",title:"Un minibus pour les déplacements de l'équipe",cat:"Transport",type:"Don",status:"publiee",goal:32000,raised:9400,backers:198,days:35,start:"20 sept. 2026",end:"4 nov. 2026",
+   pitch:"Chaque déplacement en championnat provincial coûte 900 $ de location. Un minibus d'occasion de 30 places sera rentabilisé en deux saisons.",
+   budget:[["Minibus d'occasion 30 places",26500],["Révision et pneus",2500],["Assurance première année",3000]],
+   miles:[["Choix du véhicule et contrôle technique","25 sept.",1],["Objectif de collecte atteint","4 nov.",0],["Achat et immatriculation","nov. 2026",0]],
+   news:[["25 sept.","Le véhicule est réservé","Le rapport du contrôle technique est dans les documents."]],docs:[["PDF","Rapport de contrôle technique"],["PDF","Promesse de vente"]]},
+  {id:"finale",club:"rnd",title:"Le déplacement en phase finale du championnat féminin",cat:"Déplacement",type:"Don",status:"financee",goal:15000,raised:16240,backers:533,days:0,start:"1 juin 2026",end:"15 juil. 2026",
+   pitch:"L'équipe s'est qualifiée pour la phase finale à Lubumbashi. Transport, hébergement et repas pour 24 joueuses et 6 encadrants.",
+   budget:[["Transport aller-retour",7800],["Hébergement 9 nuits",4600],["Repas",2100],["Frais d'inscription",500]],
+   miles:[["Objectif de collecte atteint","15 juil.",1],["Billets et hôtel réservés","20 juil.",1],["Phase finale disputée","août 2026",1],["Rapport final et justificatifs","5 sept.",1]],
+   news:[["5 sept.","Rapport final publié","Toutes les factures sont en ligne. Il reste 1 240 $, versés au fonds de la saison prochaine avec l'accord des supporters."],["18 août","Troisièmes du championnat !","Merci à tous. Photos et résultats dans les documents."]],
+   docs:[["PDF","Rapport final"],["PDF","Factures transport"],["PDF","Factures hôtel"],["JPG","Photos de la phase finale"]]},
+  {id:"infirmerie",club:"esk",title:"Kit médical et formation aux premiers secours",cat:"Santé",type:"Don",status:"financee",goal:5000,raised:5000,backers:164,days:0,start:"3 mars 2026",end:"30 avr. 2026",
+   pitch:"Un défibrillateur, une trousse complète et une formation de deux jours pour les éducateurs.",
+   budget:[["Défibrillateur",2400],["Trousse et consommables",900],["Formation (8 éducateurs)",1700]],
+   miles:[["Objectif atteint","30 avr.",1],["Matériel livré","15 mai",1],["Formation réalisée","2 juin",1]],news:[["2 juin","Huit éducateurs formés","Attestations dans les documents."]],docs:[["PDF","Attestations de formation"],["PDF","Factures"]]},
+  {id:"tribune",club:"jsl",title:"Rénovation de la tribune Est",cat:"Infrastructure",type:"Prêt",status:"brouillon",goal:45000,raised:0,backers:0,days:0,start:"—",end:"—",
+   pitch:"Campagne en prêt : les supporters prêtent, le club rembourse sur 24 mois avec les recettes de billetterie. Les prêts ouvriront à l'étape 3 de la plateforme.",
+   budget:[["Structure et gradins",32000],["Toiture",9000],["Mise aux normes sécurité",4000]],miles:[],news:[],docs:[]},
+];
+const statusLabel={publiee:"En cours",financee:"Financée",revue:"En revue",valide:"Validé",brouillon:"Bientôt",ajournee:"Ajournée",refusee:"Refusée",suspendue:"Suspendue",cloturee:"Clôturée",nonfinancee:"Non financée"};
+
+const state={role:"supporter",cid:"pelouse",amount:25,adminTab:"dashboard",paid:null,afterReg:"compte",regSel:null,
+  pipeline:[
+    {id:"D-041",club:"jsl",projet:"Tenues domicile et extérieur 2027",goal:6500,recu:"22 sept.",id_ok:true,budget_ok:true,jalons_ok:false,status:"revue"},
+    {id:"D-040",club:"flm",projet:"Éclairage du terrain d'entraînement",goal:18000,recu:"19 sept.",id_ok:true,budget_ok:true,jalons_ok:true,status:"revue"},
+    {id:"D-039",club:"rnd",projet:"Stage de préparation à Kisantu",goal:9800,recu:"12 sept.",id_ok:false,budget_ok:true,jalons_ok:true,status:"ajournee"},
+    {id:"D-038",club:"jsl",projet:"Rénovation de la tribune Est (prêt)",goal:45000,recu:"2 sept.",id_ok:true,budget_ok:false,jalons_ok:true,status:"revue"},
+  ],
+  alerts:[
+    {id:"A-117",sev:"elevee",type:"Transaction",desc:"7 contributions de 99 $ en 20 minutes, depuis 3 comptes liés au même numéro de téléphone.",camp:"minibus",status:"ouverte"},
+    {id:"A-116",sev:"moyenne",type:"Campagne",desc:"Page projet modifiée 4 fois en 48 h, dont un changement d'objectif.",camp:"ecole",status:"ouverte"},
+    {id:"A-114",sev:"faible",type:"Identité",desc:"Le nom sur la pièce d'identité diffère du nom du compte (inversion prénom/nom probable).",camp:"pelouse",status:"ouverte"},
+  ],
+  log:[
+    ["30 sept. 09:12","Chargée conformité","Alerte A-117 ouverte automatiquement (seuil de fréquence)"],
+    ["29 sept. 17:40","Chargé opérations","Rapprochement PSP du 29 sept. validé, écart 0 $"],
+    ["29 sept. 11:05","Gérant","Campagne « Minibus » publiée après revue conformité"],
+    ["28 sept. 15:22","Chargé opérations","Nouvelle du club « 70 % atteints » revue et publiée"],
+    ["27 sept. 10:03","Chargé SI","Revue mensuelle des accès back-office : 5 comptes, aucun retrait"],
+  ],
+};
+
+/* ---------- registre des supporters (stockage partagé) ---------- */
+const reg={db:null,dl:null,uid:null,ready:false,live:false,contributeurs:[],contributions:[],journal:[]};
+const LS="tribune.supporterId";
+function lsGet(){try{return localStorage.getItem(LS)}catch(e){return null}}
+function lsSet(v){try{v?localStorage.setItem(LS,v):localStorage.removeItem(LS)}catch(e){}}
+state.currentId=lsGet();
+const round2=n=>Math.round(n*100)/100;
+const normTel=t=>String(t||"").replace(/\D/g,"").slice(-9);
+function me(){return reg.contributeurs.find(c=>c.id===state.currentId)||null}
+function contribsOf(id){return reg.contributions.filter(c=>c.contributeurId===id)}
+function cumulOf(id){return round2(contribsOf(id).reduce((s,c)=>s+c.montant,0))}
+function regOfCamp(cid){return reg.contributions.filter(c=>c.campagneId===cid)}
+function raisedOf(x){return round2(x.raised+regOfCamp(x.id).reduce((s,c)=>s+c.montant,0))}
+function backersOf(x){return x.backers+new Set(regOfCamp(x.id).map(c=>c.contributeurId)).size}
+function nowISO(){return new Date().toISOString()}
+function fmtDate(iso,withTime=true){if(!iso)return "—";const d=new Date(iso);const s=d.toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});return withTime?s+" · "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):s}
+function newId(p){return p+"-"+Date.now().toString(36).toUpperCase().slice(-5)+Math.random().toString(36).slice(2,5).toUpperCase()}
+function maskTel(t){return String(t||"").replace(/\d(?=(?:\D*\d){4})/g,"•")}
+function shortName(c){return c.anonyme?"Supporter anonyme":(c.contributeurNom||"").replace(/^(\S+)\s+(\S).*$/,"$1 $2.")}
+function errMsg(e){const c=e&&e.code;return c==="quota_exceeded"?"Le registre est plein. Supprimez des entrées de test.":c==="invalid_argument"?"Vous n'avez pas le droit d'écrire dans ce registre. Demandez un accès Contributeur au propriétaire de la maquette.":"Enregistrement impossible pour le moment. Réessayez dans un instant."}
+async function save(coll,id,data){
+  if(reg.db){try{await reg.db.collection(coll).doc(id).set(data);return true}catch(e){toast(errMsg(e));return false}}
+  const arr=reg[coll],i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=data;else arr.unshift(data);return true}
+async function patch(coll,id,data){
+  if(reg.db){try{await reg.db.collection(coll).doc(id).update(data);return true}catch(e){toast(errMsg(e));return false}}
+  Object.assign(reg[coll].find(x=>x.id===id)||{},data);return true}
+function audit(auteur,action){const id=newId("J");save("journal",id,{id,at:nowISO(),auteur,action})}
+function syncNote(){return reg.db?`<div class="note info" style="margin-bottom:16px"><b class="ic">●</b><span><b>Registre partagé, en direct.</b> Les inscriptions et contributions faites par toute personne ayant accès à cette maquette apparaissent ici et sont conservées.</span></div>`:`<div class="note warn" style="margin-bottom:16px"><b class="ic">!</b><span><b>Registre local à cette page.</b> Le stockage partagé n'est pas disponible dans cette vue (connectez-vous à claude.ai) : les données seront perdues au rechargement.</span></div>`}
+async function initRegistry(){
+  try{if(window.claude&&window.claude.use){
+    reg.db=await window.claude.use("db");
+    reg.dl=await window.claude.use("downloads");
+    const u=await window.claude.use("user");if(u){try{reg.uid=await u.id()}catch(e){}}
+  }}catch(e){reg.db=null}
+  if(!reg.db){reg.ready=true;softRender();return}
+  const sub=(coll,field)=>reg.db.collection(coll).orderBy(field,"desc").limit(1000).onSnapshot(
+    s=>{reg[coll]=s.docs.map(d=>({...d.data()}));reg.live=true;reg.ready=true;softRender()},
+    ()=>{reg.live=false;reg.ready=true;softRender()});
+  sub("contributeurs","createdAt");sub("contributions","createdAt");sub("journal","at");
+  setTimeout(()=>{if(!reg.ready){reg.ready=true;softRender()}},6000);
+}
+function csv(rows,cols){const q=v=>{v=v==null?"":String(v);return /[;"\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  return "﻿"+[cols.map(c=>q(c[0])).join(";"),...rows.map(r=>cols.map(c=>q(typeof c[1]==="function"?c[1](r):r[c[1]])).join(";"))].join("\r\n")}
+async function exportCsv(kind){
+  if(!reg.dl){toast("L'export n'est pas disponible dans cette vue.");return}
+  const day=new Date().toISOString().slice(0,10);
+  const data=kind==="contributeurs"?csv(reg.contributeurs,[["Identifiant","id"],["Prénom","prenom"],["Nom","nom"],["Téléphone","telephone"],["E-mail","email"],["Profil","profil"],["Pays","pays"],["Ville","ville"],["Club suivi",r=>clubs[r.club]?.name||""],["Inscrit le","createdAt"],["Consentement le","consentAt"],["Niveau de vérification","kycNiveau"],["Statut vérification","kycStatut"],["Pièce déclarée","pieceType"],["Nombre de contributions",r=>contribsOf(r.id).length],["Total contribué (USD)",r=>cumulOf(r.id)]])
+    :csv(reg.contributions,[["Référence","ref"],["Date","createdAt"],["Identifiant supporter","contributeurId"],["Supporter","contributeurNom"],["Campagne","campagneTitre"],["Club","club"],["Montant (USD)","montant"],["Commission 5 % (USD)","commission"],["Dont exploitation 3 %",r=>round2(r.montant*.03)],["Dont fondateur 2 %",r=>round2(r.montant*.02)],["Net club (USD)","netClub"],["Moyen","moyen"],["Opérateur","operateur"],["Anonyme sur le site",r=>r.anonyme?"oui":"non"],["Statut","statut"]]);
+  try{await reg.dl.save({filename:`tribune-registre-${kind}-${day}.csv`,data});toast("Registre exporté.");audit("Administrateur (vous)",`Export du registre des ${kind} (${kind==="contributeurs"?reg.contributeurs.length:reg.contributions.length} lignes)`)}
+  catch(e){if(!e||e.code!=="declined")toast("Export impossible pour le moment.")}
+}
+
+/* ---------- éléments graphiques ---------- */
+function crest(k,size=34){const c=clubs[k];return `<svg width="${size}" height="${size*1.15}" viewBox="0 0 40 46" aria-hidden="true" style="flex:none"><path d="M20 1 38 7v15c0 12-8 19-18 23C10 41 2 34 2 22V7Z" fill="${c.c1}" stroke="${c.c2}" stroke-width="2"/><path d="M2 20h36" stroke="${c.c2}" stroke-width="1.5" opacity=".6"/><text x="20" y="31" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="800" font-size="13" fill="${c.c2}">${c.short}</text></svg>`}
+function fieldSVG(opacity=1){return `<svg class="field" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="opacity:${opacity}">
+ <g fill="none" stroke="var(--pitch-line)" stroke-width="2"><rect x="40" y="30" width="1120" height="440"/><path d="M600 30v440"/><circle cx="600" cy="250" r="80"/><rect x="40" y="140" width="150" height="220"/><rect x="1010" y="140" width="150" height="220"/><rect x="40" y="200" width="55" height="100"/><rect x="1105" y="200" width="55" height="100"/><path d="M190 200a70 70 0 0 1 0 100M1010 200a70 70 0 0 0 0 100"/></g>
+ <g fill="rgba(255,255,255,.025)">${Array.from({length:12},(_,i)=>i%2?`<rect x="${40+i*93.3}" y="30" width="93.3" height="440"/>`:"").join("")}</g></svg>`}
+function cover(c){const k=clubs[c.club];return `<svg viewBox="0 0 320 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="320" height="160" fill="${k.c1}"/><g fill="rgba(255,255,255,.05)"><rect x="0" width="40" height="160"/><rect x="80" width="40" height="160"/><rect x="160" width="40" height="160"/><rect x="240" width="40" height="160"/></g><g fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5"><path d="M160 0v160"/><circle cx="160" cy="80" r="34"/><rect x="-1" y="40" width="50" height="80"/><rect x="271" y="40" width="50" height="80"/></g><g transform="translate(142 56)">${crest(c.club,36).replace('<svg','<svg x="0" y="0"')}</g></svg>`}
+function pill(s){return `<span class="pill s-${s}">${statusLabel[s]||s}</span>`}
+
+/* ---------- composants ---------- */
+function card(c){const k=clubs[c.club];const p=pct(raisedOf(c),c.goal);
+ return `<a class="card" href="#campagne" data-c="${c.id}">
+  <div class="cover">${cover(c)}${pill(c.status)}<span class="tag">${c.type}</span></div>
+  <div class="body">
+    <div class="club-line">${esc(k.name)} · ${esc(c.cat)}</div>
+    <h3>${esc(c.title)}</h3>
+    ${c.status==="brouillon"?`<p class="small muted">Les campagnes en prêt ouvriront à l'étape 3. Objectif prévu : ${usd(c.goal)}.</p>`:`
+    <div class="bar" role="img" aria-label="${p} % de l'objectif"><i style="width:${p}%"></i></div>
+    <div class="figs num"><span><b>${usd(raisedOf(c))}</b> sur ${usd(c.goal)}</span><span><b>${pct(raisedOf(c),c.goal)} %</b></span></div>
+    <div class="figs num"><span>${backersOf(c)} supporters</span><span>${c.days>0?`${c.days} jours restants`:`Clôturée le ${c.end}`}</span></div>`}
+  </div></a>`}
+
+/* ---------- vues ---------- */
+const V={};
+V.accueil=()=>{const f=campaigns[0],k=clubs[f.club],p=pct(raisedOf(f),f.goal);
+ const live=campaigns.filter(c=>c.status==="publiee");
+ const fin=campaigns.find(c=>c.id==="finale");
+ return `
+<section class="hero on-pitch">${fieldSVG()}
+ <div class="wrap">
+  <div>
+    <div class="eyebrow" style="color:var(--gold)">Financement participatif des clubs</div>
+    <h1 style="margin-top:12px">Le club, c'est vous.<br><em>Financez-le</em> et voyez où va chaque dollar.</h1>
+    <p class="lead">Une pelouse, des chaussures pour les jeunes, un bus pour les déplacements : choisissez un projet de votre club, payez par Mobile Money et suivez l'avancement avec les factures et les photos.</p>
+    <div class="ctas"><a class="btn btn-gold" href="#campagnes">Voir les campagnes</a><a class="btn btn-ghost" href="#club">Mon club a un projet</a></div>
+    <div class="facts num">
+      <div><b>74 410 $</b>collectés depuis mars</div>
+      <div><b>1 948</b>supporters</div>
+      <div><b>100 %</b>des campagnes financées ont publié leurs justificatifs</div>
+    </div>
+  </div>
+  <div class="board" aria-label="Campagne à la une">
+    <div class="head">${crest(f.club,40)}<div><div class="club">${esc(k.name)}</div><div class="small" style="opacity:.8">À la une · ${esc(f.cat)}</div></div></div>
+    <h3 style="margin-top:14px;font-size:1.6rem">${esc(f.title)}</h3>
+    <div class="score num"><div><div class="v">${usd(raisedOf(f))}</div><div class="l">Collectés</div></div><div class="sep">/</div><div class="r"><div class="v">${usd(f.goal)}</div><div class="l">Objectif</div></div></div>
+    <div class="bar" role="img" aria-label="${p} %"><i style="width:${p}%"></i></div>
+    <div class="meta num"><span>${p} % atteints</span><span>${backersOf(f)} supporters</span><span>${f.days} jours restants</span></div>
+    <a class="btn btn-gold" href="#contribuer" data-c="${f.id}">Contribuer à cette campagne</a>
+  </div>
+ </div>
+</section>
+
+<section class="band"><div class="wrap">
+ <div class="sec-head"><div><div class="eyebrow">En cours</div><h2 style="margin-top:6px">Les campagnes ouvertes</h2></div><a class="btn btn-ghost btn-sm" href="#campagnes">Toutes les campagnes →</a></div>
+ <div class="grid">${live.map(card).join("")}</div>
+</div></section>
+
+<section class="band"><div class="wrap">
+ <div class="sec-head"><div><div class="eyebrow">Où va votre argent</div><h2 style="margin-top:6px">Le site ne garde pas l'argent</h2><p class="muted">Votre paiement passe par un prestataire agréé. Tribune enregistre la contribution, prélève une commission unique affichée avant de payer, et le club reçoit le reste selon les règles de la campagne.</p></div></div>
+ <div class="flow">
+  <div class="node"><div class="eyebrow">1 · Vous</div><h4>Vous donnez 20 $</h4><p class="small muted">Par Mobile Money, depuis votre téléphone.</p></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="node hl"><div class="eyebrow">2 · Prestataire de paiement</div><h4>Encaisse et confirme</h4><p class="small">Vous recevez un reçu par SMS. Tribune n'a jamais accès à votre compte Mobile Money.</p></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="node"><div class="eyebrow">3 · Votre club</div><h4 class="num">19 $ pour le projet</h4><p class="small muted num">1 $ (5 %) finance le fonctionnement de la plateforme : vérifications, support, sécurité.</p></div>
+ </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+ <div class="proof">
+  <div>
+    <div class="eyebrow">La preuve après le don</div>
+    <h2 style="margin-top:6px">Racing Ngaliema Dames : 16 240 $ collectés, 4 jalons sur 4 prouvés</h2>
+    <p class="muted" style="margin-top:12px">Chaque campagne financée publie ses jalons, ses factures et un rapport final. Si le club ne publie pas ses justificatifs à temps, nous suspendons ses futures campagnes.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px"><a class="btn btn-primary" href="#campagne" data-c="finale">Voir le rapport final</a></div>
+  </div>
+  <ol class="steps">${fin.miles.map((m,i)=>`<li class="done"><span class="dot">${i+1}</span><div><b>${esc(m[0])}</b></div><span class="when">${m[1]}</span></li>`).join("")}</ol>
+ </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+ <div class="proof" style="background:var(--pitch);color:var(--on-pitch);border:0" >
+  <div><div class="eyebrow" style="color:var(--gold)">Pour les clubs</div><h2 style="margin-top:6px">Votre club a un projet ? Proposez-le.</h2>
+  <p style="margin-top:12px;opacity:.9">Remplissez le dossier : objectif, budget détaillé, calendrier et jalons. Notre équipe vérifie l'identité du club et la cohérence du budget, en 6 jours en moyenne, puis vous aide à préparer la page.</p></div>
+  <div style="display:grid;gap:12px;align-content:center">
+   <div class="rules" style="opacity:.95"><div><span style="color:var(--gold)">✓</span><span>Aucun frais d'inscription, 5 % seulement sur les fonds collectés</span></div><div><span style="color:var(--gold)">✓</span><span>Si l'objectif n'est pas atteint, les supporters sont remboursés</span></div><div><span style="color:var(--gold)">✓</span><span>Versement au club par tranches, à chaque jalon prouvé</span></div></div>
+   <a class="btn btn-gold" href="#club" style="justify-self:start">Proposer une campagne</a>
+  </div>
+ </div>
+</div></section>`};
+
+V.campagnes=()=>`
+<div class="page-head on-pitch">${fieldSVG(.7)}<div class="wrap"><div class="eyebrow" style="color:var(--gold)">Catalogue</div><h1 style="margin-top:8px;font-size:clamp(2.2rem,5vw,3.2rem)">Toutes les campagnes</h1><p>Chaque campagne a été vérifiée par l'équipe Tribune avant publication : identité du club, budget et calendrier.</p></div></div>
+<div class="wrap page">
+ <div class="filters">
+  <input type="text" id="f-q" placeholder="Rechercher un club ou un projet" aria-label="Rechercher">
+  <select id="f-cat" aria-label="Thème"><option value="">Tous les thèmes</option>${[...new Set(campaigns.map(c=>c.cat))].map(c=>`<option>${c}</option>`).join("")}</select>
+  <select id="f-st" aria-label="Statut"><option value="">Tous les statuts</option><option value="publiee">En cours</option><option value="financee">Financées</option><option value="brouillon">Bientôt (prêts)</option></select>
+  <select id="f-type" aria-label="Type"><option value="">Dons et prêts</option><option>Don</option><option>Prêt</option></select>
+ </div>
+ <p class="small muted" id="f-count" style="margin-bottom:14px"></p>
+ <div class="grid" id="f-grid"></div>
+</div>`;
+function applyFilters(){const q=($("#f-q").value||"").toLowerCase(),cat=$("#f-cat").value,st=$("#f-st").value,ty=$("#f-type").value;
+ const list=campaigns.filter(c=>(!q||(c.title+clubs[c.club].name).toLowerCase().includes(q))&&(!cat||c.cat===cat)&&(!st||c.status===st)&&(!ty||c.type===ty));
+ $("#f-grid").innerHTML=list.map(card).join("")||`<p class="muted">Aucune campagne ne correspond. Essayez un autre thème ou effacez la recherche.</p>`;
+ $("#f-count").textContent=`${list.length} campagne${list.length>1?"s":""}`}
+
+V.campagne=()=>{const c=campaigns.find(x=>x.id===state.cid)||campaigns[0],k=clubs[c.club],p=pct(raisedOf(c),c.goal);
+ const done=c.miles.filter(m=>m[2]).length,open=c.status==="publiee";
+ return `
+<div class="camp-hero on-pitch">${fieldSVG(.6)}<div class="wrap">
+ <div class="crumbs"><a href="#campagnes">Campagnes</a> / ${esc(c.cat)}</div>
+ <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">${crest(c.club,52)}<div><div style="font-weight:700">${esc(k.name)}</div><div class="small" style="opacity:.8">${esc(k.where)} · fondé en ${k.since} · club vérifié</div></div></div>
+ <h1 style="margin-top:16px;font-size:clamp(2rem,4.6vw,3.2rem);max-width:22ch">${esc(c.title)}</h1>
+ <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">${pill(c.status)}<span class="tag" style="color:var(--on-pitch);border-color:var(--pitch-line)">${c.type}</span><span class="tag" style="color:var(--on-pitch);border-color:var(--pitch-line)">Du ${c.start} au ${c.end}</span></div>
+</div></div>
+<div class="wrap camp-layout">
+ <div>
+  <nav class="subnav" aria-label="Sections de la campagne"><a href="#campagne" data-jump="s-projet">Le projet</a><a href="#campagne" data-jump="s-budget">Budget</a><a href="#campagne" data-jump="s-jalons">Jalons et preuves</a><a href="#campagne" data-jump="s-news">Nouvelles (${c.news.length})</a><a href="#campagne" data-jump="s-registre">Registre (${regOfCamp(c.id).length})</a><a href="#campagne" data-jump="s-regles">Règles</a></nav>
+  <div class="block" id="s-projet"><h2>Le projet</h2><p>${esc(c.pitch)}</p></div>
+  <div class="block" id="s-budget"><h2>À quoi sert l'argent</h2>
+   <div class="alloc">${c.budget.map(b=>`<div class="row num"><span>${esc(b[0])}</span><b>${usd(b[1])}</b><div class="bar"><i style="width:${Math.round(b[1]/c.goal*100)}%"></i></div></div>`).join("")}
+   <div class="row num" style="border-top:1px solid var(--line);padding-top:10px"><b>Total du budget = objectif</b><b>${usd(c.goal)}</b></div></div>
+   <p class="small muted" style="margin-top:12px">Le budget a été vérifié par l'équipe Tribune avant publication. Tout changement de plus de 10 % sur une ligne doit être expliqué dans une nouvelle.</p>
+  </div>
+  <div class="block" id="s-jalons"><h2>Jalons et preuves</h2>
+   ${c.miles.length?`<p class="muted" style="margin-bottom:16px">${done} jalon${done>1?"s":""} sur ${c.miles.length} atteint${done>1?"s":""}. Le club reçoit l'argent par tranche, après la preuve de chaque jalon.</p>
+   <ol class="steps">${c.miles.map((m,i)=>{const now=!m[2]&&(i===0||c.miles[i-1][2]);return `<li class="${m[2]?"done":now?"now":""}"><span class="dot">${m[2]?"✓":i+1}</span><div><b>${esc(m[0])}</b><span class="small muted">${m[2]?"Preuve publiée":now?"Étape en cours":"À venir"}</span></div><span class="when">${m[1]}</span></li>`}).join("")}</ol>`:`<p class="muted">Les jalons seront publiés à l'ouverture de la campagne.</p>`}
+   ${c.docs.length?`<h4 style="margin:18px 0 10px">Documents publiés</h4><div class="docs">${c.docs.map(d=>`<div class="doc"><span class="ic">${d[0]}</span><span>${esc(d[1])}</span></div>`).join("")}</div>`:""}
+  </div>
+  <div class="block" id="s-news"><h2>Nouvelles du club</h2>
+   ${c.news.length?c.news.map(n=>`<div class="update"><span class="small muted">${n[0]} · publiée après revue Tribune</span><h4>${esc(n[1])}</h4><p>${esc(n[2])}</p></div>`).join(""):`<p class="muted">Pas encore de nouvelle.</p>`}
+  </div>
+  <div class="block" id="s-registre"><h2>Registre des contributions</h2>
+   <p class="muted" style="margin-bottom:14px">Chaque contribution est rattachée à un supporter inscrit et identifié. Les noms sont abrégés ici ; l'identité complète est conservée dans le registre tenu par l'administration.</p>
+   ${(()=>{const rows=regOfCamp(c.id);if(!reg.ready)return `<p class="muted">Chargement du registre…</p>`;
+     if(!rows.length)return `<div class="panel" style="text-align:center"><p><b>Aucune contribution enregistrée pendant la démonstration.</b></p><p class="small muted" style="margin-top:6px">${open?"Inscrivez-vous et contribuez : votre contribution apparaîtra ici avec sa référence.":"Cette campagne est clôturée."}</p></div>`;
+     return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Supporter</th><th>Référence</th><th class="r">Montant</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="num small" style="white-space:nowrap">${fmtDate(r.createdAt)}</td><td>${esc(shortName(r))}</td><td class="num small">${esc(r.ref)}</td><td class="r num"><b>${usd(r.montant)}</b></td></tr>`).join("")}</tbody></table></div>
+     <p class="small muted" style="margin-top:8px">Les montants affichés plus haut incluent aussi les contributions fictives d'avant la démonstration.</p>`})()}
+  </div>
+  <div class="block" id="s-regles"><h2>Les règles de cette campagne</h2>
+   <div class="rules">
+    <div><span class="ck">✓</span><span><b>Tout ou rien.</b> Si l'objectif n'est pas atteint le ${c.end}, chaque supporter est remboursé sur son moyen de paiement.</span></div>
+    <div><span class="ck">✓</span><span><b>Commission unique de 5 %</b> sur les fonds collectés, pour le fonctionnement de la plateforme. Aucun autre frais pour le supporter.</span></div>
+    <div><span class="ck">✓</span><span><b>Versement par tranches</b> au club, jalon par jalon, après vérification des justificatifs.</span></div>
+    <div><span class="ck">✓</span><span><b>Nouvelles au moins une fois par mois</b> jusqu'à la clôture, avec un rapport final et les factures.</span></div>
+    <div><span class="ck">✓</span><span><b>Suspension possible</b> de la campagne en cas de doute sérieux, avec information de tous les supporters.</span></div>
+   </div>
+  </div>
+ </div>
+ <aside class="side">
+  <div class="panel">
+   ${c.status==="brouillon"?`<h3>Campagne en prêt</h3><p class="muted">Les prêts ouvriront à l'étape 3 de la plateforme, avec un échéancier, un suivi des remboursements et une information claire sur les risques. Objectif prévu : <b>${usd(c.goal)}</b>.</p><button class="btn btn-ghost" style="width:100%;margin-top:14px" data-toast="Nous vous préviendrons par SMS à l'ouverture.">Me prévenir à l'ouverture</button>`:`
+   <div class="big num">${usd(raisedOf(c))}</div>
+   <p class="muted num" style="margin:4px 0 12px">collectés sur un objectif de ${usd(c.goal)}</p>
+   <div class="bar"><i style="width:${p}%"></i></div>
+   <div class="split3 num" style="margin-top:16px;text-align:center">
+    <div><div class="big" style="font-size:1.6rem">${pct(raisedOf(c),c.goal)} %</div><div class="small muted">atteints</div></div>
+    <div><div class="big" style="font-size:1.6rem">${backersOf(c)}</div><div class="small muted">supporters</div></div>
+    <div><div class="big" style="font-size:1.6rem">${c.days}</div><div class="small muted">jours restants</div></div>
+   </div>
+   ${open?`<a class="btn btn-primary" style="width:100%;margin-top:18px" href="#contribuer" data-c="${c.id}">Contribuer</a><p class="small muted" style="margin-top:10px;text-align:center">Mobile Money · reçu par SMS · remboursé si l'objectif n'est pas atteint</p>`:`<p class="small" style="margin-top:16px"><b>Campagne financée et clôturée.</b> Tous les justificatifs sont publiés.</p>`}`}
+  </div>
+  <div class="panel"><h4 style="margin-bottom:8px">Un problème avec cette campagne ?</h4><p class="small muted">Signalez-le à l'équipe Tribune. Chaque signalement est lu par la chargée de conformité sous 48 h.</p><button class="btn btn-ghost btn-sm" style="margin-top:12px" data-toast="Signalement envoyé à l'équipe conformité.">Signaler</button></div>
+ </aside>
+</div>`};
+
+function gateView(title,why){return `
+ <div class="split half">
+  <div class="panel" style="display:grid;gap:14px;align-content:start">
+   <div class="eyebrow">Nouveau supporter</div><h2 style="font-size:1.8rem">${title}</h2>
+   <p class="muted">${why}</p>
+   <a class="btn btn-primary" href="#inscription" style="justify-self:start">Créer mon compte supporter</a>
+  </div>
+  <form class="panel form" id="loginform" novalidate>
+   <div class="eyebrow">Déjà inscrit</div><h2 style="font-size:1.8rem">Me reconnecter</h2>
+   <div class="field"><label for="login-tel">Numéro de téléphone utilisé à l'inscription</label><input type="tel" id="login-tel" placeholder="+243 81 000 0000" autocomplete="tel"><div class="hint">Dans la vraie plateforme, un code de confirmation serait envoyé par SMS.</div></div>
+   <p class="small" id="login-err" style="color:var(--bad)" hidden></p>
+   <button class="btn btn-ghost" type="submit">Me reconnecter</button>
+  </form>
+ </div>`}
+
+V.contribuer=()=>{const c=campaigns.find(x=>x.id===state.cid&&x.status==="publiee")||campaigns[0];const k=clubs[c.club];
+ if(state.paid) return paidView(c);
+ const head=`<div class="crumbs muted"><a href="#campagne" data-c="${c.id}">← Retour à la campagne</a></div>
+ <h1 style="font-size:clamp(2rem,4.5vw,2.8rem);margin:10px 0 6px">Contribuer</h1>
+ <p class="muted" style="margin-bottom:20px">${esc(k.name)} · ${esc(c.title)}</p>`;
+ const m=me();
+ if(!reg.ready) return `<div class="wrap page" style="max-width:1000px">${head}<p class="muted">Chargement du registre des supporters…</p></div>`;
+ if(!m){state.afterReg="contribuer";return `<div class="wrap page" style="max-width:1000px">${head}
+  <div class="stepper"><span class="on">1 · Inscription</span><span>2 · Montant</span><span>3 · Paiement</span><span>4 · Reçu</span></div>
+  ${gateView("Inscrivez-vous pour contribuer","Chaque contribution est rattachée à un supporter identifié. C'est ce qui permet de retracer chaque dollar, de vous envoyer votre reçu et de vous rembourser si l'objectif n'est pas atteint.")}</div>`}
+ return `
+<div class="wrap page" style="max-width:1000px">${head}
+ <div class="stepper"><span class="done">1 · Inscription ✓</span><span class="on">2 · Montant</span><span class="on">3 · Paiement</span><span>4 · Reçu</span></div>
+ <div class="split">
+  <form class="form panel" id="payform" novalidate>
+   <div class="note info"><b class="ic">●</b><span>Contribution enregistrée au nom de <b>${esc(m.prenom)} ${esc(m.nom)}</b> · identifiant <b class="num">${esc(m.id)}</b> · ${esc(maskTel(m.telephone))}. <a href="#compte" data-logout="1">Ce n'est pas vous ?</a></span></div>
+   <div class="field"><label>Type de contribution</label>
+    <div class="chips"><button type="button" class="chip" aria-pressed="true">Don</button><button type="button" class="chip" disabled title="Disponible à l'étape 3">Prêt · bientôt</button></div></div>
+   <div class="field"><label for="amt">Montant (USD)</label>
+    <div class="chips" id="presets">${[5,10,25,50,100].map(v=>`<button type="button" class="chip" data-amt="${v}" aria-pressed="${state.amount===v}">${v} $</button>`).join("")}</div>
+    <input type="number" id="amt" min="1" step="1" value="${state.amount}" style="margin-top:10px" inputmode="decimal">
+    <div class="hint">Montant minimum : 1 $. Vous pouvez aussi payer en francs congolais, converti au taux du jour du prestataire.</div></div>
+   <div id="kyc"></div>
+   <label class="check"><input type="checkbox" id="anon"><span>Ne pas afficher mon nom sur la page publique. Vous restez identifié dans le registre.</span></label>
+   <div class="field"><label>Moyen de paiement</label>
+    <div class="pay">
+     <label><input type="radio" name="pm" value="mm" checked><span><b>Mobile Money</b><br><span class="small muted">Débité sur le ${esc(maskTel(m.telephone))}</span></span><span class="tag">Recommandé</span></label>
+     <label class="off"><input type="radio" name="pm" value="card" disabled><span><b>Carte bancaire</b><br><span class="small muted">Visa, Mastercard</span></span><span class="tag">Étape 2</span></label>
+    </div>
+    <select id="op" aria-label="Opérateur Mobile Money" style="margin-top:10px"><option>M-Pesa</option><option>Orange Money</option><option>Airtel Money</option></select></div>
+   <label class="check"><input type="checkbox" id="cgu"><span>J'ai lu les <a href="#fonctionnement">règles de la campagne</a> : tout ou rien, commission de 5 %, remboursement si l'objectif n'est pas atteint.</span></label>
+   <p class="small" id="err" style="color:var(--bad)" hidden></p>
+   <button class="btn btn-primary" type="submit" id="go">Continuer vers le paiement sécurisé</button>
+   <p class="small muted">Vous allez confirmer le paiement sur la page du prestataire. Tribune ne voit jamais votre code secret.</p>
+  </form>
+  <aside class="side">
+   <div class="panel"><h3>Récapitulatif</h3><div class="recap num" id="recap"></div></div>
+   <div class="note info"><b class="ic">i</b><span id="cumul-note"></span></div>
+  </aside>
+ </div>
+</div>`};
+function needsKyc(m,a){return m&&m.kycNiveau<2&&cumulOf(m.id)+a>KYC_SEUIL}
+function refreshPay(){if(!$("#amt"))return;const m=me();const a=Math.max(0,parseFloat($("#amt").value)||0);state.amount=a;
+ const fee=round2(a*COMMISSION);
+ $("#recap").innerHTML=`<div><span>Votre contribution</span><b>${usd(a)}</b></div><div><span>Commission Tribune (5 %)</span><span>− ${usd(fee)}</span></div><div class="tot"><span>Reçu par le club</span><span>${usd(round2(a-fee))}</span></div><div class="small muted"><span>Débité sur votre téléphone</span><span>${usd(a)}</span></div>`;
+ document.querySelectorAll("#presets .chip").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.amt===a)));
+ $("#cumul-note").innerHTML=`Votre cumul enregistré : <b class="num">${usd(cumulOf(m.id))}</b>. Niveau de vérification ${m.kycNiveau}${m.kycNiveau<2?` : au-delà de ${usd(KYC_SEUIL)} cumulés, nous vous demandons une pièce d'identité.`:` (${esc(m.kycStatut)}).`}`;
+ const over=needsKyc(m,a),box=$("#kyc");
+ if(box.dataset.over===String(over))return;box.dataset.over=String(over);
+ box.innerHTML=over?`<div class="note warn" style="margin-bottom:12px"><b class="ic">!</b><span><b>Vérification d'identité requise.</b> Avec ce montant, votre cumul dépasse ${usd(KYC_SEUIL)}. La pièce reste confidentielle : seule l'équipe conformité la consulte.</span></div>
+  <div class="two"><div class="field"><label for="kyc-type">Type de pièce</label><select id="kyc-type"><option>Carte d'électeur</option><option>Passeport</option><option>Permis de conduire</option></select></div>
+  <div class="field"><label for="kyc-num">Numéro de la pièce</label><input type="text" id="kyc-num" autocomplete="off"><div class="hint">Seuls les 4 derniers chiffres sont conservés dans cette maquette.</div></div></div>`:""}
+function paidView(c){const r=state.paid,m=me();return `
+<div class="wrap page" style="max-width:640px"><div class="panel success">
+ <div class="tick">✓</div>
+ <h1 style="font-size:2.4rem">Merci, ${esc(m?m.prenom:"")} !</h1>
+ <p>Votre contribution de <b class="num">${usd(r.a)}</b> à « ${esc(c.title)} » est confirmée et inscrite au registre.</p>
+ <div class="recap num" style="width:100%;max-width:400px;text-align:left"><div><span>Reçu n°</span><b>${esc(r.ref)}</b></div><div><span>Supporter</span><span>${esc(m?m.id:"")}</span></div><div><span>Pour le club</span><span>${usd(round2(r.a*.95))}</span></div><div><span>Commission (5 %)</span><span>${usd(round2(r.a*.05))}</span></div><div><span>Reçu envoyé par SMS au</span><span>${esc(m?maskTel(m.telephone):"")}</span></div></div>
+ <p class="small muted">Vous recevrez les nouvelles du club et une alerte à chaque jalon. Si l'objectif n'est pas atteint, vous serez remboursé automatiquement.</p>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><a class="btn btn-primary" href="#compte">Voir mes contributions</a><a class="btn btn-ghost" href="#campagne" data-c="${c.id}" data-reset="1">Retour à la campagne</a></div>
+</div></div>`}
+
+V.inscription=()=>`
+<div class="page-head on-pitch">${fieldSVG(.6)}<div class="wrap"><div class="eyebrow" style="color:var(--gold)">Inscription</div><h1 style="margin-top:8px;font-size:clamp(2.2rem,5vw,3.2rem)">Devenir supporter inscrit</h1><p>Votre compte relie chacune de vos contributions à votre nom. C'est la garantie que l'argent peut être retracé, du paiement jusqu'au club.</p></div></div>
+<div class="wrap page">
+ <div class="split">
+  <form class="panel form" id="regform" novalidate>
+   <div class="two">
+    <div class="field"><label for="r-prenom">Prénom</label><input type="text" id="r-prenom" autocomplete="given-name"></div>
+    <div class="field"><label for="r-nom">Nom</label><input type="text" id="r-nom" autocomplete="family-name"></div>
+   </div>
+   <div class="two">
+    <div class="field"><label for="r-tel">Téléphone (Mobile Money)</label><input type="tel" id="r-tel" placeholder="+243 81 000 0000" autocomplete="tel"><div class="hint">Sert à payer, à recevoir le reçu et à vous reconnecter.</div></div>
+    <div class="field"><label for="r-mail">E-mail (facultatif)</label><input type="email" id="r-mail" autocomplete="email"></div>
+   </div>
+   <div class="two">
+    <div class="field"><label for="r-profil">Vous vivez</label><select id="r-profil"><option>En RDC</option><option>Hors de RDC (diaspora)</option></select></div>
+    <div class="field"><label for="r-pays">Pays et ville</label><input type="text" id="r-pays" placeholder="RDC, Kinshasa"></div>
+   </div>
+   <div class="field"><label for="r-club">Club que vous suivez</label><select id="r-club">${Object.entries(clubs).map(([k,c])=>`<option value="${k}">${esc(c.name)}</option>`).join("")}<option value="">Aucun en particulier</option></select></div>
+   <label class="check"><input type="checkbox" id="r-ok"><span>J'accepte que Tribune conserve mon identité et l'historique de mes contributions pour la traçabilité des fonds et les obligations de vigilance. Mes coordonnées ne sont jamais publiées.</span></label>
+   <label class="check"><input type="checkbox" id="r-news" checked><span>Recevoir les nouvelles des campagnes que je soutiens</span></label>
+   <p class="small" id="r-err" style="color:var(--bad)" hidden></p>
+   <button class="btn btn-primary" type="submit" id="r-go">Créer mon compte</button>
+  </form>
+  <aside style="display:grid;gap:16px">
+   <div class="panel"><h3>Ce que nous enregistrons</h3><div class="rules">
+    <div><span class="ck">✓</span><span>Un identifiant unique (SUP-…) attribué à l'inscription</span></div>
+    <div><span class="ck">✓</span><span>La date de votre consentement</span></div>
+    <div><span class="ck">✓</span><span>Chaque contribution : date, campagne, montant, commission, référence de paiement</span></div>
+    <div><span class="ck">✓</span><span>Au-delà de ${usd(KYC_SEUIL)} cumulés : le type de pièce d'identité</span></div>
+   </div></div>
+   <div class="panel"><h3>Déjà inscrit ?</h3><form class="form" id="loginform" novalidate>
+    <div class="field"><label for="login-tel">Votre numéro</label><input type="tel" id="login-tel" placeholder="+243 81 000 0000"></div>
+    <p class="small" id="login-err" style="color:var(--bad)" hidden></p>
+    <button class="btn btn-ghost btn-sm" type="submit">Me reconnecter</button></form></div>
+  </aside>
+ </div>
+</div>`;
+
+V.compte=()=>{const m=me();
+ if(!reg.ready) return `<div class="wrap page"><p class="muted">Chargement du registre…</p></div>`;
+ if(!m){state.afterReg="compte";return `<div class="wrap page"><h1 style="font-size:clamp(2rem,4.5vw,2.8rem);margin-bottom:20px">Mon compte</h1>${gateView("Vous n'êtes pas encore inscrit","Créez votre compte en une minute pour contribuer, recevoir vos reçus et suivre les campagnes que vous soutenez.")}</div>`}
+ const mine=contribsOf(m.id),initials=(m.prenom[0]+m.nom[0]).toUpperCase();
+ return `
+<div class="page-head on-pitch">${fieldSVG(.6)}<div class="wrap" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><div class="avatar" style="width:64px;height:64px;font-size:1.3rem">${esc(initials)}</div><div><div class="eyebrow" style="color:var(--gold)">Supporter inscrit · <span class="num">${esc(m.id)}</span></div><h1 style="font-size:clamp(2rem,4.5vw,2.8rem);margin-top:4px">${esc(m.prenom)} ${esc(m.nom)}</h1></div></div></div>
+<div class="wrap page">
+ <div class="kpis" style="margin-top:0">
+  <div class="kpi"><div class="l">Total contribué</div><div class="v num">${usd(cumulOf(m.id))}</div><div class="d">inscrit le ${fmtDate(m.createdAt,false)}</div></div>
+  <div class="kpi"><div class="l">Contributions</div><div class="v num">${mine.length}</div><div class="d">sur ${new Set(mine.map(x=>x.campagneId)).size} campagne(s)</div></div>
+  <div class="kpi"><div class="l">Vérification d'identité</div><div class="v">Niveau ${m.kycNiveau}</div><div class="d">${esc(m.kycStatut)}</div></div>
+ </div>
+ <div class="split">
+  <div style="display:grid;gap:28px">
+   <div><h2 style="font-size:1.8rem;margin-bottom:12px">Mes contributions</h2>
+    ${mine.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Campagne</th><th class="r">Montant</th><th class="r">Au club</th><th>Reçu</th></tr></thead><tbody>
+    ${mine.map(h=>`<tr><td class="num small" style="white-space:nowrap">${fmtDate(h.createdAt)}</td><td><a href="#campagne" data-c="${h.campagneId}">${esc(h.campagneTitre)}</a></td><td class="r num"><b>${usd(h.montant)}</b></td><td class="r num">${usd(h.netClub)}</td><td class="num small"><button class="btn btn-ghost btn-sm" data-toast="Reçu ${esc(h.ref)} renvoyé par SMS.">${esc(h.ref)}</button></td></tr>`).join("")}
+    </tbody></table></div>`:`<div class="panel" style="text-align:center"><p><b>Pas encore de contribution.</b></p><p class="small muted" style="margin:6px 0 14px">Choisissez une campagne : votre première contribution apparaîtra ici avec son reçu.</p><a class="btn btn-primary btn-sm" href="#campagnes">Voir les campagnes</a></div>`}</div>
+  </div>
+  <aside style="display:grid;gap:16px">
+   <div class="panel"><h3>Mes informations</h3><div class="recap small">
+    <div><span class="muted">Identifiant</span><b class="num">${esc(m.id)}</b></div>
+    <div><span class="muted">Téléphone</span><span>${esc(m.telephone)}</span></div>
+    <div><span class="muted">E-mail</span><span>${esc(m.email||"—")}</span></div>
+    <div><span class="muted">Profil</span><span>${esc(m.profil)}</span></div>
+    <div><span class="muted">Pays et ville</span><span>${esc(m.pays||"—")}</span></div>
+    <div><span class="muted">Consentement</span><span>${fmtDate(m.consentAt,false)}</span></div>
+   </div><button class="btn btn-ghost btn-sm" style="margin-top:14px" data-logout="1">Me déconnecter</button></div>
+   <div class="panel"><h3>Mes données</h3><p class="small muted">Nous gardons seulement ce qui est nécessaire : identité, contributions, reçus. Votre pièce d'identité n'est jamais publiée.</p><button class="btn btn-ghost btn-sm" style="margin-top:12px" data-toast="Demande enregistrée. Réponse sous 30 jours.">Demander mes données</button></div>
+  </aside>
+ </div>
+</div>`};
+
+V.club=()=>{const k=clubs.esk;const mine=campaigns.filter(c=>c.club==="esk");return `
+<div class="page-head on-pitch">${fieldSVG(.6)}<div class="wrap" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">${crest("esk",56)}<div><div class="eyebrow" style="color:var(--gold)">Espace club · vérifié</div><h1 style="font-size:clamp(2rem,4.5vw,2.8rem);margin-top:4px">${esc(k.name)}</h1></div></div></div>
+<div class="wrap page">
+ <h2 style="font-size:1.8rem;margin-bottom:12px">Mes campagnes</h2>
+ <div class="tbl-wrap" style="margin-bottom:36px"><table><thead><tr><th>Campagne</th><th>Statut</th><th class="r">Collecté</th><th class="r">Objectif</th><th>Prochaine obligation</th></tr></thead><tbody>
+  ${mine.map(c=>`<tr><td><a href="#campagne" data-c="${c.id}">${esc(c.title)}</a></td><td>${pill(c.status)}</td><td class="r num">${usd(raisedOf(c))}</td><td class="r num">${usd(c.goal)}</td><td class="small">${c.status==="publiee"?"Nouvelle mensuelle avant le 26 oct.":"Rapport final publié"}</td></tr>`).join("")}
+  ${state.clubDrafts?state.clubDrafts.map(d=>`<tr><td>${esc(d.t)}</td><td>${pill("revue")}</td><td class="r num">—</td><td class="r num">${usd(d.g)}</td><td class="small">Instruction par l'équipe Tribune (6 jours en moyenne)</td></tr>`).join(""):""}
+ </tbody></table></div>
+ <div class="split">
+  <form class="panel form" id="clubform" novalidate>
+   <div><div class="eyebrow">Nouveau dossier</div><h2 style="font-size:1.8rem;margin-top:4px">Proposer une campagne</h2><p class="small muted" style="margin-top:6px">Le dossier est vérifié avant publication. Un dossier incomplet vous est renvoyé avec la liste de ce qui manque.</p></div>
+   <div class="field"><label for="c-t">Titre du projet</label><input type="text" id="c-t" placeholder="Ex. : Tenues pour l'équipe U17"></div>
+   <div class="two">
+    <div class="field"><label for="c-cat">Thème</label><select id="c-cat"><option>Infrastructure</option><option>Formation des jeunes</option><option>Déplacement</option><option>Transport</option><option>Santé</option><option>Équipement</option></select></div>
+    <div class="field"><label for="c-type">Type</label><select id="c-type"><option>Don</option><option disabled>Prêt (étape 3)</option></select></div>
+   </div>
+   <div class="field"><label for="c-d">Description</label><textarea id="c-d" placeholder="Le problème, ce que vous allez faire, qui en profite."></textarea></div>
+   <div class="two">
+    <div class="field"><label for="c-g">Objectif (USD)</label><input type="number" id="c-g" min="500" placeholder="6 500"><div class="hint">Égal au total du budget détaillé.</div></div>
+    <div class="field"><label for="c-e">Date de clôture souhaitée</label><input type="date" id="c-e"><div class="hint">Entre 2 et 10 semaines.</div></div>
+   </div>
+   <div class="field"><label for="c-b">Budget détaillé</label><textarea id="c-b" placeholder="Une ligne par poste : Maillots (40) — 2 400 $"></textarea></div>
+   <div class="field"><label for="c-j">Jalons et dates</label><textarea id="c-j" placeholder="Une ligne par jalon : Commande passée — 15 nov."></textarea></div>
+   <div class="field"><label for="c-f">Pièces justificatives</label><input type="file" id="c-f" multiple><div class="hint">Devis, statuts du club, pièce d'identité du président et preuve de son mandat.</div></div>
+   <label class="check"><input type="checkbox" id="c-ok"><span>Le club s'engage à publier une nouvelle par mois et les justificatifs de chaque jalon.</span></label>
+   <p class="small" id="c-err" style="color:var(--bad)" hidden></p>
+   <button class="btn btn-primary" type="submit">Envoyer le dossier</button>
+  </form>
+  <aside style="display:grid;gap:16px">
+   <div class="panel"><h3>Ce qui se passe ensuite</h3><ol class="steps">
+    <li class="now"><span class="dot">1</span><div><b>Recevabilité</b><span class="small muted">Dossier complet ?</span></div><span></span></li>
+    <li><span class="dot">2</span><div><b>Vérification</b><span class="small muted">Identité du club, budget, faisabilité</span></div><span></span></li>
+    <li><span class="dot">3</span><div><b>Préparation de la page</b><span class="small muted">Avec l'équipe Tribune</span></div><span></span></li>
+    <li><span class="dot">4</span><div><b>Publication</b><span class="small muted">Et début de la collecte</span></div><span></span></li>
+   </ol></div>
+   <div class="panel"><h3>Publier une nouvelle</h3><div class="form">
+    <div class="field"><label for="u-c">Campagne</label><select id="u-c">${mine.filter(c=>c.status==="publiee").map(c=>`<option>${esc(c.title)}</option>`).join("")}</select></div>
+    <div class="field"><label for="u-t">Texte</label><textarea id="u-t" placeholder="Où en est le projet ? Joignez des photos."></textarea></div>
+    <button class="btn btn-ghost btn-sm" data-toast="Nouvelle envoyée. Elle sera publiée après revue.">Envoyer pour revue</button>
+    <p class="small muted">Chaque nouvelle est relue par Tribune avant publication.</p></div></div>
+  </aside>
+ </div>
+</div>`};
+
+/* ---------- back-office ---------- */
+const boTabs=[["dashboard","Tableau de bord"],["registre","Registre des contributeurs"],["instruction","Instruction des dossiers"],["campagnes","Campagnes"],["flux","Transactions et rapprochement"],["alertes","Alertes conformité"],["commission","Commission et ventilation"],["journal","Journal d'audit"]];
+V.admin=()=>{const open=state.alerts.filter(a=>a.status==="ouverte").length;return `
+<div class="bo">
+ <aside aria-label="Menu back-office"><div class="eyebrow">Back-office · Administrateur</div>
+  ${boTabs.map(([k,l])=>`<button type="button" data-tab="${k}" aria-current="${state.adminTab===k}">${l}${k==="alertes"&&open?`<span class="count">${open}</span>`:""}${k==="instruction"?`<span class="count" style="background:var(--info)">${state.pipeline.filter(p=>p.status==="revue").length}</span>`:""}${k==="registre"&&reg.contributeurs.length?`<span class="count" style="background:var(--ok)">${reg.contributeurs.length}</span>`:""}</button>`).join("")}
+ </aside>
+ <main>${BO[state.adminTab]()}</main>
+</div>`};
+const BO={};
+BO.dashboard=()=>{const wk=[1840,2310,1990,2760,3120,2480,3910,4390];const max=5000,W=560,H=180,bw=44;
+ return `<h2>Tableau de bord</h2><p class="muted">Septembre 2026 · les deux premiers indicateurs viennent du registre, en direct</p>
+ <div class="kpis">
+  <div class="kpi"><div class="l">Supporters inscrits (registre)</div><div class="v num">${reg.contributeurs.length}</div><div class="d">${reg.contributeurs.filter(c=>c.kycStatut==="à vérifier").length} identité(s) à vérifier</div></div>
+  <div class="kpi"><div class="l">Contributions enregistrées</div><div class="v num">${reg.contributions.length}</div><div class="d">${usd(round2(reg.contributions.reduce((s,c)=>s+c.montant,0)))} au total</div></div>
+  <div class="kpi"><div class="l">Collecté ce mois</div><div class="v num">18 420 $</div><div class="d">+22 % vs août</div></div>
+  <div class="kpi"><div class="l">Campagnes actives</div><div class="v num">3</div><div class="d">2 dossiers en instruction</div></div>
+  <div class="kpi"><div class="l">Taux de réussite</div><div class="v num">78 %</div><div class="d">campagnes clôturées en 2026</div></div>
+  <div class="kpi"><div class="l">Délai d'instruction</div><div class="v num">6 j</div><div class="d">moyenne sur 90 jours</div></div>
+  <div class="kpi ${state.alerts.some(a=>a.status==="ouverte"&&a.sev==="elevee")?"alert":""}"><div class="l">Alertes ouvertes</div><div class="v num">${state.alerts.filter(a=>a.status==="ouverte").length}</div><div class="d">dont ${state.alerts.filter(a=>a.status==="ouverte"&&a.sev==="elevee").length} élevée</div></div>
+  <div class="kpi"><div class="l">Disponibilité du site</div><div class="v num">99,7 %</div><div class="d">cible contrat : 99,5 % · 0 incident P1</div></div>
+ </div>
+ <div class="panel"><h3>Collecte par semaine</h3><div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H+30}" width="100%" style="min-width:420px;max-width:${W}px" role="img" aria-label="Collecte hebdomadaire des 8 dernières semaines">
+  ${[0,2500,5000].map(v=>{const y=10+H-v/max*H;return `<line class="g" x1="44" x2="${W}" y1="${y}" y2="${y}"/><text x="38" y="${y+4}" text-anchor="end">${v.toLocaleString("fr-FR")} $</text>`}).join("")}
+  ${wk.map((v,i)=>{const h=v/max*H,x=64+i*62;return `<rect class="b ${i===wk.length-1?"last":""}" x="${x}" y="${10+H-h}" width="${bw}" height="${h}" rx="3"/><text x="${x+bw/2}" y="${H+26}" text-anchor="middle">S${32+i}</text>${i===wk.length-1?`<text x="${x+bw/2}" y="${10+H-h-6}" text-anchor="middle" style="fill:var(--ink);font-weight:700">${v.toLocaleString("fr-FR")} $</text>`:""}`}).join("")}
+ </svg></div></div>`};
+BO.instruction=()=>`<h2>Instruction des dossiers</h2><p class="muted" style="margin-bottom:18px">Aucun dossier n'est publié sans vérification de l'identité du club, du budget et des jalons. Les décisions sont enregistrées dans le journal d'audit.</p>
+ <div class="tbl-wrap"><table><thead><tr><th>Dossier</th><th>Club / projet</th><th class="r">Objectif</th><th>Identité (KYB)</th><th>Budget</th><th>Jalons</th><th>Statut</th><th>Décision</th></tr></thead><tbody>
+ ${state.pipeline.map((p,i)=>{const ok=v=>v?`<span style="color:var(--ok);font-weight:700">✓ OK</span>`:`<span style="color:var(--warn);font-weight:700">À compléter</span>`;const all=p.id_ok&&p.budget_ok&&p.jalons_ok;
+  return `<tr><td class="num">${p.id}<div class="small muted">reçu le ${p.recu}</div></td><td><b>${esc(clubs[p.club].name)}</b><div class="small">${esc(p.projet)}</div></td><td class="r num">${usd(p.goal)}</td><td>${ok(p.id_ok)}</td><td>${ok(p.budget_ok)}</td><td>${ok(p.jalons_ok)}</td><td>${pill(p.status)}</td>
+  <td>${p.status==="revue"||p.status==="ajournee"?`<div class="acts"><button class="btn btn-primary btn-sm" data-dec="valider" data-i="${i}" ${all?"":"disabled title=\"Check-list incomplète\""}>Valider</button><button class="btn btn-ghost btn-sm" data-dec="ajourner" data-i="${i}">Ajourner</button><button class="btn btn-ghost btn-sm" data-dec="refuser" data-i="${i}">Refuser</button></div>`:`<span class="small muted">Décision prise</span>`}</td></tr>`}).join("")}
+ </tbody></table></div>
+ <div class="note info" style="margin-top:16px"><b class="ic">i</b><span>Un objectif supérieur à 20 000 $ ou une campagne en prêt demande une revue conformité systématique et la validation du gérant.</span></div>`;
+BO.campagnes=()=>`<h2>Campagnes</h2><p class="muted" style="margin-bottom:18px">Publier, suspendre ou clôturer. Toute action est journalisée.</p>
+ <div class="tbl-wrap"><table><thead><tr><th>Campagne</th><th>Club</th><th>Statut</th><th class="r">Collecté</th><th class="r">%</th><th>Clôture</th><th>Justificatifs</th><th>Actions</th></tr></thead><tbody>
+ ${campaigns.map((c,i)=>`<tr><td><a href="#campagne" data-c="${c.id}">${esc(c.title)}</a></td><td class="small">${esc(clubs[c.club].name)}</td><td>${pill(c.status)}</td><td class="r num">${usd(raisedOf(c))}</td><td class="r num">${pct(raisedOf(c),c.goal)} %</td><td class="small num">${c.end}</td><td class="small">${c.miles.filter(m=>m[2]).length}/${c.miles.length} jalons</td>
+ <td>${c.status==="publiee"?`<button class="btn btn-ghost btn-sm" data-susp="${i}">Suspendre</button>`:c.status==="suspendue"?`<button class="btn btn-ghost btn-sm" data-unsusp="${i}">Réactiver</button>`:`<span class="small muted">—</span>`}</td></tr>`).join("")}
+ </tbody></table></div>`;
+BO.flux=()=>{const rows=[["29 sept.",2140,2140],["28 sept.",1875,1875],["27 sept.",3310,3285],["26 sept.",2960,2960],["25 sept.",1420,1420]];
+ return `<h2>Transactions et rapprochement</h2><p class="muted" style="margin-bottom:18px">Chaque jour, le total encaissé par le prestataire de paiement est comparé au total enregistré par la plateforme. Un écart supérieur à 0,5 % ouvre un incident.</p>
+ <div class="tbl-wrap"><table><thead><tr><th>Jour</th><th class="r">Prestataire</th><th class="r">Plateforme</th><th class="r">Écart</th><th>Statut</th><th>Validé par</th></tr></thead><tbody>
+ ${rows.map(r=>{const d=r[1]-r[2];return `<tr><td class="num">${r[0]}</td><td class="r num">${usd(r[1])}</td><td class="r num">${usd(r[2])}</td><td class="r num" style="${d?"color:var(--warn);font-weight:700":""}">${d?usd(d):"0 $"}</td><td>${d?`<span class="pill s-moyenne">Expliqué</span>`:`<span class="pill s-publiee">Rapproché</span>`}</td><td class="small">${d?"Paiement confirmé après minuit, reporté au 28 sept.":"Chargé opérations"}</td></tr>`}).join("")}
+ </tbody></table></div>
+ <h3 style="margin:28px 0 12px">Dernières contributions (registre)</h3>
+ ${reg.contributions.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Référence</th><th>Supporter</th><th>Campagne</th><th>Opérateur</th><th class="r">Montant</th><th class="r">Commission</th><th>État</th></tr></thead><tbody>
+ ${reg.contributions.slice(0,15).map(t=>`<tr><td class="num small" style="white-space:nowrap">${fmtDate(t.createdAt)}</td><td class="num small">${esc(t.ref)}</td><td class="small"><a href="#admin" data-sel="${esc(t.contributeurId)}">${esc(t.contributeurId)}</a><br>${esc(t.contributeurNom)}</td><td class="small">${esc(t.campagneTitre)}</td><td>${esc(t.operateur)}</td><td class="r num">${usd(t.montant)}</td><td class="r num">${usd(t.commission)}</td><td><span class="pill s-publiee">${esc(t.statut)}</span></td></tr>`).join("")}
+ </tbody></table></div>`:`<div class="panel" style="text-align:center"><p><b>Aucune contribution enregistrée.</b></p><p class="small muted">Elles apparaissent ici dès qu'un supporter inscrit contribue.</p></div>`}`};
+BO.registre=()=>`<h2>Registre des contributeurs</h2><p class="muted" style="margin-bottom:16px">Chaque supporter inscrit, son identifiant, son niveau de vérification et toutes ses contributions. C'est la base de la traçabilité présentée aux investisseurs et partenaires.</p>
+ ${syncNote()}
+ <div class="kpis" style="margin-top:0">
+  <div class="kpi"><div class="l">Supporters inscrits</div><div class="v num">${reg.contributeurs.length}</div><div class="d">dont ${reg.contributeurs.filter(c=>/diaspora/i.test(c.profil)).length} de la diaspora</div></div>
+  <div class="kpi"><div class="l">Contributions</div><div class="v num">${reg.contributions.length}</div><div class="d">rattachées à un identifiant</div></div>
+  <div class="kpi"><div class="l">Montant retracé</div><div class="v num">${usd(round2(reg.contributions.reduce((s,c)=>s+c.montant,0)))}</div><div class="d">commission 5 % : ${usd(round2(reg.contributions.reduce((s,c)=>s+c.commission,0)))}</div></div>
+  <div class="kpi ${reg.contributeurs.some(c=>c.kycStatut==="à vérifier")?"alert":""}"><div class="l">Identités à vérifier</div><div class="v num">${reg.contributeurs.filter(c=>c.kycStatut==="à vérifier").length}</div><div class="d">cumul au-delà de ${usd(KYC_SEUIL)}</div></div>
+ </div>
+ <div class="filters">
+  <input type="text" id="r-q" placeholder="Rechercher un nom, un téléphone ou un identifiant" aria-label="Rechercher dans le registre" value="${esc(state.regQ||"")}">
+  ${reg.dl?`<button class="btn btn-ghost btn-sm" data-export="contributeurs">Exporter les contributeurs (CSV)</button><button class="btn btn-ghost btn-sm" data-export="contributions">Exporter les contributions (CSV)</button>`:""}
+ </div>
+ <div id="r-body">${registreTable()}</div>
+ <div id="r-detail" style="margin-top:24px">${registreDetail()}</div>`;
+function registreTable(){const q=(state.regQ||"").toLowerCase(),qt=normTel(q);
+ if(!reg.ready)return `<p class="muted">Chargement du registre…</p>`;
+ if(!reg.contributeurs.length)return `<div class="panel" style="text-align:center"><p><b>Aucun supporter inscrit pour l'instant.</b></p><p class="small muted" style="margin-top:6px">Passez en vue « Supporter » en haut de la page et créez un compte depuis « S'inscrire ». Il apparaîtra ici en direct, avec chacune de ses contributions.</p></div>`;
+ const rows=reg.contributeurs.filter(c=>!q||(c.prenom+" "+c.nom+" "+c.id+" "+(c.email||"")).toLowerCase().includes(q)||(qt.length>3&&normTel(c.telephone).includes(qt)));
+ return `<div class="tbl-wrap"><table><thead><tr><th>Identifiant</th><th>Supporter</th><th>Téléphone</th><th>Profil</th><th>Inscrit le</th><th>Vérification</th><th class="r">Contrib.</th><th class="r">Total</th><th></th></tr></thead><tbody>
+ ${rows.map(c=>`<tr${state.regSel===c.id?' style="background:var(--surface-2)"':""}><td class="num small"><b>${esc(c.id)}</b></td><td>${esc(c.prenom)} ${esc(c.nom)}${c.email?`<div class="small muted">${esc(c.email)}</div>`:""}</td><td class="num small" style="white-space:nowrap">${esc(c.telephone)}</td><td class="small">${esc(c.profil)}<div class="muted">${esc(c.pays||"")}</div></td><td class="num small" style="white-space:nowrap">${fmtDate(c.createdAt,false)}</td><td>${kycPill(c)}</td><td class="r num">${contribsOf(c.id).length}</td><td class="r num"><b>${usd(cumulOf(c.id))}</b></td><td><button class="btn btn-ghost btn-sm" data-sel="${esc(c.id)}">Détail</button></td></tr>`).join("")||`<tr><td colspan="9" class="muted">Aucun supporter ne correspond à « ${esc(state.regQ)} ».</td></tr>`}
+ </tbody></table></div>`}
+function kycPill(c){return c.kycStatut==="à vérifier"?`<span class="pill s-moyenne">N2 · à vérifier</span>`:c.kycStatut==="vérifiée"?`<span class="pill s-publiee">N2 · vérifiée</span>`:`<span class="pill s-faible">N1 · standard</span>`}
+function registreDetail(){const c=reg.contributeurs.find(x=>x.id===state.regSel);if(!c)return "";
+ const rows=contribsOf(c.id),log=reg.journal.filter(j=>j.action.includes(c.id));
+ return `<div class="panel" style="display:grid;gap:18px">
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:start"><div><div class="eyebrow">Fiche de traçabilité</div><h3 style="margin-top:4px">${esc(c.prenom)} ${esc(c.nom)} · <span class="num">${esc(c.id)}</span></h3></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">${c.kycStatut==="à vérifier"?`<button class="btn btn-primary btn-sm" data-kyc="${esc(c.id)}">Marquer l'identité vérifiée</button>`:""}<button class="btn btn-ghost btn-sm" data-sel="">Fermer</button></div></div>
+  <div class="split3 small">
+   <div class="recap"><div><span class="muted">Téléphone</span><span>${esc(c.telephone)}</span></div><div><span class="muted">E-mail</span><span>${esc(c.email||"—")}</span></div><div><span class="muted">Profil</span><span>${esc(c.profil)}</span></div></div>
+   <div class="recap"><div><span class="muted">Pays et ville</span><span>${esc(c.pays||"—")}</span></div><div><span class="muted">Club suivi</span><span>${esc(clubs[c.club]?.name||"—")}</span></div><div><span class="muted">Inscrit le</span><span>${fmtDate(c.createdAt)}</span></div></div>
+   <div class="recap"><div><span class="muted">Consentement</span><span>${fmtDate(c.consentAt)}</span></div><div><span class="muted">Vérification</span><span>${kycPill(c)}</span></div><div><span class="muted">Pièce déclarée</span><span>${c.pieceType?esc(c.pieceType)+" ••••"+esc(c.pieceFin||""):"—"}</span></div></div>
+  </div>
+  ${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Référence</th><th>Campagne</th><th>Opérateur</th><th class="r">Montant</th><th class="r">Commission 5 %</th><th class="r">Net club</th></tr></thead><tbody>
+   ${rows.map(t=>`<tr><td class="num small" style="white-space:nowrap">${fmtDate(t.createdAt)}</td><td class="num small">${esc(t.ref)}</td><td class="small">${esc(t.campagneTitre)}${t.anonyme?' <span class="tag">anonyme en public</span>':""}</td><td class="small">${esc(t.operateur)}</td><td class="r num">${usd(t.montant)}</td><td class="r num">${usd(t.commission)}</td><td class="r num">${usd(t.netClub)}</td></tr>`).join("")}
+   <tr><td colspan="4"><b>Total</b></td><td class="r num"><b>${usd(cumulOf(c.id))}</b></td><td class="r num">${usd(round2(rows.reduce((s,t)=>s+t.commission,0)))}</td><td class="r num">${usd(round2(rows.reduce((s,t)=>s+t.netClub,0)))}</td></tr>
+  </tbody></table></div>`:`<p class="small muted">Aucune contribution pour ce supporter.</p>`}
+  ${log.length?`<div><h4 style="margin-bottom:6px">Historique dans le journal d'audit</h4><ul class="log">${log.map(l=>`<li><time>${fmtDate(l.at)}</time><span><b>${esc(l.auteur)}</b> — ${esc(l.action)}</span></li>`).join("")}</ul></div>`:""}
+ </div>`}
+BO.alertes=()=>`<h2>Alertes conformité</h2><p class="muted" style="margin-bottom:18px">La chargée de conformité analyse et recommande. Le gérant valide les mesures lourdes (suspension, clôture, remboursement).</p>
+ <div style="display:grid;gap:14px">${state.alerts.map((a,i)=>`<div class="panel" style="display:grid;gap:10px">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b class="num">${a.id}</b><span class="pill s-${a.sev}">Gravité ${a.sev==="elevee"?"élevée":a.sev}</span><span class="tag">${a.type}</span><span class="small muted">${esc(campaigns.find(c=>c.id===a.camp).title)}</span><span style="margin-left:auto" class="pill ${a.status==="ouverte"?"s-revue":"s-faible"}">${a.status==="ouverte"?"Ouverte":"Clôturée"}</span></div>
+  <p>${esc(a.desc)}</p>
+  ${a.status==="ouverte"?`<div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" data-al="just" data-i="${i}">Demander des justificatifs</button><button class="btn btn-ghost btn-sm" data-al="block" data-i="${i}">Bloquer les contributions liées</button><button class="btn btn-ghost btn-sm" data-al="lever" data-i="${i}">Lever l'alerte</button></div>`:`<p class="small muted">${esc(a.close||"")}</p>`}
+ </div>`).join("")}</div>`;
+BO.commission=()=>{const g=18420,c=g*.05,o=g*.03,f=g*.02;return `<h2>Commission et ventilation</h2><p class="muted" style="margin-bottom:18px">Règle unique : 5 % des fonds effectivement collectés. La commission est ventilée chaque mois en deux comptes séparés, sans transfert de l'un vers l'autre hors procédure d'exception.</p>
+ <div class="kpis"><div class="kpi"><div class="l">Fonds collectés (septembre)</div><div class="v num">${usd(g)}</div><div class="d">rapprochés avec le prestataire</div></div>
+ <div class="kpi"><div class="l">Commission 5 %</div><div class="v num">${usd(c)}</div><div class="d">produit du mois</div></div>
+ <div class="kpi"><div class="l">Compte exploitation (3 %)</div><div class="v num">${usd(o)}</div><div class="d">équipe, support, hébergement, conformité</div></div>
+ <div class="kpi"><div class="l">Compte remboursement fondateur (2 %)</div><div class="v num">${usd(f)}</div><div class="d">affecté selon l'ordre de priorité</div></div></div>
+ <div class="panel"><h3>Répartition d'une contribution de 100 $</h3>
+  <div style="display:flex;height:34px;border-radius:8px;overflow:hidden;margin-top:12px;font-size:.8rem;font-weight:700">
+   <div style="flex:95;background:var(--pitch);color:var(--on-pitch);display:flex;align-items:center;padding-left:10px">95 $ · club</div>
+   <div style="flex:3;background:var(--gold)" title="3 $ exploitation"></div><div style="flex:2;background:var(--info)" title="2 $ fondateur"></div></div>
+  <div class="small muted" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px"><span><b style="color:var(--gold)">■</b> 3 $ exploitation</span><span><b style="color:var(--info)">■</b> 2 $ remboursement fondateur</span></div>
+ </div>
+ <div class="note warn" style="margin-top:16px"><b class="ic">!</b><span>Seuil de vigilance année 1 : il faut au moins 3 500 000 $ collectés pour que les 3 % couvrent la mise en place technique. En dessous, la procédure d'exception s'applique.</span></div>`};
+BO.journal=()=>`<h2>Journal d'audit</h2><p class="muted" style="margin-bottom:18px">Chaque décision et chaque action sensible, avec la date et l'auteur. Le journal ne peut pas être modifié.</p>
+ ${syncNote()}
+ <div class="panel">${reg.journal.length?`<ul class="log">${reg.journal.map(l=>`<li><time>${fmtDate(l.at)}</time><span><b>${esc(l.auteur)}</b> — ${esc(l.action)}</span></li>`).join("")}</ul>`:`<p class="muted">Aucune action enregistrée pendant la démonstration. Chaque inscription, contribution et décision s'ajoutera ici.</p>`}</div>
+ <h3 style="margin:24px 0 10px">Exemples d'entrées (données fictives)</h3>
+ <div class="panel"><ul class="log muted">${state.log.map(l=>`<li><time>${l[0]}</time><span><b>${esc(l[1])}</b> — ${esc(l[2])}</span></li>`).join("")}</ul></div>`;
+
+/* ---------- rendu et navigation ---------- */
+const navFor={
+ supporter:[["accueil","Accueil"],["campagnes","Campagnes"],["fonctionnement","Comment ça marche"],["compte","Mon compte"]],
+ club:[["accueil","Accueil"],["campagnes","Campagnes"],["club","Espace club"],["fonctionnement","Frais et règles"]],
+ admin:[["admin","Back-office"],["campagnes","Site public"],["fonctionnement","Règles"]],
+};
+V.fonctionnement=()=>`
+<div class="page-head on-pitch">${fieldSVG(.6)}<div class="wrap"><div class="eyebrow" style="color:var(--gold)">Comment ça marche</div><h1 style="margin-top:8px;font-size:clamp(2.2rem,5vw,3.2rem)">Des règles simples, les mêmes pour tous les clubs</h1><p>Tribune met en relation les supporters et leurs clubs. Nous vérifions les projets, suivons l'argent et publions les preuves.</p></div></div>
+<div class="wrap page" style="display:grid;gap:48px">
+ <div class="split half">
+  <div><h2 style="margin-bottom:16px">Le parcours d'un supporter</h2><ol class="steps">
+   ${[["Il ouvre le site depuis son téléphone","Le site s'adapte aux petits écrans."],["Il crée son compte","Avec son numéro de téléphone ou son e-mail. Au-delà de 1 000 $ cumulés, il vérifie son identité."],["Il choisit une campagne","Rénovation du terrain, matériel pour les jeunes, déplacement…"],["Il paie","Par Mobile Money, sur la page sécurisée du prestataire de paiement."],["Il reçoit une confirmation","Le prestataire prévient le site, qui envoie un reçu par SMS."],["Il suit l'avancement","Le club publie ses nouvelles et ses justificatifs."]].map((s,i)=>`<li class="done"><span class="dot">${i+1}</span><div><b>${s[0]}</b><span class="small muted">${s[1]}</span></div><span></span></li>`).join("")}
+  </ol></div>
+  <div><h2 style="margin-bottom:16px">Le parcours d'un club</h2><ol class="steps">
+   ${[["Il dépose un dossier","Objectif, budget détaillé, calendrier, jalons, pièces."],["L'équipe vérifie","Identité du club et de ses dirigeants, cohérence du budget, faisabilité. Décision motivée : validé, ajourné ou refusé."],["La campagne est publiée","Page standard, objectif, durée, règles de réussite."],["L'argent est versé par tranches","Après rapprochement des paiements et preuve de chaque jalon."],["Le club rend compte","Une nouvelle par mois, puis un rapport final avec les factures."]].map((s,i)=>`<li class="done"><span class="dot">${i+1}</span><div><b>${s[0]}</b><span class="small muted">${s[1]}</span></div><span></span></li>`).join("")}
+  </ol></div>
+ </div>
+ <div><h2 style="margin-bottom:16px">Frais</h2>
+  <div class="tbl-wrap"><table><tbody>
+   <tr><th style="width:30%">Pour le supporter</th><td>Aucun frais en plus. Vous payez exactement le montant choisi.</td></tr>
+   <tr><th>Pour le club</th><td>Commission unique de 5 % sur les fonds effectivement collectés. Pas de frais d'inscription ni de frais de dossier.</td></tr>
+   <tr><th>Si l'objectif n'est pas atteint</th><td>Aucune commission. Chaque supporter est remboursé sur son moyen de paiement.</td></tr>
+   <tr><th>À quoi sert la commission</th><td>3 % financent l'exploitation (vérification des dossiers, support, hébergement, sécurité) et 2 % remboursent l'apport du fondateur qui a financé la plateforme.</td></tr>
+  </tbody></table></div></div>
+ <div><h2 style="margin-bottom:16px">Sécurité et confiance</h2>
+  <div class="tbl-wrap"><table><tbody>
+   <tr><th style="width:30%">Connexion sécurisée</th><td>Toutes les pages en HTTPS, mots de passe chiffrés, double vérification pour les administrateurs.</td></tr>
+   <tr><th>Paiements</th><td>Encaissés par un prestataire agréé. Tribune n'est pas une banque et ne garde pas l'argent.</td></tr>
+   <tr><th>Droits d'accès</th><td>Chaque rôle ne voit que ce qui le concerne. Seuls les administrateurs accèdent au back-office.</td></tr>
+   <tr><th>Traçabilité</th><td>Chaque contribution et chaque décision de l'administration est enregistrée avec la date et l'auteur.</td></tr>
+   <tr><th>Données personnelles</th><td>Consentement à l'inscription, données limitées au nécessaire, pièces d'identité jamais publiées.</td></tr>
+  </tbody></table></div></div>
+ <div><h2 style="margin-bottom:16px">Une construction par étapes</h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+   ${[["Étape 1","Version de départ","En ligne",["Inscription des supporters","Campagnes et dons","Paiement Mobile Money","Back-office simple"]],["Étape 2","Renforcement","Prévu",["Notifications SMS et e-mail","Tableaux de bord et rapports","Paiement par carte","Vérification d'identité complète"]],["Étape 3","Extension","Prévu",["Application mobile","Contreparties pour les supporters","Prêts avec suivi des remboursements"]]].map(s=>`<div class="panel"><div class="eyebrow">${s[0]} · ${s[2]}</div><h3 style="margin:6px 0 10px">${s[1]}</h3><ul style="margin:0;padding-left:18px;display:grid;gap:4px">${s[3].map(x=>`<li>${x}</li>`).join("")}</ul></div>`).join("")}
+  </div></div>
+ <div class="faq"><h2 style="margin-bottom:8px">Questions fréquentes</h2>
+  <details><summary>Que se passe-t-il si le club n'utilise pas l'argent comme prévu ?</summary><p>L'argent est versé par tranches, après la preuve de chaque jalon. En cas de doute, nous gelons la tranche suivante, demandons des justificatifs et informons les supporters. Le club ne peut plus lancer de campagne tant que la situation n'est pas réglée.</p></details>
+  <details><summary>Puis-je donner sans créer de compte ?</summary><p>Non. Le compte permet de vous envoyer le reçu, de vous rembourser si l'objectif n'est pas atteint et de vous tenir informé.</p></details>
+  <details><summary>Pourquoi me demande-t-on une pièce d'identité ?</summary><p>Au-delà de 1 000 $ cumulés, la loi contre le blanchiment nous oblige à vérifier l'identité des contributeurs. La pièce reste confidentielle.</p></details>
+  <details><summary>Comment faire une réclamation ?</summary><p>Depuis votre compte ou le bouton « Signaler » d'une campagne. Chaque réclamation reçoit une réponse écrite.</p></details>
+ </div>
+</div>`;
+
+function route(){const r=(location.hash||"#accueil").slice(1);return V[r]?r:"accueil"}
+function updateHeader(){const r=route(),m=me();
+ $("#nav").innerHTML=navFor[state.role].map(([k,l])=>`<a href="#${k}" ${k===r?'aria-current="page"':""}>${l}</a>`).join("");
+ const acc=$("#account");
+ if(state.role==="admin"){acc.innerHTML=`<span class="avatar">AD</span><span class="small">Administrateur</span>`;acc.setAttribute("href","#admin")}
+ else if(state.role==="club"){acc.innerHTML=`${crest("esk",26)}<span class="small">Espace club</span>`;acc.setAttribute("href","#club")}
+ else if(m){acc.innerHTML=`<span class="avatar">${esc((m.prenom[0]+m.nom[0]).toUpperCase())}</span><span class="small">${esc(m.prenom)}</span>`;acc.setAttribute("href","#compte")}
+ else{acc.innerHTML=`<span class="btn btn-gold btn-sm">S'inscrire</span>`;acc.setAttribute("href","#inscription")}}
+function render(keepScroll){
+ const r=route();
+ if(r==="admin"&&state.role!=="admin") setRole("admin",false);
+ $("#app").innerHTML=V[r]();
+ updateHeader();
+ if(r==="campagnes") applyFilters();
+ if(r==="contribuer"&&!state.paid) refreshPay();
+ if(!keepScroll) window.scrollTo(0,0);
+}
+/* nouvelles données du registre : on rafraîchit sans perdre la saisie en cours */
+function softRender(){const r=route();updateHeader();
+ if(!["admin","compte","campagne","contribuer","inscription","accueil","campagnes"].includes(r))return;
+ const a=document.activeElement,typing=a&&$("#app").contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName);
+ if(r==="contribuer"&&$("#payform")){refreshPay();return}
+ if(r==="inscription"&&$("#regform"))return;
+ if(r==="campagnes"&&$("#f-grid")){applyFilters();return}
+ if(r==="admin"&&state.adminTab==="registre"&&$("#r-body")){$("#r-body").innerHTML=registreTable();if(!typing)$("#r-detail").innerHTML=registreDetail();return}
+ if(typing)return;
+ render(true)}
+function setRole(role,nav=true){state.role=role;document.querySelectorAll("[data-role]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.role===role)));
+ if(nav){const t={supporter:"accueil",club:"club",admin:"admin"}[role];if(location.hash==="#"+t)render();else location.hash=t}}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2800)}
+function stamp(){const d=new Date();return "30 sept. "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+function goAfterReg(){const t=state.afterReg||"compte";if(location.hash==="#"+t)render();else location.hash=t}
+
+document.addEventListener("click",e=>{
+ const a=e.target.closest("[data-c]");
+ if(a){state.cid=a.dataset.c;if(a.dataset.reset)state.paid=null;if(a.getAttribute("href")===location.hash){e.preventDefault();if(a.getAttribute("href")==="#contribuer")state.paid=null;render()}else if(a.getAttribute("href")==="#contribuer")state.paid=null}
+ const j=e.target.closest("[data-jump]");if(j){e.preventDefault();document.getElementById(j.dataset.jump)?.scrollIntoView({behavior:"smooth"})}
+ const r=e.target.closest("[data-role]");if(r)setRole(r.dataset.role);
+ const t=e.target.closest("[data-toast]");if(t){e.preventDefault();toast(t.dataset.toast)}
+ const p=e.target.closest("[data-amt]");if(p){$("#amt").value=p.dataset.amt;refreshPay()}
+ const tab=e.target.closest("[data-tab]");if(tab){state.adminTab=tab.dataset.tab;render()}
+ const lo=e.target.closest("[data-logout]");if(lo){e.preventDefault();state.currentId=null;lsSet(null);state.paid=null;toast("Vous êtes déconnecté.");if(location.hash==="#compte")render();else location.hash="compte"}
+ const sel=e.target.closest("[data-sel]");if(sel){e.preventDefault();state.regSel=sel.dataset.sel||null;state.adminTab="registre";render(!!state.regSel?false:true);if(state.regSel)setTimeout(()=>$("#r-detail")?.scrollIntoView({behavior:"smooth"}),30)}
+ const ex=e.target.closest("[data-export]");if(ex)exportCsv(ex.dataset.export);
+ const ky=e.target.closest("[data-kyc]");if(ky){const id=ky.dataset.kyc;ky.disabled=true;patch("contributeurs",id,{kycStatut:"vérifiée",kycVerifieLe:nowISO()}).then(ok=>{if(ok){audit("Chargée conformité (vous)",`Identité de ${id} vérifiée (niveau 2)`);toast("Identité marquée comme vérifiée.")}render(true)})}
+ const d=e.target.closest("[data-dec]");if(d){const it=state.pipeline[+d.dataset.i];const map={valider:["valide","validé — page en préparation"],ajourner:["ajournee","ajourné — compléments demandés au club"],refuser:["refusee","refusé — motif envoyé au club"]}[d.dataset.dec];
+  it.status=map[0];audit("Administrateur (vous)",`Dossier ${it.id} ${map[1]}`);toast(`Dossier ${it.id} ${map[1].split(" —")[0]}.`);render(true)}
+ const s=e.target.closest("[data-susp]");if(s){const c=campaigns[+s.dataset.susp];c.status="suspendue";audit("Administrateur (vous)",`Campagne « ${c.title} » suspendue, supporters informés`);toast("Campagne suspendue. Les supporters sont informés.");render(true)}
+ const u=e.target.closest("[data-unsusp]");if(u){const c=campaigns[+u.dataset.unsusp];c.status="publiee";audit("Administrateur (vous)",`Campagne « ${c.title} » réactivée`);toast("Campagne réactivée.");render(true)}
+ const al=e.target.closest("[data-al]");if(al){const a=state.alerts[+al.dataset.i];const m={just:"Justificatifs demandés au club et aux contributeurs concernés",block:"Contributions liées bloquées en attente d'analyse",lever:"Alerte levée après analyse : pas d'anomalie"}[al.dataset.al];
+  if(al.dataset.al==="lever"){a.status="cloturee";a.close=m}audit("Administrateur (vous)",`${a.id} : ${m}`);toast(m+".");render(true)}
+});
+document.addEventListener("input",e=>{
+ if(e.target.id==="amt")refreshPay();
+ if(["f-q","f-cat","f-st","f-type"].includes(e.target.id))applyFilters();
+ if(e.target.id==="r-q"){state.regQ=e.target.value;$("#r-body").innerHTML=registreTable()}
+});
+function showErr(id,msg){const el=$("#"+id);el.textContent=msg;el.hidden=false}
+document.addEventListener("submit",async e=>{e.preventDefault();const f=e.target;
+ if(f.id==="loginform"){const t=normTel($("#login-tel").value);
+  if(t.length<8)return showErr("login-err","Entrez le numéro complet utilisé à l'inscription.");
+  const m=reg.contributeurs.find(c=>normTel(c.telephone)===t);
+  if(!m)return showErr("login-err","Aucun supporter inscrit avec ce numéro. Créez un compte.");
+  state.currentId=m.id;lsSet(m.id);toast(`Bon retour, ${m.prenom}.`);goAfterReg()}
+ if(f.id==="regform"){const v=id=>$("#"+id).value.trim();
+  const prenom=v("r-prenom"),nom=v("r-nom"),tel=v("r-tel"),mail=v("r-mail");
+  if(!prenom||!nom)return showErr("r-err","Indiquez votre prénom et votre nom.");
+  if(normTel(tel).length<8)return showErr("r-err","Indiquez un numéro de téléphone complet, par exemple +243 81 234 5678.");
+  if(mail&&!/^\S+@\S+\.\S+$/.test(mail))return showErr("r-err","L'adresse e-mail n'est pas valide. Corrigez-la ou laissez le champ vide.");
+  if(!$("#r-ok").checked)return showErr("r-err","Cochez la case de consentement : sans elle, nous ne pouvons pas enregistrer vos contributions.");
+  const dup=reg.contributeurs.find(c=>normTel(c.telephone)===normTel(tel));
+  if(dup)return showErr("r-err",`Ce numéro est déjà inscrit (${dup.id}). Utilisez « Me reconnecter ».`);
+  const btn=$("#r-go");btn.disabled=true;btn.textContent="Enregistrement…";
+  const id=newId("SUP"),at=nowISO();
+  const doc={id,prenom,nom,telephone:tel,email:mail,profil:$("#r-profil").value==="En RDC"?"Résident RDC":"Diaspora",pays:v("r-pays"),club:$("#r-club").value,consentAt:at,newsletter:$("#r-news").checked,kycNiveau:1,kycStatut:"standard",createdAt:at,saisiPar:reg.uid||null};
+  const ok=await save("contributeurs",id,doc);
+  if(!ok){btn.disabled=false;btn.textContent="Créer mon compte";return}
+  state.currentId=id;lsSet(id);audit("Système",`Inscription du supporter ${id} (${prenom} ${nom}), consentement enregistré`);
+  toast(`Compte créé. Votre identifiant : ${id}.`);goAfterReg()}
+ if(f.id==="payform"){const a=state.amount,m=me();
+  if(!m)return render();
+  if(!(a>=1))return showErr("err","Indiquez un montant d'au moins 1 $.");
+  const kyc=needsKyc(m,a);
+  if(kyc&&($("#kyc-num")?.value.trim().length||0)<4)return showErr("err","Indiquez le numéro de votre pièce d'identité : votre cumul dépasse "+usd(KYC_SEUIL)+".");
+  if(!$("#cgu").checked)return showErr("err","Cochez la case pour accepter les règles de la campagne.");
+  const btn=$("#go");btn.disabled=true;btn.textContent="Paiement en cours…";
+  const c=campaigns.find(x=>x.id===state.cid),ref=newId("TRB"),fee=round2(a*COMMISSION);
+  if(kyc){const num=$("#kyc-num").value.replace(/\s/g,"");
+   if(!await patch("contributeurs",m.id,{kycNiveau:2,kycStatut:"à vérifier",pieceType:$("#kyc-type").value,pieceFin:num.slice(-4)})){btn.disabled=false;btn.textContent="Continuer vers le paiement sécurisé";return}
+   audit("Système",`Pièce d'identité déclarée par ${m.id}, vérification niveau 2 à faire`)}
+  const doc={id:ref,ref,contributeurId:m.id,contributeurNom:m.prenom+" "+m.nom,campagneId:c.id,campagneTitre:c.title,club:clubs[c.club].name,montant:a,commission:fee,netClub:round2(a-fee),moyen:"Mobile Money",operateur:$("#op").value,anonyme:$("#anon").checked,statut:"confirmée",createdAt:nowISO(),saisiPar:reg.uid||null};
+  if(!await save("contributions",ref,doc)){btn.disabled=false;btn.textContent="Continuer vers le paiement sécurisé";return}
+  audit("Système",`Contribution ${ref} de ${usd(a)} par ${m.id} confirmée par le prestataire (${c.title})`);
+  state.paid={a,ref};render()}
+ if(f.id==="clubform"){const t=$("#c-t").value.trim(),g=parseFloat($("#c-g").value);
+  if(!t||!(g>=500))return showErr("c-err","Indiquez un titre et un objectif d'au moins 500 $.");
+  if(!$("#c-ok").checked)return showErr("c-err","Cochez l'engagement de publication pour envoyer le dossier.");
+  (state.clubDrafts=state.clubDrafts||[]).push({t,g});
+  state.pipeline.unshift({id:"D-0"+(42+state.clubDrafts.length-1),club:"esk",projet:t,goal:g,recu:"30 sept.",id_ok:true,budget_ok:true,jalons_ok:!!$("#c-j").value.trim(),status:"revue"});
+  audit("AS Étoile de Kintambo",`Nouveau dossier « ${t} » déposé`);toast("Dossier envoyé. Il passe en revue.");render()}
+});
+window.addEventListener("hashchange",()=>render());
+render();
+initRegistry();
+})();
+</script>
+</body>
+</html>
