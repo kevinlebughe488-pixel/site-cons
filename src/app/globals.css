@@ -333,3 +333,6 @@ details.box summary{cursor:pointer;font-weight:700}
 .bo .bo-main{padding:28px;min-width:0}
 .bo .bo-main > h2{margin-bottom:6px}
 @media (max-width:820px){.bo .bo-main{padding:20px 16px}}
+
+/* bandeau « site de démonstration » (paiements simulés) */
+.demo{background:var(--gold);color:var(--on-gold);font-size:.85rem;padding-block:6px}

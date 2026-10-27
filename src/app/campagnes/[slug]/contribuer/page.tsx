@@ -47,6 +47,25 @@ export default async function ContributePage(props: PageProps<"/campagnes/[slug]
     );
   }
 
+  let simulation: boolean;
+  try {
+    simulation = paymentMode() === "simulation";
+  } catch {
+    return (
+      <div className="wrap page" style={{ maxWidth: 1000 }}>
+        {head}
+        <div className="panel empty">
+          <p>
+            <b>Les paiements ne sont pas encore configurés sur ce site.</b>
+          </p>
+          <p className="small muted">
+            L&apos;administrateur doit renseigner PAWAPAY_API_TOKEN, ou ALLOW_SIMULATED_PAYMENTS=true pour une démonstration.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const admin = createAdminClient();
   const { data: history } = await admin
     .from("contributions")
@@ -70,7 +89,7 @@ export default async function ContributePage(props: PageProps<"/campagnes/[slug]
         defaultPhone={profile.phone?.startsWith("243") ? `0${profile.phone.slice(3)}` : ""}
         cumulative={cumulative}
         kycStatus={profile.kyc_status}
-        simulation={paymentMode() === "simulation"}
+        simulation={simulation}
       />
     </div>
   );

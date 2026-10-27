@@ -20,8 +20,12 @@ export const env = {
   get supabaseServiceRoleKey() {
     return required("SUPABASE_SERVICE_ROLE_KEY");
   },
-  /** Adresse publique du site, utilisée dans les liens envoyés par e-mail. */
+  /**
+   * Adresse publique du site, utilisée dans les liens envoyés par e-mail.
+   * Sur Vercel, l'adresse du projet est utilisée si SITE_URL n'est pas défini.
+   */
   get siteUrl() {
-    return (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+    const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+    return (process.env.SITE_URL || (vercel ? `https://${vercel}` : "http://localhost:3000")).replace(/\/$/, "");
   },
 };

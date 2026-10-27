@@ -134,12 +134,25 @@ Fonctionnement :
 
 En production, la simulation est refusée, sauf si `ALLOW_SIMULATED_PAYMENTS=true` (démo publique).
 
-## Déploiement
+## Déploiement sur Vercel
 
-Le plus simple : [Vercel](https://vercel.com). Importez le dépôt, ajoutez les variables
-d'environnement de `.env.example` (avec `SITE_URL` = l'adresse publique), puis déployez.
-Mettez à jour l'URL du site dans Supabase (Authentication → URL Configuration) et les URL de
-notification dans pawaPay.
+1. Sur [vercel.com/new](https://vercel.com/new), importez le dépôt GitHub `site-cons` (framework détecté : Next.js).
+2. Dans **Environment Variables**, collez :
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<clé publishable ou anon>
+   SUPABASE_SERVICE_ROLE_KEY=<clé secret ou service_role>
+   PAYMENT_PROVIDER=simulation
+   ALLOW_SIMULATED_PAYMENTS=true
+   ```
+   `ALLOW_SIMULATED_PAYMENTS=true` sert à une démonstration publique : un bandeau prévient les
+   visiteurs que les paiements sont simulés. Pour encaisser réellement, remplacez ces deux lignes par
+   la configuration pawaPay ci-dessus. `SITE_URL` est facultatif : l'adresse Vercel est utilisée par défaut.
+3. Cliquez sur **Deploy**.
+4. Dans Supabase (Authentication → URL Configuration), mettez l'adresse Vercel en *Site URL* et
+   ajoutez `https://<votre-projet>.vercel.app/auth/callback` aux *Redirect URLs*. Pour une démo sans
+   SMTP configuré, vous pouvez désactiver « Confirm email » (Authentication → Sign In / Providers → Email),
+   car l'envoi d'e-mails par défaut de Supabase est très limité.
 
 ## Développement local sans projet Supabase
 
