@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getViewer } from "@/lib/auth";
+import { navigationFor } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CAMPAIGN_WITH_CLUB, listCampaigns } from "@/lib/campaigns";
 import { CampaignCard } from "@/components/CampaignCard";
@@ -7,6 +10,11 @@ import { daysLeft, formatMoney, percent } from "@/lib/format";
 import type { CampaignWithClub, Milestone } from "@/lib/types";
 
 export default async function HomePage() {
+  // L'accueil public s'adresse aux supporters : les autres rôles vont sur leur espace.
+  const viewer = await getViewer();
+  const home = navigationFor(viewer).home;
+  if (home !== "/") redirect(home);
+
   const supabase = await createClient();
   const [live, statsRes, provenRes] = await Promise.all([
     listCampaigns(supabase, ["published"]),
@@ -35,7 +43,7 @@ export default async function HomePage() {
         <div className="wrap">
           <div>
             <div className="eyebrow" style={{ color: "var(--gold)" }}>
-              Financement participatif des clubs
+              {viewer ? `Bonjour ${viewer.profile.first_name}` : "Financement participatif des clubs"}
             </div>
             <h1 style={{ marginTop: 12 }}>
               Le club, c&apos;est vous.
@@ -51,9 +59,15 @@ export default async function HomePage() {
               <Link className="btn btn-gold" href="/campagnes">
                 Voir les campagnes
               </Link>
-              <Link className="btn btn-ghost" href="/club">
-                Mon club a un projet
-              </Link>
+              {viewer ? (
+                <Link className="btn btn-ghost" href="/compte">
+                  Mes contributions
+                </Link>
+              ) : (
+                <Link className="btn btn-ghost" href="/inscription">
+                  Créer mon compte supporter
+                </Link>
+              )}
             </div>
             {stats ? (
               <div className="facts num">

@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Supporters et rôles · Back-office" };
+export const metadata: Metadata = { title: "Comptes et rôles · Back-office" };
 
 export default async function AdminUsersPage(props: PageProps<"/admin/utilisateurs">) {
   const { profile: me } = await requirePermission("user:read", "/admin/utilisateurs");
@@ -32,7 +32,7 @@ export default async function AdminUsersPage(props: PageProps<"/admin/utilisateu
 
   return (
     <>
-      <h2>Supporters et rôles</h2>
+      <h2>Comptes et rôles</h2>
       <p className="muted" style={{ marginBottom: 16 }}>
         Chaque compte, son rôle et son niveau de vérification. Seuls les administrateurs changent les rôles.
       </p>
