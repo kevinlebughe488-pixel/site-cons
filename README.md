@@ -14,9 +14,14 @@ campagnes vérifiées, paiement **Mobile Money** (M-Pesa, Airtel Money, Orange M
 | Rôle | Ce qu'il voit et fait |
 | --- | --- |
 | **Supporter** | Campagnes publiques, contribuer, son compte et ses reçus, inscrire un club |
-| **Gestionnaire de club** | + son espace club : présentation et logo, campagnes (brouillon → revue), nouvelles, preuves des jalons |
-| **Conformité** | + back-office : instruire les campagnes (≤ 20 000 $), vérifier les clubs et les identités, relire les nouvelles, voir et exporter les transactions, journal d'audit |
-| **Administrateur** | + publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs |
+| **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue), nouvelles, preuves des jalons |
+| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $), vérifier les clubs et les identités, relire les nouvelles, voir et exporter les transactions, journal d'audit |
+| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs |
+
+Les rôles sont **séparés** : ils ne s'additionnent pas. Un gestionnaire, un chargé de conformité ou un
+administrateur ne contribue pas, ne déclare pas de pièce d'identité et n'inscrit pas de club ; un
+compte de l'équipe Tribune ne peut pas être membre d'un club, et un gestionnaire est forcément
+rattaché à un club. Pour contribuer, il faut un compte supporter distinct.
 
 Les droits sont appliqués **deux fois** :
 
@@ -24,7 +29,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (21 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (24 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -37,6 +42,7 @@ depuis le navigateur.
 2. Dans **SQL Editor**, exécutez dans l'ordre le contenu des fichiers :
    - `supabase/migrations/20261026000100_schema.sql` (tables, rôles, règles d'accès, fonctions)
    - `supabase/migrations/20261026000200_club_logos.sql` (logos des clubs dans Storage)
+   - `supabase/migrations/20261027000100_roles_separes.sql` (rôles séparés : qui contribue, qui gère un club)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, canUseClubSpace } from "@/lib/rbac";
 import { signOut } from "@/lib/actions/auth";
 import { NavLinks } from "@/components/NavLinks";
 
@@ -14,7 +14,7 @@ export async function Header() {
     { href: "/comment-ca-marche", label: "Comment ça marche" },
   ];
   if (viewer) items.push({ href: "/compte", label: "Mon compte" });
-  if (viewer && (viewer.club || can(role, "club:manage"))) items.push({ href: "/club", label: "Espace club" });
+  if (can(role, "club:manage") || (viewer?.club && canUseClubSpace(role))) items.push({ href: "/club", label: "Espace club" });
   if (can(role, "backoffice:access")) items.push({ href: "/admin", label: "Back-office" });
 
   return (

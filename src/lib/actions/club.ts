@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getViewer, viewerWith } from "@/lib/auth";
-import { isStaff } from "@/lib/rbac";
+import { canUseClubSpace, isStaff } from "@/lib/rbac";
 import { dbErrorMessage, keepFields, text, type FormState } from "@/lib/forms";
 import { slugify } from "@/lib/format";
 import { normalizeAnyPhone, normalizeDrcPhone } from "@/lib/phone";
@@ -61,7 +61,7 @@ export async function registerClub(_: FormState, form: FormData): Promise<FormSt
 
 export async function updateClubInfo(_: FormState, form: FormData): Promise<FormState> {
   const viewer = await getViewer();
-  if (!viewer?.club) return { error: "Vous ne gérez aucun club." };
+  if (!viewer?.club || !canUseClubSpace(viewer.profile.role)) return { error: "Vous ne gérez aucun club." };
   const contact = normalizeAnyPhone(text(form, "contact_phone"));
   if (!contact) return { error: "Le téléphone de contact n'est pas valide." };
   const c1 = text(form, "color_primary");
@@ -92,7 +92,8 @@ export async function uploadClubLogo(_: FormState, form: FormData): Promise<Form
   const viewer = await getViewer();
   if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
   const clubId = text(form, "club_id");
-  if (viewer.club?.id !== clubId && !isStaff(viewer.profile.role)) {
+  const ownClub = viewer.club?.id === clubId && canUseClubSpace(viewer.profile.role);
+  if (!ownClub && !isStaff(viewer.profile.role)) {
     return { error: "Vous ne pouvez pas modifier le logo de ce club." };
   }
   const file = form.get("logo");

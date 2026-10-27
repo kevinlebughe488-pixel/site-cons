@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { requireViewer } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { completeMilestone, postUpdate } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -23,7 +23,7 @@ function addDays(isoDate: string, days: number): string {
 export default async function ManageCampaignPage(props: PageProps<"/club/campagnes/[id]">) {
   const { id } = await props.params;
   const { erreur } = await props.searchParams;
-  const viewer = await requireViewer(`/club/campagnes/${id}`);
+  const viewer = await requirePermission("club:manage", `/club/campagnes/${id}`);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
   const supabase = await createClient();

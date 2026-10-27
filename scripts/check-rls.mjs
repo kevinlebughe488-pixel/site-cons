@@ -68,6 +68,12 @@ expect("gestionnaire : ne peut pas vérifier son propre club", !!(await manager.
 expect("conformité : lit toutes les contributions", ((await compliance.from("contributions").select("id", { count: "exact", head: true })).count ?? 0) > 10);
 expect("conformité : ne peut pas suspendre une campagne (réservé admin)", !!(await compliance.rpc("set_campaign_suspension", { p_campaign_id: anyCampaign.id, p_suspend: true, p_note: "test" })).error);
 expect("conformité : ne peut pas changer un rôle", !!(await compliance.rpc("admin_set_role", { p_user_id: me.user.id, p_role: "admin" })).error);
+expect("conformité : ne peut pas déclarer une pièce d'identité (réservé supporter)", !!(await compliance.rpc("declare_identity", { p_doc_type: "passeport", p_doc_last4: "1234" })).error);
+expect(
+  "conformité : ne peut pas inscrire un club (réservé supporter)",
+  !!(await compliance.rpc("register_club", { p_name: "Club test", p_short_name: "TST", p_slug: `club-test-${Date.now()}`, p_city: "Kinshasa", p_commune: null, p_founded_year: null, p_description: "", p_president_name: "Test", p_contact_phone: "243990000001", p_payout_phone: "243990000002", p_payout_provider: "AIRTEL_COD", p_color_primary: null, p_color_secondary: null })).error,
+);
+expect("gestionnaire : ne peut pas déclarer une pièce d'identité (réservé supporter)", !!(await manager.rpc("declare_identity", { p_doc_type: "passeport", p_doc_last4: "1234" })).error);
 expect("conformité : ne peut pas écrire dans le journal", !!(await compliance.from("audit_log").insert({ action: "faux", entity_type: "x" })).error);
 
 console.log(failures ? `\n${failures} test(s) en échec` : "\nToutes les règles d'accès tiennent.");

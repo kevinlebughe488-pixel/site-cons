@@ -279,7 +279,11 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
                 <div className="small muted">jours restants</div>
               </div>
             </div>
-            {open ? (
+            {open && viewer && !can(role, "contribution:create") ? (
+              <p className="small muted" style={{ marginTop: 16 }}>
+                Les contributions sont réservées aux comptes supporters.
+              </p>
+            ) : open ? (
               <>
                 <Link className="btn btn-primary" style={{ width: "100%", marginTop: 18 }} href={`/campagnes/${c.slug}/contribuer`}>
                   Contribuer
