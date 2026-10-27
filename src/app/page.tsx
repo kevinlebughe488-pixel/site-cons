@@ -148,45 +148,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="band">
-        <div className="wrap">
-          <div className="sec-head">
-            <div>
-              <div className="eyebrow">Où va votre argent</div>
-              <h2 style={{ marginTop: 6 }}>Le site ne garde pas l&apos;argent</h2>
-              <p className="muted">
-                Votre paiement passe par pawaPay, un prestataire agréé relié à M-Pesa, Airtel Money et Orange Money.
-                Tribune enregistre la contribution, prélève une commission unique affichée avant de payer, et le club
-                reçoit le reste selon les règles de la campagne.
-              </p>
-            </div>
-          </div>
-          <div className="flow">
-            <div className="node">
-              <div className="eyebrow">1 · Vous</div>
-              <h4>Vous donnez 20 $</h4>
-              <p className="small muted">Vous validez le paiement sur votre téléphone avec votre code secret.</p>
-            </div>
-            <div className="arrow" aria-hidden="true">
-              →
-            </div>
-            <div className="node hl">
-              <div className="eyebrow">2 · Prestataire de paiement</div>
-              <h4>Encaisse et confirme</h4>
-              <p className="small">Tribune n&apos;a jamais accès à votre compte ni à votre code Mobile Money.</p>
-            </div>
-            <div className="arrow" aria-hidden="true">
-              →
-            </div>
-            <div className="node">
-              <div className="eyebrow">3 · Votre club</div>
-              <h4 className="num">19 $ pour le projet</h4>
-              <p className="small muted num">1 $ (5 %) finance la plateforme : vérifications, support, sécurité.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {proven ? (
         <section className="band">
           <div className="wrap">
