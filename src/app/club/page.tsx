@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, canUseClubSpace } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { updateClubInfo } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -27,6 +28,7 @@ const NEXT_STEP: Partial<Record<Campaign["status"], string>> = {
 
 export default async function ClubPage() {
   const viewer = await requireViewer("/club");
+  if (!canUseClubSpace(viewer.profile.role)) redirect("/acces-refuse");
   const club = viewer.club;
 
   if (!club || club.status === "rejected") {

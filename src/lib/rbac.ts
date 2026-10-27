@@ -3,6 +3,11 @@
 // Ce tableau décide de ce que chaque rôle voit et peut faire dans l'interface.
 // La base de données applique les mêmes règles de son côté (RLS et fonctions
 // qui vérifient le rôle) : masquer un bouton ne suffit jamais à protéger une action.
+//
+// Les rôles sont séparés, ils ne s'additionnent pas : seul un supporter contribue
+// ou inscrit un club, seul un gestionnaire gère un club, et l'équipe Tribune
+// (conformité, administrateur) n'a que le back-office. Chacun garde son profil
+// (nom, téléphone, mot de passe) via « account:read ».
 
 export const ROLES = ["supporter", "club_manager", "compliance", "admin"] as const;
 export type Role = (typeof ROLES)[number];
@@ -17,6 +22,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export type Permission =
   | "contribution:create"
   | "account:read"
+  | "contribution:read"
   | "club:register"
   | "club:manage"
   | "backoffice:access"
@@ -36,10 +42,12 @@ export type Permission =
   | "transaction:refund"
   | "audit:read";
 
-const SUPPORTER: Permission[] = ["contribution:create", "account:read", "club:register"];
+const SUPPORTER: Permission[] = ["account:read", "contribution:create", "contribution:read", "club:register"];
+
+const CLUB_MANAGER: Permission[] = ["account:read", "club:manage"];
 
 const COMPLIANCE: Permission[] = [
-  ...SUPPORTER,
+  "account:read",
   "backoffice:access",
   "campaign:review",
   "update:review",
@@ -53,7 +61,7 @@ const COMPLIANCE: Permission[] = [
 
 const MATRIX: Record<Role, readonly Permission[]> = {
   supporter: SUPPORTER,
-  club_manager: [...SUPPORTER, "club:manage"],
+  club_manager: CLUB_MANAGER,
   compliance: COMPLIANCE,
   admin: [
     ...COMPLIANCE,
@@ -69,6 +77,11 @@ const MATRIX: Record<Role, readonly Permission[]> = {
 
 export function can(role: Role | null | undefined, permission: Permission): boolean {
   return role ? MATRIX[role].includes(permission) : false;
+}
+
+/** Espace club : le gestionnaire, ou le supporter qui inscrit (ou a inscrit) son club. */
+export function canUseClubSpace(role: Role | null | undefined): boolean {
+  return can(role, "club:manage") || can(role, "club:register");
 }
 
 export function isStaff(role: Role | null | undefined): boolean {

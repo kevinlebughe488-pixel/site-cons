@@ -6,7 +6,7 @@ import { updateProfile } from "@/lib/actions/account";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { FieldSvg, Pill } from "@/components/visuals";
 import { CONTRIBUTION_STATUS_LABELS, DOC_TYPES, KYC_LABELS } from "@/lib/labels";
-import { ROLE_LABELS } from "@/lib/rbac";
+import { can, ROLE_LABELS } from "@/lib/rbac";
 import { formatDate, formatMoney } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { contributionRef } from "@/lib/payments/service";
@@ -25,13 +25,17 @@ const STATUS_TONE: Record<ContributionStatus, "ok" | "warn" | "bad" | "info" | "
 
 export default async function AccountPage() {
   const { profile: me, club } = await requirePermission("account:read", "/compte");
+  // Les contributions et la vérification d'identité ne concernent que les supporters.
+  const contributes = can(me.role, "contribution:read");
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("contributions")
-    .select("*, campaign:campaigns(title, slug)")
-    .eq("user_id", me.id)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const { data } = contributes
+    ? await supabase
+        .from("contributions")
+        .select("*, campaign:campaigns(title, slug)")
+        .eq("user_id", me.id)
+        .order("created_at", { ascending: false })
+        .limit(100)
+    : { data: [] };
   const mine = (data ?? []) as (Contribution & { campaign: { title: string; slug: string } | null })[];
   const confirmed = mine.filter((c) => c.status === "completed");
   const total = confirmed.reduce((s, c) => s + Number(c.amount), 0);
@@ -56,75 +60,96 @@ export default async function AccountPage() {
         </div>
       </div>
       <div className="wrap page">
-        <div className="kpis" style={{ marginTop: 0 }}>
-          <div className="kpi">
-            <div className="l">Total contribué</div>
-            <div className="v num">{formatMoney(total)}</div>
-            <div className="d">inscrit le {formatDate(me.created_at)}</div>
-          </div>
-          <div className="kpi">
-            <div className="l">Contributions confirmées</div>
-            <div className="v num">{confirmed.length}</div>
-            <div className="d">sur {new Set(confirmed.map((c) => c.campaign_id)).size} campagne(s)</div>
-          </div>
-          <div className="kpi">
-            <div className="l">Vérification d&apos;identité</div>
-            <div className="v" style={{ fontSize: "1.4rem" }}>
-              {KYC_LABELS[me.kyc_status]}
+        {contributes ? (
+          <div className="kpis" style={{ marginTop: 0 }}>
+            <div className="kpi">
+              <div className="l">Total contribué</div>
+              <div className="v num">{formatMoney(total)}</div>
+              <div className="d">inscrit le {formatDate(me.created_at)}</div>
             </div>
-            <div className="d">{me.kyc_doc_type ? `${DOC_TYPES[me.kyc_doc_type]} ••••${me.kyc_doc_last4}` : "aucune pièce déclarée"}</div>
+            <div className="kpi">
+              <div className="l">Contributions confirmées</div>
+              <div className="v num">{confirmed.length}</div>
+              <div className="d">sur {new Set(confirmed.map((c) => c.campaign_id)).size} campagne(s)</div>
+            </div>
+            <div className="kpi">
+              <div className="l">Vérification d&apos;identité</div>
+              <div className="v" style={{ fontSize: "1.4rem" }}>
+                {KYC_LABELS[me.kyc_status]}
+              </div>
+              <div className="d">{me.kyc_doc_type ? `${DOC_TYPES[me.kyc_doc_type]} ••••${me.kyc_doc_last4}` : "aucune pièce déclarée"}</div>
+            </div>
           </div>
-        </div>
+        ) : null}
         <div className="split">
-          <div>
-            <h2 style={{ fontSize: "1.8rem", marginBottom: 12 }}>Mes contributions</h2>
-            {mine.length ? (
-              <div className="tbl-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Campagne</th>
-                      <th className="r">Montant</th>
-                      <th>État</th>
-                      <th>Reçu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mine.map((c) => (
-                      <tr key={c.id}>
-                        <td className="num small" style={{ whiteSpace: "nowrap" }}>
-                          {formatDate(c.created_at, true)}
-                        </td>
-                        <td>{c.campaign ? <Link href={`/campagnes/${c.campaign.slug}`}>{c.campaign.title}</Link> : "—"}</td>
-                        <td className="r num">
-                          <b>{formatMoney(c.amount, c.currency)}</b>
-                        </td>
-                        <td>
-                          <Pill tone={STATUS_TONE[c.status]}>{CONTRIBUTION_STATUS_LABELS[c.status]}</Pill>
-                        </td>
-                        <td className="num small">
-                          <Link href={`/contributions/${c.id}`}>{contributionRef(c.id)}</Link>
-                        </td>
+          {contributes ? (
+            <div>
+              <h2 style={{ fontSize: "1.8rem", marginBottom: 12 }}>Mes contributions</h2>
+              {mine.length ? (
+                <div className="tbl-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Campagne</th>
+                        <th className="r">Montant</th>
+                        <th>État</th>
+                        <th>Reçu</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="panel empty">
-                <p>
-                  <b>Pas encore de contribution.</b>
-                </p>
-                <p className="small muted" style={{ margin: "6px 0 14px" }}>
-                  Choisissez une campagne : votre première contribution apparaîtra ici avec son reçu.
-                </p>
-                <Link className="btn btn-primary btn-sm" href="/campagnes">
-                  Voir les campagnes
+                    </thead>
+                    <tbody>
+                      {mine.map((c) => (
+                        <tr key={c.id}>
+                          <td className="num small" style={{ whiteSpace: "nowrap" }}>
+                            {formatDate(c.created_at, true)}
+                          </td>
+                          <td>{c.campaign ? <Link href={`/campagnes/${c.campaign.slug}`}>{c.campaign.title}</Link> : "—"}</td>
+                          <td className="r num">
+                            <b>{formatMoney(c.amount, c.currency)}</b>
+                          </td>
+                          <td>
+                            <Pill tone={STATUS_TONE[c.status]}>{CONTRIBUTION_STATUS_LABELS[c.status]}</Pill>
+                          </td>
+                          <td className="num small">
+                            <Link href={`/contributions/${c.id}`}>{contributionRef(c.id)}</Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="panel empty">
+                  <p>
+                    <b>Pas encore de contribution.</b>
+                  </p>
+                  <p className="small muted" style={{ margin: "6px 0 14px" }}>
+                    Choisissez une campagne : votre première contribution apparaîtra ici avec son reçu.
+                  </p>
+                  <Link className="btn btn-primary btn-sm" href="/campagnes">
+                    Voir les campagnes
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="panel">
+              <h3>Votre espace</h3>
+              <p className="small muted" style={{ margin: "6px 0 14px" }}>
+                Votre rôle ({ROLE_LABELS[me.role]}) ne permet pas de contribuer aux campagnes : cette page ne sert
+                qu&apos;à vos informations personnelles et à votre mot de passe.
+              </p>
+              {can(me.role, "backoffice:access") ? (
+                <Link className="btn btn-primary btn-sm" href="/admin">
+                  Ouvrir le back-office
                 </Link>
-              </div>
-            )}
-          </div>
+              ) : can(me.role, "club:manage") ? (
+                <Link className="btn btn-primary btn-sm" href="/club">
+                  Ouvrir l&apos;espace club
+                </Link>
+              ) : null}
+            </div>
+          )}
           <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
             <div className="panel">
               <h3>Mes informations</h3>
