@@ -204,6 +204,8 @@ td .acts{display:flex;gap:6px;flex-wrap:wrap}
 input[type=file]{max-width:100%;font-size:.9rem}
 .field label{display:block;font-weight:600;margin-bottom:6px}
 .field .hint{font-size:.85rem;color:var(--muted);margin-top:4px}
+.field .hint.field-error{color:var(--bad);font-weight:600}
+.field [aria-invalid="true"]{border-color:var(--bad)}
 input[type=text],input[type=tel],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:11px 13px}
 input:focus,select:focus,textarea:focus{border-color:var(--pitch);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--pitch) 22%,transparent)}
 textarea{min-height:110px;resize:vertical}

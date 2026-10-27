@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import type { FormState } from "@/lib/forms";
 
@@ -37,21 +37,37 @@ export function SubmitButton({
 }
 
 export function Flash({ state }: { state: FormState }) {
+  // Le message apparaît en haut du formulaire : on l'amène à l'écran, sinon
+  // la personne qui vient de cliquer en bas de page croit que rien ne s'est passé.
+  const ref = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (state.error || state.success) ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [state]);
   if (state.error) {
     return (
-      <p className="flash error" role="alert">
+      <p ref={ref} className="flash error" role="alert">
         {state.error}
       </p>
     );
   }
   if (state.success) {
     return (
-      <p className="flash success" role="status">
+      <p ref={ref} className="flash success" role="status">
         {state.success}
       </p>
     );
   }
   return null;
+}
+
+/** Message d'erreur affiché sous le champ concerné. */
+export function FieldError({ state, name }: { state: FormState; name: string }) {
+  if (state.field !== name || !state.error) return null;
+  return (
+    <div className="hint field-error" id={`${name}-error`}>
+      {state.error}
+    </div>
+  );
 }
 
 /**

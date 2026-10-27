@@ -1,7 +1,13 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 
 /** État renvoyé par les actions serveur aux formulaires. */
-export type FormState = { error?: string; success?: string; fields?: Record<string, string> };
+export type FormState = {
+  error?: string;
+  success?: string;
+  fields?: Record<string, string>;
+  /** Champ concerné par l'erreur : le formulaire l'affiche à côté et y place le curseur. */
+  field?: string;
+};
 
 export const initialFormState: FormState = {};
 
@@ -24,7 +30,7 @@ export function dbErrorMessage(error: PostgrestError | null | undefined, fallbac
   if (!error) return fallback;
   // Les fonctions de la base lèvent des messages déjà rédigés en français (code P0001).
   if (error.code === "P0001" || error.code === "42501") return error.message;
-  if (error.code === "23505") return "Cette valeur est déjà utilisée.";
+  if (error.code === "23505") return error.message.startsWith("Ce numéro") ? error.message : "Cette valeur est déjà utilisée.";
   if (error.code === "23514") return "Une des valeurs saisies n'est pas valide.";
   return fallback;
 }

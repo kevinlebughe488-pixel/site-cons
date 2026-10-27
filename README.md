@@ -43,6 +43,7 @@ depuis le navigateur.
    - `supabase/migrations/20261026000100_schema.sql` (tables, rôles, règles d'accès, fonctions)
    - `supabase/migrations/20261026000200_club_logos.sql` (logos des clubs dans Storage)
    - `supabase/migrations/20261027000100_roles_separes.sql` (rôles séparés : qui contribue, qui gère un club)
+   - `supabase/migrations/20261027000200_telephone_unique.sql` (un numéro de téléphone = un seul compte)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
