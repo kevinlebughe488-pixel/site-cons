@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Inscription" };
 
 export default async function RegisterPage(props: PageProps<"/inscription">) {
   const { suite } = await props.searchParams;
-  const returnTo = safeReturnPath(suite, "/compte");
+  const returnTo = safeReturnPath(suite, "/");
   if (await getViewer()) redirect(returnTo);
 
   const supabase = await createClient();

@@ -166,7 +166,10 @@ export default async function AccountPage() {
                 </div>
                 <div className="field">
                   <label htmlFor="phone">Téléphone</label>
-                  <input type="tel" id="phone" name="phone" defaultValue={formatPhone(me.phone).replace("—", "")} />
+                  <input type="tel" id="phone" value={formatPhone(me.phone)} readOnly disabled />
+                  <div className="hint">
+                    Reçoit les codes de connexion par SMS. Pour changer de numéro, contactez l&apos;équipe Tribune.
+                  </div>
                 </div>
                 <div className="two">
                   <div className="field">

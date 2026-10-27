@@ -14,10 +14,15 @@ export type Viewer = {
 /** Utilisateur connecté et son profil, ou null. Mis en cache pour la durée de la requête. */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  // Double authentification : le site n'ouvre de session qu'après le code SMS
+  // (méthode « otp »). Une session ouverte avec le seul mot de passe, en appelant
+  // Supabase directement, n'est pas acceptée.
+  const methods = (claims.amr ?? []).map((m) => (typeof m === "string" ? m : m.method));
+  if (!methods.length || methods.every((m) => m === "password")) return null;
+  const user = { id: claims.sub };
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>();
   if (!profile) return null;

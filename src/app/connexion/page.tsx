@@ -8,13 +8,13 @@ export const metadata: Metadata = { title: "Connexion" };
 
 export default async function LoginPage(props: PageProps<"/connexion">) {
   const { suite, erreur } = await props.searchParams;
-  const returnTo = safeReturnPath(suite, "/compte");
+  const returnTo = safeReturnPath(suite, "/");
   if (await getViewer()) redirect(returnTo);
 
   return (
     <div className="wrap page" style={{ maxWidth: 980 }}>
       <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.8rem)", marginBottom: 20 }}>Connexion</h1>
-      {erreur ? <p className="flash error">Le lien a expiré ou a déjà servi. Connectez-vous ou demandez un nouveau lien.</p> : null}
+      {erreur ? <p className="flash error">Le lien a expiré ou a déjà servi. Connectez-vous : un code vous sera envoyé par SMS.</p> : null}
       <div className="split half">
         <LoginForm returnTo={returnTo} />
         <div className="panel" style={{ display: "grid", gap: 14, alignContent: "start" }}>
