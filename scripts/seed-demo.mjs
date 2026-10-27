@@ -268,6 +268,8 @@ async function main() {
   }
 
   await db.from("audit_log").insert({ actor_id: adminId, action: "demo.donnees_creees", entity_type: "platform", entity_id: null, details: { clubs: CLUBS.length, contributions: count } });
+  // Comptes de démo : numéros considérés comme vérifiés (codes SMS à la connexion seulement).
+  await db.from("profiles").update({ phone_verified_at: new Date().toISOString() }).like("email", "%@tribune.test").is("phone_verified_at", null);
 
   console.log(`\nTerminé : ${CLUBS.length} clubs, ${campaignIds.length} campagnes, ${count} contributions simulées.`);
   console.log(`\nComptes (mot de passe : ${PASSWORD})`);

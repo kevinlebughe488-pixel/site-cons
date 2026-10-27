@@ -338,3 +338,4 @@ details.box summary{cursor:pointer;font-weight:700}
 
 /* bandeau « site de démonstration » (paiements simulés) */
 .demo{background:var(--gold);color:var(--on-gold);font-size:.85rem;padding-block:6px}
+.code-input{font-size:1.6rem!important;letter-spacing:.4em;text-align:center;font-variant-numeric:tabular-nums}

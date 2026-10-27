@@ -44,6 +44,7 @@ depuis le navigateur.
    - `supabase/migrations/20261026000200_club_logos.sql` (logos des clubs dans Storage)
    - `supabase/migrations/20261027000100_roles_separes.sql` (rôles séparés : qui contribue, qui gère un club)
    - `supabase/migrations/20261027000200_telephone_unique.sql` (un numéro de téléphone = un seul compte)
+   - `supabase/migrations/20261027000300_verification_sms.sql` (codes de vérification par SMS)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -101,6 +102,34 @@ du Congo), 7 campagnes **fictives**, ~470 contributions simulées et des comptes
 Les clubs peuvent aussi envoyer leur logo depuis leur espace. Les logos sont des marques des clubs :
 pour un site public, utilisez-les avec leur accord. Ne lancez pas ce script sur le site public, car
 les projets présentés sont inventés.
+
+## Connexion en deux étapes (codes SMS)
+
+Aucun e-mail n'est envoyé : le compte est vérifié par un **code à 6 chiffres envoyé par SMS** au
+numéro du compte.
+
+- **Inscription** : le compte est créé, puis le code confirme que le numéro appartient bien à la personne.
+- **Connexion** : e-mail ou numéro, mot de passe, puis code SMS. Sans le code, aucune session n'est
+  ouverte ; une session obtenue avec le seul mot de passe (en appelant Supabase directement) est refusée par le site.
+- **Mot de passe oublié** : un code SMS permet de choisir un nouveau mot de passe.
+- Un code vaut 10 minutes, 5 essais au plus, 3 codes par quart d'heure et par compte.
+- Un numéro ne sert qu'à un seul compte. Une inscription jamais confirmée libère le numéro au bout de 30 minutes.
+- Le numéro ne se change pas depuis le profil (il reçoit les codes) : l'équipe Tribune s'en charge.
+
+Sans configuration, les SMS sont **simulés** : le code s'affiche à l'écran (démonstration). En
+production, la simulation n'est acceptée qu'avec `ALLOW_SIMULATED_SMS=true` ou `ALLOW_SIMULATED_PAYMENTS=true`.
+
+Pour envoyer de vrais SMS avec [Twilio](https://www.twilio.com) (qui couvre la RDC) :
+
+```
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=AC…
+TWILIO_AUTH_TOKEN=…
+TWILIO_FROM=TRIBUNE          # ou un numéro Twilio, ou TWILIO_MESSAGING_SERVICE_SID=MG…
+```
+
+Activez la RDC dans Twilio (Messaging → Settings → Geo permissions). Le fournisseur est isolé dans
+[`src/lib/sms.ts`](src/lib/sms.ts) : un autre fournisseur (Africa's Talking, Orange SMS API…) s'y ajoute facilement.
 
 ## Paiements Mobile Money avec pawaPay
 

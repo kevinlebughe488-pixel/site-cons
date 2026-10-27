@@ -2,12 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeReturnPath } from "@/lib/auth";
 import { checked, keepFields, text, type FormState } from "@/lib/forms";
 import { normalizeAnyPhone } from "@/lib/phone";
 import { env } from "@/lib/env";
+import { cancelChallenge, confirmChallenge, resendChallenge, startChallenge, VerificationError } from "@/lib/verification";
 
 const REGISTER_FIELDS = ["first_name", "last_name", "email", "phone", "residence", "location", "followed_club_id", "consent", "newsletter"];
 
@@ -21,10 +23,34 @@ const registerSchema = z.object({
   followed_club_id: z.union([z.uuid(), z.literal("")]),
 });
 
-/** Le numéro sert à se faire rembourser et à identifier le supporter : un seul compte par numéro. */
-async function phoneTaken(phone: string): Promise<boolean> {
-  const { data } = await createAdminClient().from("profiles").select("id").eq("phone", phone).maybeSingle();
-  return Boolean(data);
+const STALE_SIGNUP_MINUTES = 30;
+
+/**
+ * Le numéro sert de second facteur et à se faire rembourser : un seul compte par numéro.
+ * Une inscription jamais confirmée par SMS (par exemple avec le numéro de quelqu'un
+ * d'autre) libère le numéro et l'e-mail au bout de 30 minutes.
+ */
+async function findConflict(phone: string, email: string): Promise<"phone" | "email" | "pending" | null> {
+  const admin = createAdminClient();
+  const columns = "id, phone, email, role, phone_verified_at, created_at";
+  const [byPhone, byEmail] = await Promise.all([
+    admin.from("profiles").select(columns).eq("phone", phone),
+    admin.from("profiles").select(columns).eq("email", email),
+  ]);
+  const found = [...(byPhone.data ?? []), ...(byEmail.data ?? [])].filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i);
+  for (const p of found as { id: string; phone: string | null; email: string | null; role: string; phone_verified_at: string | null; created_at: string }[]) {
+    if (!p.phone_verified_at && p.role === "supporter") {
+      const stale = Date.now() - new Date(p.created_at).getTime() > STALE_SIGNUP_MINUTES * 60_000;
+      if (!stale) return "pending";
+      const { count } = await admin.from("contributions").select("id", { count: "exact", head: true }).eq("user_id", p.id);
+      if (!count) {
+        await admin.auth.admin.deleteUser(p.id);
+        continue;
+      }
+    }
+    return p.phone === phone ? "phone" : "email";
+  }
+  return null;
 }
 
 export async function register(_: FormState, form: FormData): Promise<FormState> {
@@ -43,54 +69,70 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
   if (!fields.consent) {
     return fail("Cochez la case de consentement : sans elle, nous ne pouvons pas enregistrer vos contributions.", "consent");
   }
-  if (await phoneTaken(phone)) return fail("Ce numéro de téléphone est déjà utilisé par un autre compte. Connectez-vous.", "phone");
+  const email = parsed.data.email.toLowerCase();
+  const conflict = await findConflict(phone, email);
+  if (conflict === "phone") return fail("Ce numéro de téléphone est déjà utilisé par un autre compte. Connectez-vous.", "phone");
+  if (conflict === "email") return fail("Un compte existe déjà avec cette adresse e-mail. Connectez-vous.", "email");
+  if (conflict === "pending") {
+    return fail(`Une inscription avec ce numéro ou cet e-mail attend sa confirmation par SMS. Connectez-vous pour la terminer, ou réessayez dans ${STALE_SIGNUP_MINUTES} minutes.`);
+  }
 
+  // Compte créé par le serveur, adresse marquée confirmée : aucun e-mail n'est envoyé,
+  // la vérification se fait par le code SMS.
   const [city, ...rest] = parsed.data.location.split(",").map((s) => s.trim());
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
     password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${env.siteUrl}/auth/callback?suite=/compte`,
-      data: {
-        first_name: parsed.data.first_name,
-        last_name: parsed.data.last_name,
-        phone,
-        residence: parsed.data.residence,
-        city: city || null,
-        country: rest.join(", ") || (parsed.data.residence === "rdc" ? "RDC" : null),
-        followed_club_id: parsed.data.followed_club_id || null,
-        newsletter: fields.newsletter === "on",
-      },
+    email_confirm: true,
+    user_metadata: {
+      first_name: parsed.data.first_name,
+      last_name: parsed.data.last_name,
+      phone,
+      residence: parsed.data.residence,
+      city: city || null,
+      country: rest.join(", ") || (parsed.data.residence === "rdc" ? "RDC" : null),
+      followed_club_id: parsed.data.followed_club_id || null,
+      newsletter: fields.newsletter === "on",
     },
   });
-  if (error) {
-    if (/already registered|already been registered|already exists/i.test(error.message)) {
+  if (error || !data.user) {
+    if (error && /already (been )?registered|already exists/i.test(error.message)) {
       return fail("Un compte existe déjà avec cette adresse e-mail. Connectez-vous.", "email");
     }
-    // La base refuse un numéro déjà pris (inscription simultanée avec le même numéro).
-    if (/database error/i.test(error.message) && (await phoneTaken(phone))) {
+    if (error && /password/i.test(error.message)) return fail("Ce mot de passe est trop simple. Choisissez-en un autre.", "password");
+    // La base refuse un numéro déjà pris (deux inscriptions simultanées).
+    if ((await findConflict(phone, email)) === "phone") {
       return fail("Ce numéro de téléphone est déjà utilisé par un autre compte. Connectez-vous.", "phone");
     }
-    if (/rate limit/i.test(error.message)) {
-      return fail("Trop d'inscriptions en peu de temps. Réessayez dans quelques minutes.");
-    }
-    if (/password/i.test(error.message)) return fail("Ce mot de passe est trop simple. Choisissez-en un autre.", "password");
-    console.error("Inscription refusée par Supabase :", error.message);
+    console.error("Inscription refusée par Supabase :", error?.message);
     return fail("Inscription impossible pour le moment. Vérifiez vos informations et réessayez.");
   }
-  // Adresse déjà inscrite : avec la confirmation par e-mail activée, Supabase ne renvoie
-  // pas d'erreur (pour ne pas révéler les comptes) mais un utilisateur sans identité.
-  if (data.user && data.user.identities?.length === 0) {
-    return fail("Un compte existe déjà avec cette adresse e-mail. Connectez-vous.", "email");
+
+  try {
+    await startChallenge({ userId: data.user.id, phone, purpose: "signup", returnTo: safeReturnPath(text(form, "suite"), "/") });
+  } catch (err) {
+    // Le compte reste en attente : la personne pourra le terminer en se connectant.
+    return fail(err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Connectez-vous pour recevoir un nouveau code.");
   }
-  if (!data.session) {
-    return { success: "Compte créé. Ouvrez le lien reçu par e-mail pour confirmer votre adresse, puis connectez-vous." };
-  }
-  redirect(safeReturnPath(text(form, "suite"), "/compte"));
+  redirect("/verification");
 }
 
-/** Connexion avec l'e-mail ou le numéro de téléphone du compte. */
+/** Retrouve le compte à partir d'un e-mail ou d'un numéro de téléphone. */
+async function findAccount(login: string): Promise<{ id: string; email: string | null; phone: string | null } | null> {
+  const admin = createAdminClient();
+  const query = admin.from("profiles").select("id, email, phone");
+  if (login.includes("@")) {
+    const { data } = await query.eq("email", login.toLowerCase()).maybeSingle();
+    return data;
+  }
+  const phone = normalizeAnyPhone(login);
+  if (!phone) return null;
+  const { data } = await query.eq("phone", phone).maybeSingle();
+  return data;
+}
+
+/** Connexion : identifiant (e-mail ou téléphone) et mot de passe, puis code SMS. */
 export async function signIn(_: FormState, form: FormData): Promise<FormState> {
   const login = text(form, "login");
   const password = form.get("password");
@@ -98,26 +140,53 @@ export async function signIn(_: FormState, form: FormData): Promise<FormState> {
   if (!login) return { error: "Indiquez votre e-mail ou votre numéro de téléphone.", field: "login", fields };
   if (typeof password !== "string" || !password) return { error: "Indiquez votre mot de passe.", field: "password", fields };
 
-  let email = login;
-  if (!login.includes("@")) {
-    const phone = normalizeAnyPhone(login);
-    const { data } = phone
-      ? await createAdminClient().from("profiles").select("email").eq("phone", phone).maybeSingle<{ email: string | null }>()
-      : { data: null };
-    // Même message qu'un mauvais mot de passe, pour ne pas révéler quels numéros sont inscrits.
-    if (!data?.email) return { error: "Identifiant ou mot de passe incorrect.", fields };
-    email = data.email;
-  }
+  // Même message dans tous les cas d'échec, pour ne pas révéler quels comptes existent.
+  const wrong: FormState = { error: "Identifiant ou mot de passe incorrect.", fields };
+  const account = await findAccount(login);
+  if (!account?.email) return wrong;
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    const message = /not confirmed/i.test(error.message)
-      ? "Confirmez d'abord votre adresse avec le lien reçu par e-mail."
-      : "Identifiant ou mot de passe incorrect.";
-    return { error: message, fields };
+  // Vérifie le mot de passe sans ouvrir de session dans le navigateur.
+  const probe = createSupabaseClient(env.supabaseUrl, env.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error } = await probe.auth.signInWithPassword({ email: account.email, password });
+  if (error) return wrong;
+  await probe.auth.signOut({ scope: "local" });
+
+  if (!account.phone) {
+    return { error: "Aucun numéro de téléphone n'est enregistré sur ce compte. Contactez l'équipe Tribune.", fields };
   }
-  redirect(safeReturnPath(text(form, "suite"), "/compte"));
+  try {
+    await startChallenge({ userId: account.id, phone: account.phone, purpose: "login", returnTo: safeReturnPath(text(form, "suite"), "/") });
+  } catch (err) {
+    return { error: err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Réessayez.", fields };
+  }
+  redirect("/verification");
+}
+
+/** Saisie du code reçu par SMS. */
+export async function verifyCode(_: FormState, form: FormData): Promise<FormState> {
+  const code = text(form, "code").replace(/\s/g, "");
+  let result: Awaited<ReturnType<typeof confirmChallenge>>;
+  try {
+    result = await confirmChallenge(code);
+  } catch (err) {
+    return { error: err instanceof VerificationError ? err.message : "Vérification impossible. Réessayez.", field: "code" };
+  }
+  if (result.purpose === "reset") redirect("/compte/mot-de-passe");
+  redirect(safeReturnPath(result.returnTo, "/"));
+}
+
+export async function resendCode(): Promise<FormState> {
+  try {
+    await resendChallenge();
+  } catch (err) {
+    return { error: err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Réessayez." };
+  }
+  return { success: "Un nouveau code vient d'être envoyé." };
+}
+
+export async function cancelVerification() {
+  await cancelChallenge();
+  redirect("/connexion");
 }
 
 export async function signOut() {
@@ -126,15 +195,18 @@ export async function signOut() {
   redirect("/");
 }
 
+/** Mot de passe oublié : un code SMS ouvre une session pour choisir un nouveau mot de passe. */
 export async function requestPasswordReset(_: FormState, form: FormData): Promise<FormState> {
-  const email = text(form, "email");
-  if (!z.email().safeParse(email).success) return { error: "L'adresse e-mail n'est pas valide." };
-  const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${env.siteUrl}/auth/callback?suite=/compte/mot-de-passe`,
-  });
-  // Même réponse que l'adresse existe ou non, pour ne pas révéler qui est inscrit.
-  return { success: "Si un compte existe avec cette adresse, un lien pour choisir un nouveau mot de passe vient d'être envoyé." };
+  const login = text(form, "login");
+  if (!login) return { error: "Indiquez votre e-mail ou votre numéro de téléphone.", field: "login" };
+  const account = await findAccount(login);
+  if (!account?.phone) return { error: "Aucun compte ne correspond à cet identifiant.", field: "login", fields: { login } };
+  try {
+    await startChallenge({ userId: account.id, phone: account.phone, purpose: "reset" });
+  } catch (err) {
+    return { error: err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Réessayez.", fields: { login } };
+  }
+  redirect("/verification");
 }
 
 export async function updatePassword(_: FormState, form: FormData): Promise<FormState> {
@@ -144,6 +216,6 @@ export async function updatePassword(_: FormState, form: FormData): Promise<Form
   }
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: "Changement impossible. Rouvrez le lien reçu par e-mail et réessayez." };
+  if (error) return { error: "Changement impossible. Recommencez depuis « Mot de passe oublié »." };
   return { success: "Mot de passe mis à jour." };
 }
