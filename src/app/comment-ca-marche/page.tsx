@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { FieldSvg } from "@/components/visuals";
+import { getViewer } from "@/lib/auth";
+import { can } from "@/lib/rbac";
 
 export const metadata: Metadata = { title: "Comment ça marche" };
 
@@ -18,7 +20,16 @@ const CLUB_STEPS = [
   ["Le club rend compte", "Nouvelles relues avant publication, preuves de chaque jalon, rapport final."],
 ];
 
-export default function HowItWorksPage() {
+export default async function HowItWorksPage() {
+  // Un gestionnaire n'a besoin que du parcours d'un club.
+  const viewer = await getViewer();
+  const clubOnly = can(viewer?.profile.role, "club:manage");
+  const journeys: [string, string[][]][] = clubOnly
+    ? [["Le parcours d'un club", CLUB_STEPS]]
+    : [
+        ["Le parcours d'un supporter", SUPPORTER_STEPS],
+        ["Le parcours d'un club", CLUB_STEPS],
+      ];
   return (
     <>
       <div className="page-head on-pitch">
@@ -32,15 +43,12 @@ export default function HowItWorksPage() {
         </div>
       </div>
       <div className="wrap page" style={{ display: "grid", gap: 48 }}>
-        <div className="split half">
-          {[
-            ["Le parcours d'un supporter", SUPPORTER_STEPS],
-            ["Le parcours d'un club", CLUB_STEPS],
-          ].map(([title, steps]) => (
-            <div key={title as string}>
-              <h2 style={{ marginBottom: 16 }}>{title as string}</h2>
+        <div className={journeys.length > 1 ? "split half" : undefined}>
+          {journeys.map(([title, steps]) => (
+            <div key={title}>
+              <h2 style={{ marginBottom: 16 }}>{title}</h2>
               <ol className="steps">
-                {(steps as string[][]).map(([t, d], i) => (
+                {steps.map(([t, d], i) => (
                   <li key={t} className="done">
                     <span className="dot">{i + 1}</span>
                     <div>

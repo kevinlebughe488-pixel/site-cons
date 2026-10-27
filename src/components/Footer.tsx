@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { getViewer } from "@/lib/auth";
+import { navigationFor } from "@/lib/navigation";
 
-export function Footer() {
+export async function Footer() {
+  const nav = navigationFor(await getViewer());
   return (
     <footer>
       <div className="wrap">
@@ -9,28 +12,18 @@ export function Footer() {
             <div className="logo" style={{ marginBottom: 10 }}>
               Tribune
             </div>
-            <p style={{ opacity: 0.85, maxWidth: "28em" }}>
-              Plateforme de financement participatif des clubs de football par leurs supporters. Chaque campagne est
-              vérifiée avant publication et suivie jusqu&apos;à sa clôture.
-            </p>
+            <p style={{ opacity: 0.85, maxWidth: "28em" }}>{nav.footerBlurb}</p>
           </div>
-          <div>
-            <h4>Supporters</h4>
-            <Link href="/campagnes">Toutes les campagnes</Link>
-            <Link href="/comment-ca-marche">Comment ça marche</Link>
-            <Link href="/compte">Mon compte</Link>
-          </div>
-          <div>
-            <h4>Clubs</h4>
-            <Link href="/club">Proposer une campagne</Link>
-            <Link href="/comment-ca-marche#frais">Frais et règles</Link>
-          </div>
-          <div>
-            <h4>Confiance</h4>
-            <Link href="/comment-ca-marche#securite">Sécurité des paiements</Link>
-            <Link href="/comment-ca-marche#securite">Données personnelles</Link>
-            <Link href="/comment-ca-marche#faq">Réclamations</Link>
-          </div>
+          {nav.footer.map((col) => (
+            <div key={col.title}>
+              <h4>{col.title}</h4>
+              {col.links.map((l) => (
+                <Link key={l.label} href={l.href}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          ))}
         </div>
         <div className="legal">
           Tribune n&apos;est pas une banque : les paiements Mobile Money sont encaissés par un prestataire agréé
