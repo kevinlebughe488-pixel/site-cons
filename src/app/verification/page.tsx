@@ -11,13 +11,17 @@ const TITLES = {
   signup: "Confirmez votre numéro",
   login: "Vérification en deux étapes",
   reset: "Mot de passe oublié",
+  link: "Relier votre compte Google",
 };
 
 const INTROS = {
   signup: "Dernière étape de l'inscription : saisissez le code envoyé par SMS pour confirmer que ce numéro est bien le vôtre.",
   login: "Votre mot de passe est correct. Pour finir la connexion, saisissez le code envoyé par SMS.",
   reset: "Saisissez le code envoyé par SMS : vous pourrez ensuite choisir un nouveau mot de passe.",
+  link: "Un compte Tribune existe déjà avec la même adresse e-mail que votre compte Google. Pour les relier, saisissez le code envoyé par SMS au numéro de ce compte : vous pourrez ensuite vous connecter avec Google.",
 };
+
+const GOOGLE_LOGIN_INTRO = "Google a confirmé votre identité. Pour finir la connexion, saisissez le code envoyé par SMS.";
 
 export default async function VerificationPage() {
   const challenge = await pendingChallenge();
@@ -42,7 +46,7 @@ export default async function VerificationPage() {
     <div className="wrap page" style={{ maxWidth: 560 }}>
       <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.6rem)", marginBottom: 10 }}>{TITLES[challenge.purpose]}</h1>
       <p className="muted" style={{ marginBottom: 20 }}>
-        {INTROS[challenge.purpose]} Le code a été envoyé au <b className="num">{challenge.maskedPhone}</b> et reste valable 10 minutes.
+        {challenge.purpose === "login" && challenge.viaGoogle ? GOOGLE_LOGIN_INTRO : INTROS[challenge.purpose]} Le code a été envoyé au <b className="num">{challenge.maskedPhone}</b> et reste valable 10 minutes.
       </p>
       {challenge.demoCode ? (
         <p className="flash info" role="note">

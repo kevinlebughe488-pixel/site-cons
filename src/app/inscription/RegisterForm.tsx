@@ -1,11 +1,23 @@
 "use client";
 
 import { useActionState } from "react";
-import { register } from "@/lib/actions/auth";
+import { completeGoogleSignup, register } from "@/lib/actions/auth";
 import { FieldError, Flash, SubmitButton } from "@/components/forms";
 
-export function RegisterForm({ clubs, returnTo }: { clubs: { id: string; name: string }[]; returnTo: string }) {
-  const [state, action] = useActionState(register, {});
+/**
+ * Formulaire d'inscription. Avec `google`, l'adresse vient de Google (déjà
+ * vérifiée) et il n'y a pas de mot de passe.
+ */
+export function RegisterForm({
+  clubs,
+  returnTo,
+  google,
+}: {
+  clubs: { id: string; name: string }[];
+  returnTo: string;
+  google?: { email: string; firstName: string; lastName: string };
+}) {
+  const [state, action] = useActionState(google ? completeGoogleSignup : register, {});
   const f = state.fields ?? {};
   const invalid = (name: string) => (state.field === name ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {});
   if (state.success) {
@@ -22,12 +34,12 @@ export function RegisterForm({ clubs, returnTo }: { clubs: { id: string; name: s
       <div className="two">
         <div className="field">
           <label htmlFor="first_name">Prénom</label>
-          <input type="text" id="first_name" name="first_name" {...invalid("first_name")} autoComplete="given-name" defaultValue={f.first_name} required />
+          <input type="text" id="first_name" name="first_name" {...invalid("first_name")} autoComplete="given-name" defaultValue={f.first_name ?? google?.firstName} required />
           <FieldError state={state} name="first_name" />
         </div>
         <div className="field">
           <label htmlFor="last_name">Nom</label>
-          <input type="text" id="last_name" name="last_name" {...invalid("last_name")} autoComplete="family-name" defaultValue={f.last_name} required />
+          <input type="text" id="last_name" name="last_name" {...invalid("last_name")} autoComplete="family-name" defaultValue={f.last_name ?? google?.lastName} required />
           <FieldError state={state} name="last_name" />
         </div>
       </div>
@@ -38,19 +50,29 @@ export function RegisterForm({ clubs, returnTo }: { clubs: { id: string; name: s
           <FieldError state={state} name="phone" />
           <div className="hint">Sert à payer, à recevoir les remboursements et à vous identifier.</div>
         </div>
+        {google ? (
+          <div className="field">
+            <label htmlFor="email">E-mail</label>
+            <input type="email" id="email" value={google.email} readOnly disabled />
+            <div className="hint">Confirmée par Google. Vous vous connecterez avec Google.</div>
+          </div>
+        ) : (
+          <div className="field">
+            <label htmlFor="email">E-mail</label>
+            <input type="email" id="email" name="email" {...invalid("email")} autoComplete="email" defaultValue={f.email} required />
+            <FieldError state={state} name="email" />
+            <div className="hint">Pour vous connecter et recevoir vos reçus.</div>
+          </div>
+        )}
+      </div>
+      {google ? null : (
         <div className="field">
-          <label htmlFor="email">E-mail</label>
-          <input type="email" id="email" name="email" {...invalid("email")} autoComplete="email" defaultValue={f.email} required />
-          <FieldError state={state} name="email" />
-          <div className="hint">Pour vous connecter et recevoir vos reçus.</div>
+          <label htmlFor="password">Mot de passe</label>
+          <input type="password" id="password" name="password" {...invalid("password")} autoComplete="new-password" minLength={10} required />
+          <FieldError state={state} name="password" />
+          <div className="hint">Au moins 10 caractères.</div>
         </div>
-      </div>
-      <div className="field">
-        <label htmlFor="password">Mot de passe</label>
-        <input type="password" id="password" name="password" {...invalid("password")} autoComplete="new-password" minLength={10} required />
-        <FieldError state={state} name="password" />
-        <div className="hint">Au moins 10 caractères.</div>
-      </div>
+      )}
       <div className="two">
         <div className="field">
           <label htmlFor="residence">Vous vivez</label>

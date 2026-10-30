@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { updateProfile } from "@/lib/actions/account";
+import { unlinkGoogle, updateProfile } from "@/lib/actions/account";
+import { googleEnabled } from "@/lib/google";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { FieldSvg, Pill } from "@/components/visuals";
 import { CONTRIBUTION_STATUS_LABELS, DOC_TYPES, KYC_LABELS } from "@/lib/labels";
@@ -37,6 +38,7 @@ export default async function AccountPage() {
         .limit(100)
     : { data: [] };
   const mine = (data ?? []) as (Contribution & { campaign: { title: string; slug: string } | null })[];
+  const { data: google } = await supabase.from("oauth_identities").select("email").eq("provider", "google").eq("user_id", me.id).maybeSingle();
   const confirmed = mine.filter((c) => c.status === "completed");
   const total = confirmed.reduce((s, c) => s + Number(c.amount), 0);
 
@@ -203,6 +205,27 @@ export default async function AccountPage() {
               <Link className="btn btn-ghost btn-sm" href="/compte/mot-de-passe">
                 Changer mon mot de passe
               </Link>
+              {google ? (
+                <div style={{ borderTop: "1px solid var(--line)", marginTop: 14, paddingTop: 14, display: "grid", gap: 10 }}>
+                  <p className="small">
+                    <b>Connexion avec Google</b> : reliée{google.email ? ` à ${google.email}` : ""}. Un code SMS reste demandé à chaque connexion.
+                  </p>
+                  <ActionForm action={unlinkGoogle} className="inline-form">
+                    <SubmitButton
+                      className="btn btn-ghost btn-sm"
+                      pendingLabel="…"
+                      confirm="Délier Google ? Vous vous connecterez avec votre mot de passe (ou « Mot de passe oublié » si vous n'en avez pas)."
+                    >
+                      Délier Google
+                    </SubmitButton>
+                  </ActionForm>
+                </div>
+              ) : googleEnabled() ? (
+                <p className="small muted" style={{ marginTop: 14 }}>
+                  Connexion avec Google : non reliée. Pour la relier, utilisez « Continuer avec Google » sur la page de
+                  connexion avec un compte Google qui a la même adresse e-mail.
+                </p>
+              ) : null}
             </div>
           </aside>
         </div>

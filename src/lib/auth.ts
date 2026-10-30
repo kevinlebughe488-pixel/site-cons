@@ -18,10 +18,11 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const claims = data?.claims;
   if (!claims?.sub) return null;
   // Double authentification : le site n'ouvre de session qu'après le code SMS
-  // (méthode « otp »). Une session ouverte avec le seul mot de passe, en appelant
-  // Supabase directement, n'est pas acceptée.
+  // (méthode « otp »). Une session ouverte avec le seul mot de passe, ou avec le
+  // seul fournisseur Google de Supabase (« oauth », qui doit rester désactivé),
+  // en appelant Supabase directement, n'est pas acceptée.
   const methods = (claims.amr ?? []).map((m) => (typeof m === "string" ? m : m.method));
-  if (!methods.length || methods.every((m) => m === "password")) return null;
+  if (!methods.length || methods.every((m) => m === "password" || m === "oauth")) return null;
   const user = { id: claims.sub };
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>();
