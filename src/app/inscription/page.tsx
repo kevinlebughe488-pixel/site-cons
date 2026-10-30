@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer, safeReturnPath } from "@/lib/auth";
 import { FieldSvg } from "@/components/visuals";
+import { GoogleButton } from "@/components/GoogleButton";
 import { RegisterForm } from "./RegisterForm";
 import { formatMoney, KYC_THRESHOLD } from "@/lib/format";
 
@@ -34,7 +35,16 @@ export default async function RegisterPage(props: PageProps<"/inscription">) {
       </div>
       <div className="wrap page">
         <div className="split">
-          <RegisterForm clubs={clubs ?? []} returnTo={returnTo} />
+          <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+            <div className="panel" style={{ display: "grid", gap: 14 }}>
+              <GoogleButton returnTo={returnTo}>S&apos;inscrire avec Google</GoogleButton>
+              <p className="small muted">
+                Pas de mot de passe à retenir : Google confirme votre adresse, vous ajoutez votre numéro de téléphone.
+              </p>
+              <div className="or-sep">ou avec une adresse e-mail et un mot de passe</div>
+            </div>
+            <RegisterForm clubs={clubs ?? []} returnTo={returnTo} />
+          </div>
           <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
             <div className="panel">
               <h3>Ce que nous enregistrons</h3>

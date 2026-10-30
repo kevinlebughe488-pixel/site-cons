@@ -8,7 +8,7 @@ import { FieldError, Flash, SubmitButton } from "@/components/forms";
 export function LoginForm({ returnTo }: { returnTo: string }) {
   const [state, action] = useActionState(signIn, {});
   return (
-    <form className="panel form" action={action} noValidate>
+    <form className="form" action={action} noValidate>
       <Flash state={state} />
       <input type="hidden" name="suite" value={returnTo} />
       <div className="field">

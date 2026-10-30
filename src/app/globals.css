@@ -69,6 +69,11 @@ nav.main a[aria-current="page"]{opacity:1;box-shadow:inset 0 -3px 0 var(--gold)}
 .btn-ghost:hover{border-color:var(--muted)}
 .btn-sm{padding:7px 12px;font-size:.88rem;border-radius:8px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+/* Bouton Google : couleurs imposées par les consignes de Google, quel que soit le thème */
+.btn-google{width:100%;background:#fff;color:#1f1f1f;border:1px solid #747775;gap:12px}
+.btn-google:hover{background:#f8f9fa}
+.or-sep{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.85rem}
+.or-sep::before,.or-sep::after{content:"";flex:1;border-top:1px solid var(--line)}
 .on-pitch .btn-ghost{color:var(--on-pitch);border-color:var(--pitch-line)}
 
 /* puces d'état */
@@ -206,7 +211,7 @@ input[type=file]{max-width:100%;font-size:.9rem}
 .field .hint{font-size:.85rem;color:var(--muted);margin-top:4px}
 .field .hint.field-error{color:var(--bad);font-weight:600}
 .field [aria-invalid="true"]{border-color:var(--bad)}
-input[type=text],input[type=tel],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:11px 13px}
+input[type=text],input[type=tel],input[type=email],input[type=password],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:11px 13px}
 input:focus,select:focus,textarea:focus{border-color:var(--pitch);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--pitch) 22%,transparent)}
 textarea{min-height:110px;resize:vertical}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}

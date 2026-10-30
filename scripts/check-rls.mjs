@@ -57,6 +57,15 @@ expect("supporter : ne lit pas le journal d'audit", denied(await supporter.from(
 expect("supporter : ne peut pas publier une campagne", !!(await supporter.rpc("review_campaign", { p_campaign_id: anyCampaign.id, p_decision: "approve" })).error);
 expect("supporter : ne peut pas changer un rôle", !!(await supporter.rpc("admin_set_role", { p_user_id: me.user.id, p_role: "admin" })).error);
 expect("supporter : ne peut pas appeler une fonction interne", !!(await supporter.rpc("write_audit", { p_action: "x", p_entity_type: "x", p_entity_id: "x" })).error);
+expect("visiteur : ne lit aucune liaison Google", denied(await anon.from("oauth_identities").select("user_id")));
+const googleLinks = await supporter.from("oauth_identities").select("user_id");
+expect("supporter : ne lit que sa propre liaison Google", !googleLinks.error && (googleLinks.data ?? []).every((g) => g.user_id === me.user.id));
+expect(
+  "supporter : ne peut pas relier lui-même un compte Google",
+  !!(await supporter.from("oauth_identities").insert({ provider: "google", subject: "faux-sub", user_id: me.user.id })).error,
+);
+expect("supporter : ne lit aucune connexion Google en cours", denied(await supporter.from("oauth_logins").select("id")));
+expect("supporter : ne lit aucun code SMS", denied(await supporter.from("sms_challenges").select("id")));
 
 expect(
   "gestionnaire TP Mazembe : ne peut pas modifier une campagne d'AS Vita Club",

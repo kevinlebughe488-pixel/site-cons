@@ -29,7 +29,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (24 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (29 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -45,6 +45,7 @@ depuis le navigateur.
    - `supabase/migrations/20261027000100_roles_separes.sql` (rôles séparés : qui contribue, qui gère un club)
    - `supabase/migrations/20261027000200_telephone_unique.sql` (un numéro de téléphone = un seul compte)
    - `supabase/migrations/20261027000300_verification_sms.sql` (codes de vérification par SMS)
+   - `supabase/migrations/20261030000100_connexion_google.sql` (connexion avec Google)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -131,6 +132,47 @@ TWILIO_FROM=TRIBUNE          # ou un numéro Twilio, ou TWILIO_MESSAGING_SERVICE
 Activez la RDC dans Twilio (Messaging → Settings → Geo permissions). Le fournisseur est isolé dans
 [`src/lib/sms.ts`](src/lib/sms.ts) : un autre fournisseur (Africa's Talking, Orange SMS API…) s'y ajoute facilement.
 
+## Connexion avec Google
+
+Un bouton **Continuer avec Google** est affiché sur les pages de connexion et d'inscription. Il
+fonctionne dès que `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` sont renseignés ; avant cela, un clic
+affiche « La connexion avec Google n'est pas encore disponible ». Google remplace le mot de passe, **pas le
+code SMS** : la session n'est ouverte qu'après le code, comme pour une connexion classique.
+
+Le site parle lui-même à Google ([`src/lib/google.ts`](src/lib/google.ts), OpenID Connect avec PKCE,
+`state` et `nonce`, signature du jeton vérifiée avec les clés publiques de Google). Au retour de Google :
+
+| Situation | Ce qui se passe |
+| --- | --- |
+| Compte Google déjà relié (reconnu par son identifiant Google, jamais par l'adresse) | Code SMS au numéro du compte, puis connexion |
+| Adresse Google **vérifiée par Google** = adresse d'un compte Tribune | Code SMS au numéro **de ce compte** ; Google n'est relié qu'une fois le code saisi |
+| Aucun compte | Formulaire d'inscription (numéro, consentement ; nom et adresse repris de Google), puis code SMS |
+| Adresse non vérifiée par Google, ou compte déjà relié à un autre compte Google | Refusé, avec un message |
+
+Avoir accès à la boîte e-mail ne suffit donc pas pour entrer dans un compte existant : il faut aussi
+le téléphone du compte. Un compte Tribune n'est relié qu'à un seul compte Google (et inversement), et
+chaque liaison est écrite dans le journal d'audit. On peut délier Google depuis **Mon compte**.
+
+**Idempotence** : un retour de Google n'est traité qu'une seule fois. S'il est rechargé, reçu deux
+fois ou en même temps, il mène à la même étape : pas de nouvel échange avec Google, pas de nouveau
+SMS, pas de second compte. Le formulaire d'inscription envoyé deux fois ne crée qu'un compte. La
+connexion en cours est liée au navigateur qui l'a commencée (cookie) : un lien de retour intercepté
+ne sert à rien ailleurs. Elle expire après 10 minutes (30 pour remplir l'inscription).
+
+Mise en place :
+
+1. Dans [Google Cloud Console](https://console.cloud.google.com/) : **APIs & Services → OAuth consent
+   screen**, nom de l'application « Tribune », portées `openid`, `email` et `profile` (aucune
+   validation de Google n'est nécessaire pour ces portées).
+2. **Credentials → Create credentials → OAuth client ID**, type *Web application*, *Authorized
+   redirect URIs* : `https://<votre-site>/auth/google/callback` (et `http://localhost:3000/auth/google/callback`
+   pour le développement).
+3. Renseignez `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`. `SITE_URL` doit être exactement
+   l'adresse déclarée chez Google.
+4. **N'activez pas** Google dans Supabase (Authentication → Sign In / Providers) : Supabase relierait
+   tout seul les comptes de même adresse, sans code SMS. Une session ouverte de cette façon est de
+   toute manière refusée par le site.
+
 ## Paiements Mobile Money avec pawaPay
 
 Sans configuration, l'application tourne en **mode simulation** : aucun argent ne circule, le
@@ -198,7 +240,7 @@ En production, la simulation est refusée, sauf si `ALLOW_SIMULATED_PAYMENTS=tru
 ```bash
 cd dev/supabase-local
 cp .env.example .env
-JWT_SECRET=$(grep JWT_SECRET .env | cut -d= -f2) node keys.mjs   # copiez les clés affichées dans .env et ../../.env.local
+JWT_SECRET=$(grep ^JWT_SECRET .env | cut -d= -f2) node keys.mjs   # copiez les clés affichées dans .env et ../../.env.local
 docker compose up -d
 # appliquez les migrations (mot de passe : POSTGRES_PASSWORD)
 for f in ../../supabase/migrations/*.sql; do psql -h localhost -p 54322 -U postgres -d postgres -f "$f"; done
@@ -221,5 +263,6 @@ node scripts/check-rls.mjs     # règles d'accès, sur une base de test avec les
   versements par tranche (API *payouts* de pawaPay) ne sont pas encore automatisés.
 - Notifications SMS et e-mail aux supporters (reçus, nouvelles, remboursements).
 - Connexion par code SMS (Supabase Auth « phone »), utile pour les supporters sans e-mail.
+- Relier Google depuis « Mon compte » quand l'adresse Google diffère de celle du compte.
 - Vérification de la signature des notifications pawaPay (en plus de la revérification actuelle).
 - Clôture automatique des campagnes à leur date de fin (tâche planifiée).
