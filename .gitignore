@@ -10,3 +10,8 @@ dev/supabase-local/.env
 .vercel
 .DS_Store
 AGENTS.md
+
+# Film de lancement : modèles téléchargés et fichiers intermédiaires
+motion/.cache
+motion/build
+motion/__pycache__

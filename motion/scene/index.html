@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Tribune Supporters · Film de lancement</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-star" viewBox="-50 -50 100 100"><path d="M0-48 11.3-15.6 45.6-14.8 18.3 6 28.2 38.8 0 19.2-28.2 38.8-18.3 6-45.6-14.8-11.3-15.6Z" fill="#f7d618"/></symbol>
+    <symbol id="i-check" viewBox="0 0 30 30"><path d="M6 15.5 12.5 22 24 9" fill="none" stroke="#ecd083" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check-w" viewBox="0 0 30 30"><path d="M6 15.5 12.5 22 24 9" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pitch" viewBox="0 0 84 62"><rect x="3" y="3" width="78" height="56" rx="7" fill="#2c7a4f"/><g fill="none" stroke="#e1f0e6" stroke-width="2.5"><rect x="9" y="9" width="66" height="44" rx="2"/><path d="M42 9v44"/><circle cx="42" cy="31" r="9"/></g></symbol>
+    <symbol id="i-boot" viewBox="0 0 84 62"><path d="M6 40c0-7 4-14 11-17l16-3c3-6 7-9 13-9h6c3 0 4 3 4 6v8c9 1 18 6 20 13v4c0 3-3 5-6 5H11c-3 0-5-2-5-5Z" fill="#15211a"/><path d="M38 22l4 6M44 20l4 6M50 19l3 6" stroke="#ecd083" stroke-width="2.5" stroke-linecap="round"/><g fill="#15211a"><rect x="14" y="47" width="6" height="7" rx="2"/><rect x="28" y="47" width="6" height="7" rx="2"/><rect x="52" y="47" width="6" height="7" rx="2"/><rect x="66" y="47" width="6" height="7" rx="2"/></g></symbol>
+    <symbol id="i-bus" viewBox="0 0 84 62"><rect x="4" y="8" width="76" height="40" rx="9" fill="#1d5237"/><g fill="#e1f0e6"><rect x="10" y="15" width="13" height="13" rx="2"/><rect x="27" y="15" width="13" height="13" rx="2"/><rect x="44" y="15" width="13" height="13" rx="2"/><rect x="61" y="15" width="13" height="20" rx="2"/></g><rect x="4" y="36" width="76" height="4" fill="#ecd083"/><g fill="#15211a" stroke="#f2f4ee" stroke-width="3"><circle cx="21" cy="49" r="8"/><circle cx="63" cy="49" r="8"/></g></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12.5" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 5l1.5-2.5h5L16 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-report" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 17v-3M12.5 17v-6M16 17v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <!-- Logo Tribune (repris de src/app/icon.svg) -->
+    <symbol id="i-logo" viewBox="0 0 34 34"><rect class="lg-box" x="1" y="1" width="32" height="32" rx="8" fill="none" stroke="currentColor" stroke-width="2"/><path class="lg-mid" d="M1 17h32" stroke="currentColor" stroke-width="2"/><circle class="lg-ring" cx="17" cy="17" r="6" fill="none" stroke="#ecd083" stroke-width="2.4"/></symbol>
+  </defs>
+</svg>
+
+<div id="stage">
+  <!-- fonds -->
+  <div class="bg" id="bg-night"></div>
+  <div class="bg" id="bg-grey"></div>
+  <div class="bg" id="bg-pitch">
+    <div class="stripes"></div>
+    <svg class="field" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+      <g fill="none" stroke="rgba(243,245,239,.13)" stroke-width="3">
+        <rect x="70" y="60" width="1780" height="960"/><path d="M960 60v960"/><circle cx="960" cy="540" r="150"/>
+        <rect x="70" y="300" width="250" height="480"/><rect x="1600" y="300" width="250" height="480"/>
+        <path d="M320 450a110 110 0 0 1 0 180M1600 450a110 110 0 0 0 0 180"/>
+      </g>
+    </svg>
+  </div>
+  <div class="bg" id="bg-paper"><div class="dots"></div></div>
+  <div class="bg" id="bg-flag">
+    <div class="band"><i></i></div>
+    <svg class="star"><use href="#i-star"/></svg>
+    <div class="shade"></div>
+  </div>
+
+  <!-- projecteurs du stade -->
+  <div class="layer" id="lights">
+    <div class="layer" id="haze"></div>
+  </div>
+  <div class="layer" id="particles"></div>
+  <div id="rays"></div>
+
+  <!-- 1 · ouverture -->
+  <section class="scene" id="s-intro">
+    <svg class="star"><use href="#i-star"/></svg>
+    <div id="t-peuple" class="display">Congolaises, Congolais</div>
+    <div id="t-compat">Mes chers compatriotes</div>
+    <svg class="ball" viewBox="-50 -50 100 100">
+      <g class="spin">
+        <circle r="46" fill="#f3f5ef"/>
+        <path d="M0-16 15-5 9 13H-9L-15-5Z" fill="#15211a"/>
+        <path d="M0-16V-46M15-5 43-14M9 13 26 38M-9 13-26 38M-15-5-43-14" stroke="#15211a" stroke-width="3"/>
+        <path d="M-12-44 0-46 12-44 8-36H-8ZM40-24 44-14 42 0 34-6 36-18ZM30 34 24 40 14 44 14 34 24 30ZM-30 34-24 40-14 44-14 34-24 30ZM-40-24-44-14-42 0-34-6-36-18Z" fill="#15211a"/>
+      </g>
+      <circle r="46" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+    </svg>
+    <div id="t-jeu">
+      <div class="a">Chez nous, le football</div>
+      <div class="b display">n'est pas un simple <span class="gold">jeu</span></div>
+    </div>
+    <div id="t-passion">
+      <div class="a">C'est une passion qui unit</div>
+      <div class="b display"><span class="wrapu"><em>toute la nation</em><span class="uline"></span></span></div>
+    </div>
+    <div id="crowd"></div>
+    <div id="t-nous" class="display">
+      <div>Nous chantons.</div>
+      <div>Nous vibrons.</div>
+      <div>Nous portons nos couleurs.</div>
+    </div>
+  </section>
+
+  <!-- 2 · le problème -->
+  <section class="scene" id="s-pb">
+    <div id="t-moyens" class="display">Mais nos clubs<br>manquent de <em>moyens</em></div>
+    <div class="cards3">
+      <div class="pcard"><span class="x">✕</span>
+        <svg viewBox="0 0 230 160"><rect x="8" y="8" width="214" height="144" rx="12" fill="#3a463d" stroke="#8a968c" stroke-width="4"/>
+          <path d="M115 8v144" stroke="#8a968c" stroke-width="4"/><circle cx="115" cy="80" r="26" fill="none" stroke="#8a968c" stroke-width="4"/>
+          <ellipse cx="58" cy="50" rx="32" ry="17" fill="#6d5a3c"/><ellipse cx="170" cy="112" rx="36" ry="19" fill="#6d5a3c"/><ellipse cx="160" cy="42" rx="16" ry="9" fill="#6d5a3c"/>
+          <path d="M30 128l22-18 12 12 22-24 10 8" fill="none" stroke="#c8432f" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        <b>Terrains abîmés</b></div>
+      <div class="pcard"><span class="x">✕</span>
+        <svg viewBox="0 0 230 160"><path d="M24 104c0-17 10-33 27-40l39-7c7-15 17-22 32-22h15c7 0 10 7 10 14v19c22 3 44 15 49 32v10c0 7-7 12-14 12H36c-7 0-12-5-12-12Z" fill="none" stroke="#8a968c" stroke-width="5" stroke-dasharray="14 10" stroke-linejoin="round"/>
+          <path d="M30 150 200 18" stroke="#c8432f" stroke-width="6" stroke-linecap="round"/></svg>
+        <b>Jeunes sans équipement</b></div>
+      <div class="pcard"><span class="x">✕</span>
+        <svg viewBox="0 0 230 160"><rect x="14" y="26" width="202" height="98" rx="18" fill="#3a463d" stroke="#8a968c" stroke-width="4"/>
+          <g fill="#5d6a60"><rect x="30" y="42" width="34" height="32" rx="5"/><rect x="74" y="42" width="34" height="32" rx="5"/><rect x="118" y="42" width="34" height="32" rx="5"/><rect x="162" y="42" width="38" height="52" rx="5"/></g>
+          <g fill="#202622" stroke="#8a968c" stroke-width="4"><circle cx="58" cy="126" r="19"/><circle cx="172" cy="126" r="19"/></g>
+          <path d="M20 150 210 14" stroke="#c8432f" stroke-width="6" stroke-linecap="round"/></svg>
+        <b>Déplacements impossibles</b></div>
+    </div>
+    <div id="notes"></div>
+    <svg id="qmark" viewBox="-180 -260 360 520">
+      <path class="q" d="M-95-110C-95-200 95-200 95-110 95-40 0-35 0 40V80" fill="none" stroke="#e9ece8" stroke-width="44" stroke-linecap="round"/>
+      <circle class="qdot" cx="0" cy="175" r="30" fill="#e9ece8"/>
+    </svg>
+    <div id="t-argent"><div class="a">Et trop souvent, personne ne sait</div><div class="b display">où va l'argent&#8239;?</div></div>
+  </section>
+
+  <!-- 3 · révélation -->
+  <section class="scene" id="s-rev">
+    <div id="t-change"><div class="a display">Aujourd'hui,</div><div class="b display">tout change.</div></div>
+    <div id="logo">
+      <svg class="mark" style="color:#f3f5ef"><use href="#i-logo"/></svg>
+      <div class="word display">Tribune</div>
+      <div class="tag">Supporters</div>
+    </div>
+    <div id="t-plateforme"><div class="a">La plateforme où les supporters financent <em>directement</em><br>les projets de leur club.</div></div>
+  </section>
+
+  <!-- 4 · comment ça marche -->
+  <section class="scene" id="s-how">
+    <div id="how-left">
+      <div class="step" id="st1">
+        <div class="num"><i>1</i>Choisissez</div>
+        <h2>Un projet<br><em>de votre club</em></h2>
+        <div class="chips">
+          <div class="chip"><svg><use href="#i-pitch"/></svg><b>Une pelouse</b></div>
+          <div class="chip"><svg><use href="#i-boot"/></svg><b>Des chaussures pour les jeunes</b></div>
+          <div class="chip"><svg><use href="#i-bus"/></svg><b>Un bus pour les déplacements</b></div>
+        </div>
+      </div>
+      <div class="step" id="st2">
+        <div class="num"><i>2</i>Payez</div>
+        <h2>En quelques<br><em>secondes</em></h2>
+        <div class="chips">
+          <div class="chip op"><i style="background:#e60000"></i><b>M-Pesa</b></div>
+          <div class="chip op"><i style="background:#d6001c"></i><b>Airtel Money</b></div>
+          <div class="chip op"><i style="background:#ff7900"></i><b>Orange Money</b></div>
+        </div>
+      </div>
+      <div class="step" id="st3">
+        <div class="num"><i>3</i>Validez</div>
+        <h2>Sur votre<br><em>téléphone</em></h2>
+        <div id="done-word">C'est fait.</div>
+      </div>
+    </div>
+
+    <div id="phone"><div class="screen">
+      <div class="island"></div>
+      <!-- écran 1 : campagnes -->
+      <div class="scr" id="scr1">
+        <div class="app-top"><svg width="38" height="38" style="color:#f3f5ef"><use href="#i-logo"/></svg><div><b>Tribune</b><small>Supporters</small></div></div>
+        <div class="app-body">
+          <div class="app-eyebrow">En cours</div>
+          <div class="app-h">Les campagnes ouvertes</div>
+          <div id="mlist"></div>
+        </div>
+      </div>
+      <!-- écran 2 : contribuer -->
+      <div class="scr" id="scr2">
+        <div class="app-top"><svg width="38" height="38" style="color:#f3f5ef"><use href="#i-logo"/></svg><div><b>Tribune</b><small>Contribuer</small></div></div>
+        <div class="app-body">
+          <div class="app-eyebrow">Votre club · Nouvelle pelouse</div>
+          <div class="app-h">Votre contribution</div>
+          <div class="amounts"><span>5 $</span><span>10 $</span><span class="sel">20 $</span><span>50 $</span></div>
+          <div class="field-l">Opérateur Mobile Money</div>
+          <div class="opts">
+            <div class="opt"><span class="rad"></span>M-Pesa<span class="hl"></span></div>
+            <div class="opt"><span class="rad"></span>Airtel Money<span class="hl"></span></div>
+            <div class="opt"><span class="rad"></span>Orange Money<span class="hl"></span></div>
+          </div>
+          <div class="field-l">Numéro</div>
+          <div class="inp">081 ••• •• 47</div>
+          <div class="pay">Payer 20 $</div>
+        </div>
+        <div class="ussd"><div class="box">
+          <p><b>Demande de paiement</b><br>20,00 USD pour <b>Tribune Supporters</b>.<br>Entrez votre code secret pour confirmer.</p>
+          <div class="pin"><i></i><i></i><i></i><i></i></div>
+          <div class="ok">ENVOYER</div>
+        </div></div>
+      </div>
+      <!-- écran 3 : confirmation -->
+      <div class="success" id="scr3">
+        <svg class="chk" viewBox="0 0 150 150"><circle class="c" cx="75" cy="75" r="68" fill="#2c7a4f"/><path class="k" d="M45 78 66 99 106 54" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h3>Paiement confirmé</h3>
+        <p>Merci ! Votre contribution de 20 $<br>est inscrite au registre.</p>
+        <div class="ref">Réf. TRB-7K4Q-2611</div>
+        <div class="mini">
+          <div class="mbar"><i id="mini-bar" style="width:72%"></i></div>
+          <div class="mfig"><span><b id="mini-raised">8 640 $</b> collectés</span><span id="mini-pct">72 %</span></div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 5 · confiance -->
+  <section class="scene" id="s-trust">
+    <div id="trust-head"><div class="eyebrow">La confiance d'abord</div><h2>Chaque dollar<br>est suivi</h2></div>
+    <div id="guarantees">
+      <div class="g"><span class="tick"><svg><use href="#i-check"/></svg></span><span>Clubs vérifiés</span></div>
+      <div class="g"><span class="tick"><svg><use href="#i-check"/></svg></span><span>Campagnes contrôlées</span></div>
+      <div class="g"><span class="tick"><svg><use href="#i-check"/></svg></span><span>Chaque contribution au registre</span></div>
+      <div class="g"><span class="tick"><svg><use href="#i-check"/></svg></span><span>Versements par tranches, sur preuves</span></div>
+      <div class="g"><span class="tick"><svg><use href="#i-check"/></svg></span><span>Remboursés si l'objectif n'est pas atteint</span></div>
+    </div>
+    <div id="trust-right">
+      <div class="panel" id="p-club"><div class="card-w">
+        <svg class="shield" viewBox="0 0 120 135"><path class="sh" d="M60 4 114 22v38c0 38-24 60-54 71C30 120 6 98 6 60V22Z" fill="#1d5237" stroke="#ecd083" stroke-width="5"/>
+          <path class="ck" d="M34 68 52 86 88 46" fill="none" stroke="#ecd083" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="cname">Votre club</div><div class="csub">Identité du club et de ses dirigeants</div>
+        <div class="stamp">Vérifié</div>
+      </div></div>
+      <div class="panel" id="p-camp"><div class="card-w">
+        <div class="app-eyebrow" style="font-size:18px">Dossier de campagne</div>
+        <h3>Nouvelle pelouse</h3><div class="sub">Instruit par l'équipe Tribune avant publication</div>
+        <div class="checks"><div><i>✓</i>Objectif</div><div><i>✓</i>Budget détaillé</div><div><i>✓</i>Calendrier</div><div><i>✓</i>Jalons</div></div>
+        <div class="stamp">Publiée</div>
+      </div></div>
+      <div class="panel" id="p-ledger"><div class="card-w">
+        <div class="app-eyebrow" style="font-size:18px">Registre des contributions</div>
+        <div class="total"><b id="ledger-total">8 640 $</b><span id="ledger-count">412 contributions</span></div>
+        <div class="rows"><div class="track" id="ledger-track"></div></div>
+      </div></div>
+      <div class="panel" id="p-tranches"><div class="card-w">
+        <div class="app-eyebrow" style="font-size:18px">Versements au club</div>
+        <h3>Par tranches, sur preuves</h3>
+        <div class="mil"><span class="dot">1<span class="fill"><svg><use href="#i-check-w"/></svg></span></span><div><b>Achat du gazon</b><small>Tranche 1 · 40 %</small></div><span class="proofb"><svg><use href="#i-receipt"/></svg>Facture</span></div>
+        <div class="mil"><span class="dot">2<span class="fill"><svg><use href="#i-check-w"/></svg></span></span><div><b>Travaux de pose</b><small>Tranche 2 · 40 %</small></div><span class="proofb"><svg><use href="#i-photo"/></svg>Photos</span></div>
+        <div class="mil"><span class="dot">3<span class="fill"><svg><use href="#i-check-w"/></svg></span></span><div><b>Inauguration</b><small>Tranche 3 · 20 %</small></div><span class="proofb"><svg><use href="#i-report"/></svg>Rapport final</span></div>
+      </div></div>
+      <div class="panel" id="p-refund"><div class="card-w">
+        <div class="app-eyebrow" style="font-size:18px">Tout ou rien</div>
+        <h3>Objectif non atteint</h3>
+        <div class="bigbar"><i id="refund-bar"></i></div>
+        <div class="goalmark"><span><b>64 %</b> à la clôture</span><span>Objectif 100 %</span></div>
+        <div class="toast"><span class="ic"><svg><use href="#i-check-w"/></svg></span><div><b>20 $ remboursés</b><small>sur votre compte Mobile Money</small></div></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 6 · la nation -->
+  <section class="scene" id="s-nation">
+    <div id="map"></div>
+    <div id="cities-text" class="display">
+      <div class="cl">De <span>Kinshasa</span></div>
+      <div class="cl">à <span>Lubumbashi</span>,</div>
+      <div class="cl">de <span>Goma</span> à <span>Matadi</span>,</div>
+      <div class="cl">de <span>Kisangani</span></div>
+      <div class="cl">à <span>Mbuji-Mayi</span>…</div>
+    </div>
+    <div id="prov">
+      <div class="n display">26</div>
+      <div class="p display">provinces.</div>
+      <div class="s display">Une seule passion.</div>
+    </div>
+    <div id="t-ensemble"><div class="a">Ensemble, construisons</div><div class="b display">le football congolais de <span class="gold">demain</span></div></div>
+  </section>
+
+  <!-- 7 · final -->
+  <section class="scene" id="s-final">
+    <div id="f-logo">
+      <svg class="mark" style="color:#f3f5ef"><use href="#i-logo"/></svg>
+      <div class="word display">Tribune</div>
+      <div class="tag">Supporters</div>
+    </div>
+    <div id="t-vous" class="display">Le club, <em>c'est vous.</em></div>
+    <div id="t-dollar">Financez-le, et voyez où va chaque dollar.</div>
+    <div id="t-bientot"><svg><use href="#i-star"/></svg><b>Bientôt partout en RDC</b></div>
+    <div id="f-ops">M-Pesa · Airtel Money · Orange Money</div>
+  </section>
+
+  <div id="bug"><svg width="44" height="44" style="color:#15211a"><use href="#i-logo"/></svg><b>Tribune</b></div>
+  <div class="layer" id="flash"></div>
+  <div class="layer" id="vignette"></div>
+  <div class="layer" id="grain"></div>
+  <div class="layer" id="fade"></div>
+</div>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/SplitText.min.js"></script>
+<script src="vendor/DrawSVGPlugin.min.js"></script>
+<script src="vendor/CustomEase.min.js"></script>
+<script src="../build/timeline.js"></script>
+<script src="scene.js"></script>
+</body>
+</html>
