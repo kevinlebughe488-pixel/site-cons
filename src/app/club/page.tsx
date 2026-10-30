@@ -82,8 +82,12 @@ export default async function ClubPage() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase.from("campaigns").select("*").eq("club_id", club.id).order("created_at", { ascending: false });
+  const [{ data }, { data: fees }] = await Promise.all([
+    supabase.from("campaigns").select("*").eq("club_id", club.id).order("created_at", { ascending: false }),
+    supabase.from("publication_fees").select("campaign_id").is("paid_at", null),
+  ]);
   const campaigns = (data ?? []) as Campaign[];
+  const unpaid = new Set((fees ?? []).map((f: { campaign_id: string }) => f.campaign_id));
   const canCreate = club.status === "verified" && can(viewer.profile.role, "club:manage");
 
   return (
@@ -142,7 +146,7 @@ export default async function ClubPage() {
                     </td>
                     <td className="r num">{formatMoney(c.raised_amount, c.currency)}</td>
                     <td className="r num">{formatMoney(c.goal_amount, c.currency)}</td>
-                    <td className="small">{NEXT_STEP[c.status] ?? "—"}</td>
+                    <td className="small">{unpaid.has(c.id) ? "Régler les frais d'instruction et de publication" : (NEXT_STEP[c.status] ?? "—")}</td>
                   </tr>
                 ))}
               </tbody>

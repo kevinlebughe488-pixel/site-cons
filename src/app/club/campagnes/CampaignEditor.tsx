@@ -30,7 +30,18 @@ function parse<T>(raw: string | undefined, fallback: T): T {
   }
 }
 
-export function CampaignEditor({ initial, minDate, maxDate }: { initial: EditorValues; minDate: string; maxDate: string }) {
+export function CampaignEditor({
+  initial,
+  minDate,
+  maxDate,
+  publicationFee,
+}: {
+  initial: EditorValues;
+  minDate: string;
+  maxDate: string;
+  /** Frais d'instruction et de publication en vigueur (USD). */
+  publicationFee: number;
+}) {
   const [state, action] = useActionState(saveCampaign, {});
   const f = state.fields;
   const [budget, setBudget] = useState<Line[]>(() =>
@@ -162,7 +173,14 @@ export function CampaignEditor({ initial, minDate, maxDate }: { initial: EditorV
         <SubmitButton className="btn btn-ghost" name="intent" value="save">
           Enregistrer le brouillon
         </SubmitButton>
-        <SubmitButton name="intent" value="submit" pendingLabel="Envoi…" confirm="Envoyer la campagne à l'équipe Tribune ? Vous ne pourrez plus la modifier pendant la revue.">
+        <SubmitButton
+          name="intent"
+          value="submit"
+          pendingLabel="Envoi…"
+          confirm={`Envoyer la campagne à l'équipe Tribune ? Vous ne pourrez plus la modifier pendant la revue.${
+            publicationFee > 0 ? ` Si elle est publiée, ${formatMoney(publicationFee)} de frais d'instruction et de publication seront facturés au club.` : ""
+          }`}
+        >
           Enregistrer et envoyer en revue
         </SubmitButton>
       </div>

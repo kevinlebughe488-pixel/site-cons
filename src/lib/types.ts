@@ -138,6 +138,23 @@ export type Refund = {
   completed_at: string | null;
 };
 
+export type PlatformSettings = {
+  /** Frais d'instruction et de publication facturés au club par campagne publiée (USD). */
+  publication_fee: number;
+  /** Début de l'année 1 du plan d'affaires (AAAA-MM-JJ). */
+  launch_date: string | null;
+};
+
+/** Frais d'instruction et de publication d'une campagne, facturés à sa publication. */
+export type PublicationFee = {
+  campaign_id: string;
+  amount: number;
+  currency: "USD";
+  invoiced_at: string;
+  paid_at: string | null;
+  payment_ref: string | null;
+};
+
 export type AuditEntry = {
   id: number;
   actor_id: string | null;
@@ -155,6 +172,13 @@ export const CAMPAIGN_CATEGORIES = [
   "Transport",
   "Santé",
   "Équipement",
+] as const;
+
+/** Critères d'instruction à confirmer avant de publier une campagne (plan d'affaires, § 7.1.1). */
+export const REVIEW_CRITERIA = [
+  { id: "clarte", label: "Clarté", hint: "Le projet, le budget et l'usage des fonds sont compréhensibles par un supporter." },
+  { id: "faisabilite", label: "Faisabilité", hint: "L'objectif, le calendrier et les jalons sont réalistes pour ce club." },
+  { id: "coherence", label: "Cohérence", hint: "Le projet sert le club et ses supporters, et les preuves des jalons pourront être publiées." },
 ] as const;
 
 /** Statuts visibles par le public. */

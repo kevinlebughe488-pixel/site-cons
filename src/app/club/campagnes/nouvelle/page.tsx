@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { todayInKinshasa } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
 import { CampaignEditor } from "../CampaignEditor";
+import { FeesNotice } from "../FeesNotice";
 
 export const metadata: Metadata = { title: "Nouvelle campagne" };
 
@@ -17,6 +20,7 @@ export default async function NewCampaignPage() {
   const viewer = await requirePermission("club:manage", "/club/campagnes/nouvelle");
   if (!viewer.club || viewer.club.status !== "verified") redirect("/club");
   const today = todayInKinshasa();
+  const settings = await getSettings(await createClient());
 
   return (
     <div className="wrap page" style={{ maxWidth: 900 }}>
@@ -24,7 +28,9 @@ export default async function NewCampaignPage() {
         <Link href="/club">← Espace club</Link>
       </div>
       <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.8rem)", margin: "10px 0 20px" }}>Nouvelle campagne · {viewer.club.name}</h1>
+      <FeesNotice publicationFee={settings.publication_fee} />
       <CampaignEditor
+        publicationFee={settings.publication_fee}
         minDate={addDays(today, 14)}
         maxDate={addDays(today, 70)}
         initial={{

@@ -4,6 +4,9 @@ Plateforme de financement participatif des clubs de football congolais par leurs
 campagnes vérifiées, paiement **Mobile Money** (M-Pesa, Airtel Money, Orange Money) via
 **pawaPay**, registre de chaque contribution, et back-office avec des rôles séparés.
 
+Tribune est opérée par **Plumes Capital** (SAS de droit OHADA, RDC) : c'est la première plateforme de
+son plan d'affaires (financement participatif), avant le crédit interentreprises et la tokenisation.
+
 - **Application** : Next.js 16 (App Router, actions serveur), TypeScript
 - **Base de données, comptes, fichiers** : Supabase (PostgreSQL + Auth + Storage)
 - **Paiements** : pawaPay API v2, avec un mode simulation pour tester sans argent
@@ -15,8 +18,8 @@ campagnes vérifiées, paiement **Mobile Money** (M-Pesa, Airtel Money, Orange M
 | --- | --- |
 | **Supporter** | Campagnes publiques, contribuer, son compte et ses reçus, inscrire un club |
 | **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue), nouvelles, preuves des jalons |
-| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $), vérifier les clubs et les identités, relire les nouvelles, voir et exporter les transactions, journal d'audit |
-| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs |
+| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur trois critères, vérifier les clubs et les identités, relire les nouvelles, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
+| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, enregistrer le règlement des frais de publication, régler les tarifs, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs |
 
 Les rôles sont **séparés** : ils ne s'additionnent pas. Un gestionnaire, un chargé de conformité ou un
 administrateur ne contribue pas, ne déclare pas de pièce d'identité et n'inscrit pas de club ; un
@@ -29,10 +32,24 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (24 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (33 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
+
+## Modèle économique (plan d'affaires de Plumes Capital)
+
+Les revenus suivent le plan d'affaires (§ 11.2) :
+
+- **Commission de 5 %** sur chaque contribution, conservée seulement si la campagne atteint son objectif
+  (sinon les supporters sont remboursés en totalité).
+- **Frais d'instruction et de publication** facturés au club pour chaque campagne publiée : 400 $ la
+  première année, 500 $ ensuite. Le tarif en vigueur se règle dans **Back-office → Tableau de bord** (administrateur)
+  et il est figé sur la campagne au moment de sa publication. Aucun frais si le dossier est refusé.
+- Pour publier, l'équipe confirme trois critères (clarté, faisabilité, cohérence), inscrits au journal d'audit.
+- Le règlement des frais est enregistré par un administrateur, jamais par la personne qui a instruit le dossier.
+- Le tableau de bord compare l'activité aux objectifs du plan (campagnes publiées, taux de succès, montant moyen,
+  montants collectés, chiffre d'affaires) pour l'année en cours, à partir de la date de lancement renseignée.
 
 ## Mise en route avec Supabase
 
@@ -45,6 +62,7 @@ depuis le navigateur.
    - `supabase/migrations/20261027000100_roles_separes.sql` (rôles séparés : qui contribue, qui gère un club)
    - `supabase/migrations/20261027000200_telephone_unique.sql` (un numéro de téléphone = un seul compte)
    - `supabase/migrations/20261027000300_verification_sms.sql` (codes de vérification par SMS)
+   - `supabase/migrations/20261030000100_plan_affaires.sql` (frais de publication, critères d'instruction, indicateurs du plan d'affaires)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :

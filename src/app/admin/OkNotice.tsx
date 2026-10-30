@@ -21,6 +21,8 @@ export const OK_MESSAGES = {
   kyc_reject: "Pièce d'identité refusée.",
   refund: "Remboursement demandé. Il sera confirmé par l'opérateur.",
   refresh: "État revérifié auprès de l'opérateur.",
+  fee_paid: "Règlement des frais de publication enregistré.",
+  settings: "Réglages enregistrés.",
 } as const;
 
 export type OkKey = keyof typeof OK_MESSAGES;

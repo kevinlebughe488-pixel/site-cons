@@ -13,6 +13,7 @@ import { startRefund, syncContribution, syncRefund } from "@/lib/payments/servic
 import { activeGateway } from "@/lib/payments";
 import { PawapayGateway } from "@/lib/payments/pawapay";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { REVIEW_CRITERIA } from "@/lib/types";
 
 // Chaque action vérifie la permission côté application, puis la base de données
 // revérifie le rôle dans la fonction appelée (double contrôle).
@@ -44,13 +45,51 @@ export async function reviewCampaign(_: FormState, form: FormData): Promise<Form
     reject: "Dossier refusé.",
   };
   if (!labels[decision]) return { error: "Décision inconnue." };
+  const criteria = form.getAll("criteria").filter((v): v is string => typeof v === "string");
+  if (decision === "approve" && !REVIEW_CRITERIA.every((c) => criteria.includes(c.id))) {
+    return { error: "Pour publier, cochez les trois critères d'instruction : clarté, faisabilité et cohérence." };
+  }
   return rpc(
     "campaign:review",
     "review_campaign",
-    { p_campaign_id: text(form, "campaign_id"), p_decision: decision, p_note: text(form, "note") || null },
+    {
+      p_campaign_id: text(form, "campaign_id"),
+      p_decision: decision,
+      p_note: text(form, "note") || null,
+      p_criteria: decision === "approve" ? criteria : null,
+    },
     labels[decision],
     ["/admin/campagnes", `/admin/campagnes/${text(form, "campaign_id")}`, "/"],
     { path: `/admin/campagnes/${text(form, "campaign_id")}`, ok: `campaign_${decision}` as OkKey },
+  );
+}
+
+export async function recordPublicationFee(_: FormState, form: FormData): Promise<FormState> {
+  const reference = text(form, "reference");
+  if (reference.length < 3) return { error: "Indiquez la référence du paiement (reçu, transaction Mobile Money, virement)." };
+  return rpc(
+    "fee:record",
+    "record_publication_fee_payment",
+    { p_campaign_id: text(form, "campaign_id"), p_reference: reference.slice(0, 120) },
+    "Règlement enregistré.",
+    ["/admin", `/admin/campagnes/${text(form, "campaign_id")}`],
+    { path: `/admin/campagnes/${text(form, "campaign_id")}`, ok: "fee_paid" },
+  );
+}
+
+export async function updateSettings(_: FormState, form: FormData): Promise<FormState> {
+  const raw = text(form, "publication_fee").replace(",", ".");
+  const fee = Number(raw);
+  if (!raw || !Number.isFinite(fee) || fee < 0 || fee > 10000) return { error: "Les frais de publication doivent être compris entre 0 et 10 000 $." };
+  const launch = text(form, "launch_date");
+  if (launch && !/^\d{4}-\d{2}-\d{2}$/.test(launch)) return { error: "Date de lancement invalide." };
+  return rpc(
+    "settings:update",
+    "admin_update_settings",
+    { p_publication_fee: fee, p_launch_date: launch || null },
+    "Réglages enregistrés.",
+    ["/", "/admin", "/comment-ca-marche"],
+    { path: "/admin", ok: "settings" },
   );
 }
 

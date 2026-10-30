@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { FieldSvg } from "@/components/visuals";
 import { getViewer } from "@/lib/auth";
 import { can } from "@/lib/rbac";
+import { createClient } from "@/lib/supabase/server";
+import { formatMoney } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Comment ça marche" };
 
@@ -12,18 +15,31 @@ const SUPPORTER_STEPS = [
   ["Il reçoit une confirmation", "L'opérateur confirme le paiement, la contribution est inscrite au registre avec sa référence."],
   ["Il suit l'avancement", "Le club publie ses nouvelles et les preuves de chaque jalon."],
 ];
-const CLUB_STEPS = [
-  ["Il inscrit le club", "Nom, président, contact et compte Mobile Money qui recevra les versements."],
-  ["L'équipe vérifie le club", "Identité du club et de ses dirigeants. Le club est alors « vérifié »."],
-  ["Il dépose une campagne", "Objectif, budget détaillé égal à l'objectif, calendrier et jalons."],
-  ["L'équipe instruit le dossier", "Décision motivée : publié, à corriger ou refusé. Au-delà de 20 000 $, validation par un administrateur."],
-  ["Le club rend compte", "Nouvelles relues avant publication, preuves de chaque jalon, rapport final."],
-];
+function clubSteps(fee: number) {
+  return [
+    ["Il inscrit le club", "Nom, président, contact et compte Mobile Money qui recevra les versements. L'inscription est gratuite."],
+    ["L'équipe vérifie le club", "Identité du club et de ses dirigeants. Le club est alors « vérifié »."],
+    ["Il dépose une campagne", "Objectif, budget détaillé égal à l'objectif, calendrier et jalons."],
+    [
+      "L'équipe instruit le dossier",
+      "Trois critères : clarté, faisabilité, cohérence. Décision motivée : publié, à corriger ou refusé. Au-delà de 20 000 $, validation par un administrateur.",
+    ],
+    [
+      "La campagne est publiée",
+      fee > 0
+        ? `Les frais d'instruction et de publication (${formatMoney(fee)}) sont facturés au club, puis la collecte s'ouvre.`
+        : "La collecte s'ouvre pour la durée choisie.",
+    ],
+    ["Le club rend compte", "Nouvelles relues avant publication, preuves de chaque jalon, rapport final."],
+  ];
+}
 
 export default async function HowItWorksPage() {
   // Un gestionnaire n'a besoin que du parcours d'un club (pas du parcours du don).
   const viewer = await getViewer();
   const clubOnly = can(viewer?.profile.role, "club:manage");
+  const fee = (await getSettings(await createClient())).publication_fee;
+  const CLUB_STEPS = clubSteps(fee);
   const journeys: [string, string[][]][] = clubOnly
     ? [["Le parcours d'un club", CLUB_STEPS]]
     : [
@@ -113,15 +129,34 @@ export default async function HowItWorksPage() {
                 </tr>
                 <tr>
                   <th>Pour le club</th>
-                  <td>Commission unique de 5 % sur les fonds effectivement collectés. Pas de frais d&apos;inscription ni de dossier.</td>
+                  <td>
+                    Inscription gratuite. Pour chaque campagne publiée
+                    {fee > 0 ? (
+                      <>
+                        {" "}: <b className="num">{formatMoney(fee)}</b> de frais d&apos;instruction et de publication (rien si le
+                        dossier est refusé), puis
+                      </>
+                    ) : " :"}{" "}
+                    une commission de 5 % sur les fonds effectivement collectés.
+                  </td>
                 </tr>
                 <tr>
                   <th>Si l&apos;objectif n&apos;est pas atteint</th>
-                  <td>Aucune commission. Chaque supporter est remboursé sur son compte Mobile Money.</td>
+                  <td>
+                    Aucune commission. Chaque supporter est remboursé sur son compte Mobile Money.
+                    {fee > 0 ? " Les frais d'instruction et de publication restent dus : le dossier a été instruit et mis en ligne." : null}
+                  </td>
                 </tr>
                 <tr>
-                  <th>À quoi sert la commission</th>
-                  <td>Vérification des dossiers, support, hébergement, sécurité et frais du prestataire de paiement.</td>
+                  <th>Accompagnement (facultatif)</th>
+                  <td>Aide à la préparation du budget, à la présentation du projet et au suivi des jalons : sur devis.</td>
+                </tr>
+                <tr>
+                  <th>À quoi servent les frais</th>
+                  <td>
+                    Les frais d&apos;instruction et de publication paient la vérification du dossier et sa mise en ligne. La
+                    commission paie le support, l&apos;hébergement, la sécurité et les frais du prestataire de paiement.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -151,6 +186,43 @@ export default async function HowItWorksPage() {
                 <tr>
                   <th>Données personnelles</th>
                   <td>Consentement à l&apos;inscription, données limitées au nécessaire, numéros et pièces d&apos;identité jamais publiés.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="plumes-capital">
+          <h2 style={{ marginBottom: 8 }}>Qui est derrière Tribune</h2>
+          <p className="muted" style={{ marginBottom: 16, maxWidth: "48em" }}>
+            Tribune est une plateforme de Plumes Capital, société par actions simplifiée de droit OHADA établie en
+            République démocratique du Congo. Plumes Capital organise la rencontre entre les porteurs de projets et ceux
+            qui les financent&nbsp;: instruction des dossiers, information claire et homogène, collecte, puis suivi de
+            l&apos;utilisation des fonds.
+          </p>
+          <div className="tbl-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <th style={{ width: "30%" }}>Notre rôle</th>
+                  <td>
+                    Intermédiaire non financier : Plumes Capital ne reçoit pas de dépôts du public, ne prête pas et
+                    n&apos;investit pas pour son propre compte. Chaque projet reste sous la responsabilité du club qui le porte.
+                  </td>
+                </tr>
+                <tr>
+                  <th>Contrôle</th>
+                  <td>
+                    La personne qui instruit un dossier n&apos;enregistre pas les paiements. Identification des contributeurs
+                    et vigilance contre le blanchiment de capitaux, conformément au cadre applicable en RDC.
+                  </td>
+                </tr>
+                <tr>
+                  <th>Gouvernance</th>
+                  <td>
+                    Une direction identifiée (Président, directeur général, directeur général adjoint) et des décisions
+                    tracées : chaque publication, refus, suspension ou remboursement est inscrit au journal d&apos;audit.
+                  </td>
                 </tr>
               </tbody>
             </table>

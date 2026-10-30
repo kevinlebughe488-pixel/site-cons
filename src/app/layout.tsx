@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "Tribune — les supporters financent leur club", template: "%s · Tribune" },
   description:
-    "Financement participatif des clubs de football par leurs supporters, avec paiement Mobile Money (M-Pesa, Airtel Money, Orange Money) et suivi de chaque dollar.",
+    "Financement participatif des clubs de football par leurs supporters, avec paiement Mobile Money (M-Pesa, Airtel Money, Orange Money) et suivi de chaque dollar. Une plateforme de Plumes Capital.",
 };
 
 export const viewport: Viewport = {

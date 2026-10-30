@@ -74,6 +74,18 @@ expect(
   !!(await compliance.rpc("register_club", { p_name: "Club test", p_short_name: "TST", p_slug: `club-test-${Date.now()}`, p_city: "Kinshasa", p_commune: null, p_founded_year: null, p_description: "", p_president_name: "Test", p_contact_phone: "243990000001", p_payout_phone: "243990000002", p_payout_provider: "AIRTEL_COD", p_color_primary: null, p_color_secondary: null })).error,
 );
 expect("gestionnaire : ne peut pas déclarer une pièce d'identité (réservé supporter)", !!(await manager.rpc("declare_identity", { p_doc_type: "passeport", p_doc_last4: "1234" })).error);
+expect("supporter : ne lit aucune facture de frais", denied(await supporter.from("publication_fees").select("campaign_id")));
+expect("visiteur : lit les tarifs publics", ((await anon.from("platform_settings").select("publication_fee")).data ?? []).length === 1);
+expect("supporter : ne peut pas modifier les tarifs", !!(await supporter.rpc("admin_update_settings", { p_publication_fee: 0, p_launch_date: null })).error);
+expect("supporter : ne lit pas les indicateurs du plan", !!(await supporter.rpc("plan_indicators", { p_from: "2000-01-01", p_to: "2100-01-01" })).error);
+const fees = await manager.from("publication_fees").select("campaign_id, campaign:campaigns(club_id)");
+expect("gestionnaire : ne lit que les frais de son club", (fees.data ?? []).length > 0 && (fees.data ?? []).every((f) => f.campaign?.club_id === fees.data[0].campaign?.club_id));
+expect("gestionnaire : ne peut pas déclarer ses frais réglés", !!(await manager.rpc("record_publication_fee_payment", { p_campaign_id: anyCampaign.id, p_reference: "FAUX-123" })).error);
+expect("conformité : ne peut pas enregistrer un règlement (réservé admin)", !!(await compliance.rpc("record_publication_fee_payment", { p_campaign_id: anyCampaign.id, p_reference: "FAUX-123" })).error);
+const { data: inReview } = await compliance.from("campaigns").select("id").eq("status", "in_review").limit(1).single();
+const noCriteria = await compliance.rpc("review_campaign", { p_campaign_id: inReview.id, p_decision: "approve", p_criteria: [] });
+expect("conformité : ne peut pas publier sans les critères d'instruction", /critères/.test(noCriteria.error?.message ?? ""), noCriteria.error?.message);
+expect("conformité : lit les indicateurs du plan", !(await compliance.rpc("plan_indicators", { p_from: "2000-01-01", p_to: "2100-01-01" })).error);
 expect("conformité : ne peut pas écrire dans le journal", !!(await compliance.from("audit_log").insert({ action: "faux", entity_type: "x" })).error);
 
 console.log(failures ? `\n${failures} test(s) en échec` : "\nToutes les règles d'accès tiennent.");
