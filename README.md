@@ -134,8 +134,9 @@ Activez la RDC dans Twilio (Messaging → Settings → Geo permissions). Le four
 
 ## Connexion avec Google
 
-Un bouton **Continuer avec Google** apparaît sur les pages de connexion et d'inscription dès que
-`GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` sont renseignés. Google remplace le mot de passe, **pas le
+Un bouton **Continuer avec Google** est affiché sur les pages de connexion et d'inscription. Il
+fonctionne dès que `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` sont renseignés ; avant cela, un clic
+affiche « La connexion avec Google n'est pas encore disponible ». Google remplace le mot de passe, **pas le
 code SMS** : la session n'est ouverte qu'après le code, comme pour une connexion classique.
 
 Le site parle lui-même à Google ([`src/lib/google.ts`](src/lib/google.ts), OpenID Connect avec PKCE,

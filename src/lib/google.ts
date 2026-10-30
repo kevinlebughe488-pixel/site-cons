@@ -38,6 +38,7 @@ const SIGNUP_TTL_MINUTES = 30;
 
 /** Motifs de refus, affichés par la page de connexion (/connexion?google=…). */
 export const GOOGLE_REFUSALS = {
+  indisponible: "La connexion avec Google n'est pas encore disponible. Connectez-vous avec votre e-mail ou votre numéro et votre mot de passe.",
   annule: "Connexion avec Google annulée.",
   expire: "La connexion avec Google a expiré ou a déjà servi. Recommencez.",
   echec: "Google n'a pas pu confirmer votre identité. Réessayez dans un instant.",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getViewer, safeReturnPath } from "@/lib/auth";
-import { GOOGLE_REFUSALS, googleEnabled, type GoogleRefusal } from "@/lib/google";
+import { GOOGLE_REFUSALS, type GoogleRefusal } from "@/lib/google";
 import { GoogleButton } from "@/components/GoogleButton";
 import { LoginForm } from "./LoginForm";
 
@@ -26,18 +26,12 @@ export default async function LoginPage(props: PageProps<"/connexion">) {
       ) : null}
       <div className="split half">
         <div className="panel" style={{ display: "grid", gap: 18, alignContent: "start" }}>
-          {googleEnabled() ? (
-            <>
-              <GoogleButton returnTo={returnTo} />
-              <div className="or-sep">ou avec votre mot de passe</div>
-            </>
-          ) : null}
+          <GoogleButton returnTo={returnTo} />
+          <div className="or-sep">ou avec votre mot de passe</div>
           <LoginForm returnTo={returnTo} />
-          {googleEnabled() ? (
-            <p className="small muted">
-              Avec Google comme avec le mot de passe, un code est ensuite envoyé par SMS au numéro de votre compte.
-            </p>
-          ) : null}
+          <p className="small muted">
+            Avec Google comme avec le mot de passe, un code est ensuite envoyé par SMS au numéro de votre compte.
+          </p>
         </div>
         <div className="panel" style={{ display: "grid", gap: 14, alignContent: "start" }}>
           <div className="eyebrow">Nouveau supporter</div>

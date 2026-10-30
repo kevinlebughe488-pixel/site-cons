@@ -13,6 +13,7 @@ import { findConflict, IdentityConflictError, linkGoogleIdentity, STALE_SIGNUP_M
 import {
   claimGoogleSignup,
   googleAuthorizationUrl,
+  googleEnabled,
   pendingGoogleSignup,
   recordGoogleSignup,
   releaseGoogleSignup,
@@ -107,9 +108,12 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
 
 /** Bouton « Continuer avec Google » : prépare la connexion et envoie vers Google. */
 export async function startGoogle(form: FormData) {
+  const returnTo = safeReturnPath(text(form, "suite"), "/");
+  // Le bouton est affiché même avant la configuration de Google : on le dit simplement.
+  if (!googleEnabled()) redirect(`/connexion?google=indisponible&suite=${encodeURIComponent(returnTo)}`);
   let url: string;
   try {
-    url = await googleAuthorizationUrl(safeReturnPath(text(form, "suite"), "/"));
+    url = await googleAuthorizationUrl(returnTo);
   } catch (err) {
     console.error("Connexion Google impossible :", (err as Error).message);
     redirect("/connexion?google=echec");
