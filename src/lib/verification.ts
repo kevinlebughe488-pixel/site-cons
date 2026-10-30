@@ -97,7 +97,8 @@ export async function startChallenge(input: {
     code_hash: hashCode(id, code),
     demo_code: simulation ? code : null,
     return_to: input.returnTo ?? null,
-    oauth_login_id: input.oauthLoginId ?? null,
+    // Seulement pour Google : la connexion par mot de passe ne dépend pas de la migration Google.
+    ...(input.oauthLoginId ? { oauth_login_id: input.oauthLoginId } : {}),
     expires_at: new Date(Date.now() + CODE_TTL_MINUTES * 60_000).toISOString(),
   });
   if (error) throw new VerificationError("Impossible de préparer le code. Réessayez.");
