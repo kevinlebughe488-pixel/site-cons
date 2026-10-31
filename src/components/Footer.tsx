@@ -26,8 +26,10 @@ export async function Footer() {
           ))}
         </div>
         <div className="legal">
-          Tribune n&apos;est pas une banque : les paiements Mobile Money sont encaissés par un prestataire agréé
-          (pawaPay) et la plateforme conserve la trace de chaque contribution. Commission unique de 5 % sur les fonds
+          Tribune est une plateforme de Plumes Capital, société par actions simplifiée de droit OHADA (RDC). Plumes
+          Capital organise la mise en relation entre les clubs et leurs supporters : elle ne reçoit pas de dépôts du
+          public, ne prête pas et n&apos;investit pas pour son propre compte. Les paiements Mobile Money sont encaissés
+          par un prestataire agréé (pawaPay) et chaque contribution est tracée. Commission de 5&nbsp;% sur les fonds
           collectés, affichée avant chaque paiement.
         </div>
       </div>

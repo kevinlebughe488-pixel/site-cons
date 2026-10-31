@@ -233,7 +233,8 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
               <div>
                 <span className="ck">✓</span>
                 <span>
-                  <b>Commission unique de 5 %</b> sur les fonds collectés. Aucun autre frais pour le supporter.
+                  <b>Aucun frais pour le supporter.</b> Une commission de 5 % sur les fonds collectés fait fonctionner la
+                  plateforme, seulement si l&apos;objectif est atteint.
                 </span>
               </div>
               <div>

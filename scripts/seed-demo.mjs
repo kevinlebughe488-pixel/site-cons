@@ -232,6 +232,16 @@ async function main() {
       "jalons",
     );
     if (live) {
+      // Frais d'instruction et de publication (400 $ en année 1) : réglés pour la campagne financée et TP Mazembe.
+      const paid = c.status === "funded" || c.club === "tp-mazembe";
+      await must(
+        db.from("publication_fees").insert({
+          campaign_id: row.id, amount: 400, invoiced_at: daysAgo(40),
+          paid_at: paid ? daysAgo(37) : null, payment_ref: paid ? `DEMO-FRAIS-${c.club.toUpperCase()}` : null,
+          recorded_by: paid ? adminId : null,
+        }),
+        "frais de publication",
+      );
       await must(
         db.from("campaign_updates").insert({
           campaign_id: row.id, author_id: managerIds[c.club] ?? adminId, title: "La campagne est lancée",

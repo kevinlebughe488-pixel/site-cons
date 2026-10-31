@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
-import { closeCampaign, refundCampaign, reviewCampaign, suspendCampaign } from "@/lib/actions/admin";
+import { closeCampaign, recordPublicationFee, refundCampaign, reviewCampaign, suspendCampaign } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { CampaignPill, Crest, Pill } from "@/components/visuals";
 import { CLUB_STATUS_LABELS, CONTRIBUTION_STATUS_LABELS } from "@/lib/labels";
 import { formatDate, formatMoney, percent } from "@/lib/format";
-import type { BudgetLine, Campaign, Club, Contribution, Milestone } from "@/lib/types";
+import { getSettings } from "@/lib/settings";
+import { REVIEW_CRITERIA, type BudgetLine, type Campaign, type Club, type Contribution, type Milestone, type PublicationFee } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Instruction · Back-office" };
 
@@ -22,13 +23,15 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
   const role = profile.role;
 
   const supabase = await createClient();
-  const [{ data: c }, { data: contribs }] = await Promise.all([
+  const [{ data: c }, { data: contribs }, { data: fee }, settings] = await Promise.all([
     supabase
       .from("campaigns")
       .select("*, club:clubs(*), budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note)")
       .eq("id", id)
       .maybeSingle<Detail>(),
     supabase.from("contributions").select("status, amount").eq("campaign_id", id),
+    supabase.from("publication_fees").select("*").eq("campaign_id", id).maybeSingle<PublicationFee>(),
+    getSettings(supabase),
   ]);
   if (!c) notFound();
 
@@ -135,12 +138,32 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
               ) : null}
               <ActionForm action={reviewCampaign}>
                 <input type="hidden" name="campaign_id" value={c.id} />
+                <fieldset style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 8 }}>
+                  <legend style={{ fontWeight: 700, marginBottom: 6 }}>Critères d&apos;instruction (obligatoires pour publier)</legend>
+                  {REVIEW_CRITERIA.map((k) => (
+                    <label key={k.id} className="check">
+                      <input type="checkbox" name="criteria" value={k.id} />
+                      <span>
+                        <b>{k.label}</b> · <span className="small muted">{k.hint}</span>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
                 <div className="field">
                   <label htmlFor="note">Note pour le club</label>
                   <textarea id="note" name="note" placeholder="Obligatoire pour demander des corrections ou refuser." />
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <SubmitButton className="btn btn-primary btn-sm" name="decision" value="approve" confirm="Publier cette campagne ?">
+                  <SubmitButton
+                    className="btn btn-primary btn-sm"
+                    name="decision"
+                    value="approve"
+                    confirm={
+                      settings.publication_fee > 0
+                        ? `Publier cette campagne ? Les frais d'instruction et de publication (${formatMoney(settings.publication_fee)}) seront facturés au club.`
+                        : "Publier cette campagne ?"
+                    }
+                  >
                     Publier
                   </SubmitButton>
                   <SubmitButton className="btn btn-ghost btn-sm" name="decision" value="request_changes">
@@ -150,7 +173,52 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
                     Refuser
                   </SubmitButton>
                 </div>
+                <p className="small muted">
+                  Si la campagne est publiée, les frais d&apos;instruction et de publication du tarif en vigueur (
+                  {formatMoney(settings.publication_fee)}) sont facturés au club.
+                </p>
               </ActionForm>
+            </div>
+          ) : null}
+
+          {fee ? (
+            <div className="panel" id="frais">
+              <h3>Frais d&apos;instruction et de publication</h3>
+              <div className="recap small" style={{ marginBottom: 10 }}>
+                <div>
+                  <span className="muted">Montant</span>
+                  <b className="num">{formatMoney(fee.amount, fee.currency)}</b>
+                </div>
+                <div>
+                  <span className="muted">Facturés le</span>
+                  <span>{formatDate(fee.invoiced_at)}</span>
+                </div>
+                <div>
+                  <span className="muted">Statut</span>
+                  {fee.paid_at ? <Pill tone="ok">Réglés le {formatDate(fee.paid_at)}</Pill> : <Pill tone="warn">À encaisser</Pill>}
+                </div>
+                {fee.payment_ref ? (
+                  <div>
+                    <span className="muted">Référence</span>
+                    <span>{fee.payment_ref}</span>
+                  </div>
+                ) : null}
+              </div>
+              {!fee.paid_at && can(role, "fee:record") ? (
+                <ActionForm action={recordPublicationFee}>
+                  <input type="hidden" name="campaign_id" value={c.id} />
+                  <div className="field">
+                    <label htmlFor="reference">Référence du paiement reçu</label>
+                    <input type="text" id="reference" name="reference" maxLength={120} placeholder="Reçu n°…, transaction Mobile Money…" />
+                  </div>
+                  <SubmitButton className="btn btn-ghost btn-sm" confirm="Confirmer que les frais ont bien été reçus ?">
+                    Enregistrer le règlement
+                  </SubmitButton>
+                </ActionForm>
+              ) : null}
+              {!fee.paid_at && !can(role, "fee:record") ? (
+                <p className="small muted">Le règlement est enregistré par un administrateur.</p>
+              ) : null}
             </div>
           ) : null}
 

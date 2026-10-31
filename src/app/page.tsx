@@ -7,6 +7,7 @@ import { CAMPAIGN_WITH_CLUB, listCampaigns } from "@/lib/campaigns";
 import { CampaignCard } from "@/components/CampaignCard";
 import { Crest, FieldSvg, ProgressBar } from "@/components/visuals";
 import { daysLeft, formatMoney, percent } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
 import type { CampaignWithClub, Milestone } from "@/lib/types";
 
 export default async function HomePage() {
@@ -16,7 +17,7 @@ export default async function HomePage() {
   if (home !== "/") redirect(home);
 
   const supabase = await createClient();
-  const [live, statsRes, provenRes] = await Promise.all([
+  const [live, statsRes, provenRes, settings] = await Promise.all([
     listCampaigns(supabase, ["published"]),
     supabase.rpc("platform_stats").single<{
       total_raised: number;
@@ -31,6 +32,7 @@ export default async function HomePage() {
       .order("closed_at", { ascending: false })
       .limit(1)
       .maybeSingle<CampaignWithClub & { milestones: Milestone[] }>(),
+    getSettings(supabase),
   ]);
   const stats = statsRes.data;
   const featured = [...live].sort((a, b) => percent(b.raised_amount, b.goal_amount) - percent(a.raised_amount, a.goal_amount))[0];
@@ -202,7 +204,11 @@ export default async function HomePage() {
               <div className="rules" style={{ opacity: 0.95 }}>
                 <div>
                   <span style={{ color: "var(--gold)" }}>✓</span>
-                  <span>Aucun frais d&apos;inscription, 5 % seulement sur les fonds collectés</span>
+                  <span>
+                    Inscription gratuite
+                    {settings.publication_fee > 0 ? `, ${formatMoney(settings.publication_fee)} de frais de dossier par campagne publiée` : ""},
+                    5 % des fonds collectés
+                  </span>
                 </div>
                 <div>
                   <span style={{ color: "var(--gold)" }}>✓</span>

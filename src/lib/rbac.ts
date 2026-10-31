@@ -40,6 +40,8 @@ export type Permission =
   | "transaction:read"
   | "transaction:export"
   | "transaction:refund"
+  | "fee:record"
+  | "settings:update"
   | "audit:read";
 
 const SUPPORTER: Permission[] = ["account:read", "contribution:create", "contribution:read", "club:register"];
@@ -72,6 +74,9 @@ const MATRIX: Record<Role, readonly Permission[]> = {
     "club:assign_member",
     "user:set_role",
     "transaction:refund",
+    // Encaissement des frais séparé de l'instruction (plan d'affaires, § 7.1.2).
+    "fee:record",
+    "settings:update",
   ],
 };
 

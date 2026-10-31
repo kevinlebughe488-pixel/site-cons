@@ -252,19 +252,19 @@ textarea{min-height:110px;resize:vertical}
 
 /* back-office */
 .bo{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:70vh}
-.bo aside{background:var(--surface);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:2px}
-.bo aside .eyebrow{padding:0 10px 10px}
-.bo aside button{text-align:left;border:0;background:transparent;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
-.bo aside button:hover{background:var(--surface-2);color:var(--ink)}
-.bo aside button[aria-current="true"]{background:var(--pitch);color:var(--on-pitch)}
-.bo aside .count{font-size:.75rem;background:var(--bad);color:#fff;border-radius:999px;padding:0 7px}
+.bo > aside{background:var(--surface);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:2px}
+.bo > aside .eyebrow{padding:0 10px 10px}
+.bo > aside button{text-align:left;border:0;background:transparent;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.bo > aside button:hover{background:var(--surface-2);color:var(--ink)}
+.bo > aside button[aria-current="true"]{background:var(--pitch);color:var(--on-pitch)}
+.bo > aside .count{font-size:.75rem;background:var(--bad);color:#fff;border-radius:999px;padding:0 7px}
 .bo main{padding:28px;min-width:0}
 .bo main > h2{margin-bottom:6px}
 @media (max-width:820px){
   .bo{grid-template-columns:1fr}
-  .bo aside{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 16px}
-  .bo aside .eyebrow{display:none}
-  .bo aside button{white-space:nowrap}
+  .bo > aside{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 16px}
+  .bo > aside .eyebrow{display:none}
+  .bo > aside button{white-space:nowrap}
   .bo main{padding:20px 16px}
 }
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-block:20px}
@@ -323,10 +323,10 @@ footer .legal{border-top:1px solid var(--pitch-line);margin-top:28px;padding-top
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
 .tabs a{padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);text-decoration:none;font-weight:600;font-size:.9rem}
 .tabs a[aria-current="page"]{background:var(--pitch);color:var(--on-pitch);border-color:var(--pitch)}
-.bo aside a{text-align:left;padding:10px 12px;border-radius:8px;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center;text-decoration:none}
-.bo aside a:hover{background:var(--surface-2);color:var(--ink)}
-.bo aside a[aria-current="page"]{background:var(--pitch);color:var(--on-pitch)}
-@media (max-width:820px){.bo aside a{white-space:nowrap}}
+.bo > aside a{text-align:left;padding:10px 12px;border-radius:8px;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center;text-decoration:none}
+.bo > aside a:hover{background:var(--surface-2);color:var(--ink)}
+.bo > aside a[aria-current="page"]{background:var(--pitch);color:var(--on-pitch)}
+@media (max-width:820px){.bo > aside a{white-space:nowrap}}
 .spinner{width:22px;height:22px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--pitch);animation:spin 1s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
 .mode-badge{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}

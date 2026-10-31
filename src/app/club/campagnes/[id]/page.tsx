@@ -7,8 +7,10 @@ import { completeMilestone, postUpdate } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { CampaignPill, Pill, ProgressBar } from "@/components/visuals";
 import { formatDate, formatMoney, percent, todayInKinshasa } from "@/lib/format";
-import type { BudgetLine, Campaign, CampaignUpdate, Milestone } from "@/lib/types";
+import { getSettings } from "@/lib/settings";
+import type { BudgetLine, Campaign, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
 import { CampaignEditor } from "../CampaignEditor";
+import { FeesNotice } from "../FeesNotice";
 
 export const metadata: Metadata = { title: "Gérer la campagne" };
 
@@ -27,13 +29,17 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
   const supabase = await createClient();
-  const { data: c } = await supabase
-    .from("campaigns")
-    .select(
-      "*, budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, title, body, status, created_at, published_at)",
-    )
-    .eq("id", id)
-    .maybeSingle<Detail>();
+  const [{ data: c }, { data: fee }, settings] = await Promise.all([
+    supabase
+      .from("campaigns")
+      .select(
+        "*, budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, title, body, status, created_at, published_at)",
+      )
+      .eq("id", id)
+      .maybeSingle<Detail>(),
+    supabase.from("publication_fees").select("*").eq("campaign_id", id).maybeSingle<PublicationFee>(),
+    getSettings(supabase),
+  ]);
   if (!c) notFound();
   if (viewer.club?.id !== c.club_id) redirect("/acces-refuse");
 
@@ -62,8 +68,10 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
         <p className="flash info">Envoyée le {formatDate(c.submitted_at)}. L&apos;équipe Tribune instruit le dossier ; vous serez informé de la décision ici.</p>
       ) : null}
 
+      {editable ? <FeesNotice publicationFee={settings.publication_fee} /> : null}
       {editable ? (
         <CampaignEditor
+          publicationFee={settings.publication_fee}
           minDate={addDays(today, 14)}
           maxDate={addDays(today, 70)}
           initial={{
@@ -127,6 +135,39 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
           </div>
 
           <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
+            {fee ? (
+              <div className="panel">
+                <h3>Frais d&apos;instruction et de publication</h3>
+                <div className="recap small">
+                  <div>
+                    <span className="muted">Montant</span>
+                    <b className="num">{formatMoney(fee.amount, fee.currency)}</b>
+                  </div>
+                  <div>
+                    <span className="muted">Facturés le</span>
+                    <span>{formatDate(fee.invoiced_at)}</span>
+                  </div>
+                  <div>
+                    <span className="muted">Statut</span>
+                    {fee.paid_at ? <Pill tone="ok">Réglés le {formatDate(fee.paid_at)}</Pill> : <Pill tone="warn">À régler</Pill>}
+                  </div>
+                </div>
+                {fee.paid_at ? null : (
+                  <p className="small muted" style={{ marginTop: 10 }}>
+                    L&apos;équipe Tribune vous indique comment les régler (Mobile Money ou virement). Gardez le reçu : sa
+                    référence est enregistrée ici.
+                  </p>
+                )}
+              </div>
+            ) : c.status === "in_review" && settings.publication_fee > 0 ? (
+              <div className="panel">
+                <h3>Frais</h3>
+                <p className="small">
+                  Si la campagne est publiée : <b className="num">{formatMoney(settings.publication_fee)}</b> de frais
+                  d&apos;instruction et de publication, puis 5 % des fonds collectés si l&apos;objectif est atteint.
+                </p>
+              </div>
+            ) : null}
             {["published", "suspended", "funded", "failed"].includes(c.status) ? (
               <div className="panel">
                 <h3>Publier une nouvelle</h3>

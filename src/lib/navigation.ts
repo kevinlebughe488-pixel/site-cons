@@ -19,11 +19,12 @@ export type Navigation = {
 };
 
 const PUBLIC_BLURB =
-  "Plateforme de financement participatif des clubs de football par leurs supporters. Chaque campagne est vérifiée avant publication et suivie jusqu'à sa clôture.";
+  "Plateforme de financement participatif des clubs de football par leurs supporters, opérée par Plumes Capital. Chaque campagne est vérifiée avant publication et suivie jusqu'à sa clôture.";
 
 const TRUST: FooterColumn = {
   title: "Confiance",
   links: [
+    { href: "/comment-ca-marche#plumes-capital", label: "Qui sommes-nous" },
     { href: "/comment-ca-marche#securite", label: "Sécurité des paiements" },
     { href: "/comment-ca-marche#securite", label: "Données personnelles" },
     { href: "/comment-ca-marche#faq", label: "Réclamations" },
