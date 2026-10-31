@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CAMPAIGN_WITH_CLUB, listCampaigns } from "@/lib/campaigns";
 import { CampaignCard } from "@/components/CampaignCard";
 import { Crest, FieldSvg, ProgressBar } from "@/components/visuals";
-import { daysLeft, formatMoney, percent } from "@/lib/format";
+import { daysLeft, formatMoney, formatNumber, percent } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import type { CampaignWithClub, Milestone } from "@/lib/types";
 
@@ -77,7 +77,7 @@ export default async function HomePage() {
                   <b>{formatMoney(stats.total_raised)}</b>collectés par les supporters
                 </div>
                 <div>
-                  <b>{stats.supporters.toLocaleString("fr-FR")}</b>supporters contributeurs
+                  <b>{formatNumber(stats.supporters)}</b>supporters contributeurs
                 </div>
                 <div>
                   <b>{stats.active_campaigns}</b>campagne{stats.active_campaigns > 1 ? "s" : ""} en cours

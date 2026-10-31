@@ -5,7 +5,7 @@ import { can } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { updateSettings } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { currentPlanPeriod } from "@/lib/plan";
 import { getSettings } from "@/lib/settings";
 import type { PublicationFee } from "@/lib/types";
@@ -160,7 +160,7 @@ export default async function AdminDashboard() {
                   <g key={v}>
                     <line className="g" x1="54" x2={W} y1={y} y2={y} />
                     <text x="48" y={y + 4} textAnchor="end">
-                      {Math.round(v).toLocaleString("fr-FR")} $
+                      {formatNumber(Math.round(v))} $
                     </text>
                   </g>
                 );
