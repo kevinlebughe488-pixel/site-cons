@@ -24,16 +24,18 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!methods.length || methods.every((m) => m === "password")) return null;
   const user = { id: claims.sub };
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>();
+  // Les deux lectures sont indépendantes : on les lance en même temps.
+  const [{ data: profile }, { data: membership }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
+    supabase
+      .from("club_members")
+      .select("club:clubs(*)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle<{ club: Club | null }>(),
+  ]);
   if (!profile) return null;
-
-  const { data: membership } = await supabase
-    .from("club_members")
-    .select("club:clubs(*)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle<{ club: Club | null }>();
 
   return { profile, club: membership?.club ?? null };
 });

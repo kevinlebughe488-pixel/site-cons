@@ -6,8 +6,8 @@
   --gold:#ecd083; --gold-ink:#7d5b0f; --on-gold:#2a2208;
   --ok:#2c7a4f; --ok-bg:#e1f0e6; --warn:#9a6412; --warn-bg:#f8ecd2; --bad:#a8392a; --bad-bg:#f7e1dc; --info-bg:#e4ebf2; --info:#2f5577;
   --focus:#c89a2a;
-  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
-  --f-body:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif;
+  --f-display:var(--font-display),"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:var(--font-body),"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif;
   --r:10px; --r-lg:16px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -339,3 +339,11 @@ details.box summary{cursor:pointer;font-weight:700}
 /* bandeau « site de démonstration » (paiements simulés) */
 .demo{background:var(--gold);color:var(--on-gold);font-size:.85rem;padding-block:6px}
 .code-input{font-size:1.6rem!important;letter-spacing:.4em;text-align:center;font-variant-numeric:tabular-nums}
+
+/* chargement : squelette affiché tout de suite pendant que la page arrive */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skeleton{background:var(--surface-2);border-radius:var(--r);animation:pulse 1.4s ease-in-out infinite}
+.skeleton-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));gap:20px;margin-top:32px}
+.skeleton-grid .skeleton{height:260px;border-radius:var(--r-lg)}
+@keyframes pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.skeleton,.spinner{animation:none}}

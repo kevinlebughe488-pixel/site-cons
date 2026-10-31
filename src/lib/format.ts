@@ -1,9 +1,21 @@
 const TZ = "Africa/Kinshasa";
 
+/**
+ * Sépare les milliers par une espace fine insécable, à la française.
+ * Fait à la main plutôt qu'avec toLocaleString : le résultat est ainsi identique
+ * sur le serveur et dans tous les navigateurs (certains téléphones n'ont pas les
+ * données de langue françaises), ce qui évite les erreurs d'affichage à l'hydratation.
+ */
+export function formatNumber(value: number, decimals = 0): string {
+  if (!Number.isFinite(value)) return "0";
+  const [int, frac] = Math.abs(value).toFixed(decimals).split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+  return `${value < 0 ? "-" : ""}${grouped}${frac ? `,${frac}` : ""}`;
+}
+
 export function formatMoney(amount: number | string, currency: string = "USD"): string {
   const value = typeof amount === "string" ? Number(amount) : amount;
-  const decimals = Number.isInteger(value) ? 0 : 2;
-  const number = value.toLocaleString("fr-FR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  const number = formatNumber(value, Number.isInteger(value) ? 0 : 2);
   return currency === "CDF" ? `${number} FC` : `${number} $`;
 }
 

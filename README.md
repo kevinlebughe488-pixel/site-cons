@@ -203,6 +203,11 @@ En production, la simulation est refusée, sauf si `ALLOW_SIMULATED_PAYMENTS=tru
    visiteurs que les paiements sont simulés. Pour encaisser réellement, remplacez ces deux lignes par
    la configuration pawaPay ci-dessus. `SITE_URL` est facultatif : l'adresse Vercel est utilisée par défaut.
 3. Cliquez sur **Deploy**.
+
+   Le fichier [`vercel.json`](vercel.json) fait tourner le serveur à Paris (`cdg1`), à côté de la base
+   Supabase (`eu-west-3`) : chaque page fait plusieurs lectures en base, et un serveur aux États-Unis
+   (réglage par défaut de Vercel) les ralentirait toutes. Si votre projet Supabase est dans une autre
+   région, choisissez la région Vercel la plus proche.
 4. Dans Supabase (Authentication → URL Configuration), mettez l'adresse Vercel en *Site URL* et
    ajoutez `https://<votre-projet>.vercel.app/auth/callback` aux *Redirect URLs*. Pour une démo sans
    SMTP configuré, vous pouvez désactiver « Confirm email » (Authentication → Sign In / Providers → Email),
@@ -216,7 +221,7 @@ En production, la simulation est refusée, sauf si `ALLOW_SIMULATED_PAYMENTS=tru
 ```bash
 cd dev/supabase-local
 cp .env.example .env
-JWT_SECRET=$(grep JWT_SECRET .env | cut -d= -f2) node keys.mjs   # copiez les clés affichées dans .env et ../../.env.local
+JWT_SECRET=$(grep ^JWT_SECRET= .env | cut -d= -f2) node keys.mjs   # copiez les clés affichées dans .env et ../../.env.local
 docker compose up -d
 # appliquez les migrations (mot de passe : POSTGRES_PASSWORD)
 for f in ../../supabase/migrations/*.sql; do psql -h localhost -p 54322 -U postgres -d postgres -f "$f"; done

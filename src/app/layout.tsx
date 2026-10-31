@@ -1,8 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Barlow_Condensed, Source_Sans_3 } from "next/font/google";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DemoBanner } from "@/components/DemoBanner";
 import "./globals.css";
+
+// Polices servies par le site lui-même (pas d'appel à Google à chaque visite),
+// avec des polices de secours ajustées pour éviter que le texte ne saute au chargement.
+const display = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-display", display: "swap" });
+const body = Source_Sans_3({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-body", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Tribune — les supporters financent leur club", template: "%s · Tribune" },
@@ -17,16 +23,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap"
-        />
-      </head>
+    <html lang="fr" className={`${display.variable} ${body.variable}`}>
       <body>
         <DemoBanner />
         <Header />

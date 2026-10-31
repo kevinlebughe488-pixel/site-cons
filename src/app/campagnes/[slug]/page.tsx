@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +16,8 @@ type Detail = CampaignWithClub & {
   updates: CampaignUpdate[];
 };
 
-async function loadCampaign(slug: string) {
+// Mis en cache pour la requête : le titre de la page et la page elle-même partagent la même lecture.
+const loadCampaign = cache(async (slug: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("campaigns")
@@ -27,7 +29,7 @@ async function loadCampaign(slug: string) {
     .eq("slug", slug)
     .maybeSingle<Detail>();
   return { supabase, campaign: data };
-}
+});
 
 export async function generateMetadata(props: PageProps<"/campagnes/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
