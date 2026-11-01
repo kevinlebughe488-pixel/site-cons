@@ -132,6 +132,9 @@ les projets présentés sont inventés.
 
 ## Inscription et vérification des clubs
 
+La rubrique **Clubs** du menu (`/clubs`) présente l'inscription d'un club (étapes, pièces à préparer,
+frais) et l'annuaire des clubs vérifiés ; chaque club a sa page publique (`/clubs/<club>`).
+
 À l'inscription, la personne choisit **« Je représente un club »** ou **« Je suis supporter »**. Le
 représentant crée son compte personnel (confirmé par SMS), puis ouvre le **dossier du club** :
 

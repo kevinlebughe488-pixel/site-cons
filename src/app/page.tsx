@@ -226,7 +226,7 @@ export default async function HomePage() {
                   <span>Versement au club par tranches, à chaque jalon prouvé</span>
                 </div>
               </div>
-              <Link className="btn btn-gold" href={viewer ? "/club" : "/inscription?profil=club"} style={{ justifySelf: "start" }}>
+              <Link className="btn btn-gold" href={viewer ? "/club" : "/clubs"} style={{ justifySelf: "start" }}>
                 {viewer ? "Mon espace club" : "Inscrire mon club"}
               </Link>
             </div>

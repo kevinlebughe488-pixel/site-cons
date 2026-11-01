@@ -93,6 +93,7 @@ export function navigationFor(viewer: Viewer | null): Navigation {
     const items: NavLink[] = [
       { href: "/", label: "Accueil" },
       { href: "/campagnes", label: "Campagnes" },
+      { href: "/clubs", label: "Clubs" },
       { href: "/actualites", label: "Actualités" },
       { href: "/classement", label: "Classement" },
       { href: "/compte", label: "Mes contributions" },
@@ -121,6 +122,7 @@ export function navigationFor(viewer: Viewer | null): Navigation {
           title: "Votre club",
           links: [
             { href: "/club", label: viewer.club ? "Suivre ma demande" : "Inscrire mon club" },
+            { href: "/clubs", label: "Tous les clubs" },
             { href: "/comment-ca-marche#frais", label: "Frais et règles" },
           ],
         },
@@ -137,6 +139,7 @@ export function navigationFor(viewer: Viewer | null): Navigation {
     items: [
       { href: "/", label: "Accueil" },
       { href: "/campagnes", label: "Campagnes" },
+      { href: "/clubs", label: "Clubs" },
       { href: "/actualites", label: "Actualités" },
       { href: "/classement", label: "Classement" },
       { href: "/comment-ca-marche", label: "Comment ça marche" },
@@ -155,6 +158,7 @@ export function navigationFor(viewer: Viewer | null): Navigation {
         title: "Clubs",
         links: [
           { href: "/inscription?profil=club", label: "Inscrire mon club" },
+          { href: "/clubs", label: "Tous les clubs" },
           { href: "/comment-ca-marche#club", label: "La vérification des clubs" },
           { href: "/comment-ca-marche#frais", label: "Frais et règles" },
         ],

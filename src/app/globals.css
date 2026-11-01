@@ -461,3 +461,9 @@ details.reply .comment-form{margin-top:8px}
 /* chiffres sous une barre de progression, hors des fiches */
 .figs{display:flex;justify-content:space-between;gap:8px;font-size:.9rem;color:var(--muted)}
 .figs b{color:var(--ink)}
+
+/* ---- annuaire des clubs ---- */
+.club-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:12px}
+.club-tile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-decoration:none;color:inherit}
+.club-tile:hover{border-color:var(--muted)}
+.club-tile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
