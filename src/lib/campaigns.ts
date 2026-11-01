@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CampaignStatus, CampaignWithClub } from "@/lib/types";
 
 export const CAMPAIGN_WITH_CLUB =
-  "*, club:clubs!inner(id, slug, name, short_name, color_primary, color_secondary, city, commune, founded_year, logo_path)";
+  "*, club:clubs!inner(id, slug, name, short_name, color_primary, color_secondary, city, commune, founded_year, logo_path, sport)";
 
 export async function listCampaigns(
   supabase: SupabaseClient,

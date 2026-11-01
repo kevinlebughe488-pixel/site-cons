@@ -18,15 +18,22 @@ export default async function LoginPage(props: PageProps<"/connexion">) {
       <div className="split half">
         <LoginForm returnTo={returnTo} />
         <div className="panel" style={{ display: "grid", gap: 14, alignContent: "start" }}>
-          <div className="eyebrow">Nouveau supporter</div>
+          <div className="eyebrow">Nouveau sur Tribune</div>
           <h2 style={{ fontSize: "1.8rem" }}>Pas encore de compte ?</h2>
           <p className="muted">
             Créez votre compte en une minute pour contribuer, recevoir vos reçus et suivre les campagnes que vous
             soutenez.
           </p>
-          <Link className="btn btn-primary" href={`/inscription?suite=${encodeURIComponent(returnTo)}`} style={{ justifySelf: "start" }}>
+          <Link
+            className="btn btn-primary"
+            href={`/inscription?profil=supporter${returnTo !== "/" ? `&suite=${encodeURIComponent(returnTo)}` : ""}`}
+            style={{ justifySelf: "start" }}
+          >
             Créer mon compte supporter
           </Link>
+          <p className="small muted">
+            Vous représentez un club ? <Link href="/inscription?profil=club">Inscrire mon club</Link>
+          </p>
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ async function loadDashboard() {
   const settings = await getSettings(supabase);
   const period = currentPlanPeriod(settings.launch_date);
 
-  const [stats, inReview, pendingClubs, kycPending, pendingUpdates, failed7d, recent, indicators, unpaidFees] = await Promise.all([
+  const [stats, inReview, pendingClubs, kycPending, pendingUpdates, failed7d, recent, indicators, unpaidFees, reported] = await Promise.all([
     supabase.rpc("platform_stats").single<{ total_raised: number; supporters: number; funded_campaigns: number; active_campaigns: number }>(),
     count("campaigns", "status", ["in_review"]),
     count("clubs", "status", ["pending"]),
@@ -46,6 +46,7 @@ async function loadDashboard() {
       .is("paid_at", null)
       .order("invoiced_at", { ascending: true })
       .limit(50),
+    supabase.from("campaign_comments").select("id", { count: "exact", head: true }).eq("status", "visible").gt("report_count", 0),
   ]);
 
   // Collecte par semaine (8 dernières semaines).
@@ -58,7 +59,7 @@ async function loadDashboard() {
     campaign: { title: string; club: { name: string } | null } | null;
   };
   return {
-    stats, inReview, pendingClubs, kycPending, pendingUpdates, failed7d, buckets,
+    stats, inReview, pendingClubs, kycPending, pendingUpdates, failed7d, buckets, reported,
     settings, period, indicators: indicators.data, unpaid: (unpaidFees.data ?? []) as unknown as Unpaid[],
   };
 }
@@ -82,7 +83,7 @@ function PlanRow({ label, actual, target, format }: { label: string; actual: num
 
 export default async function AdminDashboard() {
   const { profile } = await requirePermission("backoffice:access", "/admin");
-  const { stats, inReview, pendingClubs, kycPending, pendingUpdates, failed7d, buckets, settings, period, indicators, unpaid } =
+  const { stats, inReview, pendingClubs, kycPending, pendingUpdates, failed7d, buckets, reported, settings, period, indicators, unpaid } =
     await loadDashboard();
   const max = Math.max(100, ...buckets);
   const W = 560;
@@ -93,7 +94,8 @@ export default async function AdminDashboard() {
     { n: inReview.count ?? 0, label: "campagne(s) à instruire", href: "/admin/campagnes?statut=in_review" },
     { n: pendingClubs.count ?? 0, label: "club(s) à vérifier", href: "/admin/clubs" },
     { n: kycPending.count ?? 0, label: "identité(s) à vérifier", href: "/admin/utilisateurs?kyc=pending" },
-    { n: pendingUpdates.count ?? 0, label: "nouvelle(s) à relire", href: "/admin/nouvelles" },
+    { n: pendingUpdates.count ?? 0, label: "nouvelle(s) et message(s) à relire", href: "/admin/nouvelles" },
+    { n: reported.count ?? 0, label: "commentaire(s) signalé(s)", href: "/admin/commentaires" },
     { n: unpaid.length, label: "frais de publication à encaisser", href: "/admin#frais" },
   ];
 

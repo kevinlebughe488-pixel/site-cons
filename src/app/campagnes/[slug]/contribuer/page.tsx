@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { daysLeft } from "@/lib/format";
+import { daysLeft, formatMoney } from "@/lib/format";
 import { paymentMode } from "@/lib/payments";
 import { ContributeForm } from "./ContributeForm";
 
@@ -17,9 +17,19 @@ export default async function ContributePage(props: PageProps<"/campagnes/[slug]
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, slug, title, status, end_date, currency, club:clubs!inner(name)")
+    .select("id, slug, title, status, end_date, currency, min_contribution, max_contribution, club:clubs!inner(name)")
     .eq("slug", slug)
-    .maybeSingle<{ id: string; slug: string; title: string; status: string; end_date: string; currency: "USD" | "CDF"; club: { name: string } }>();
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      title: string;
+      status: string;
+      end_date: string;
+      currency: "USD" | "CDF";
+      min_contribution: number;
+      max_contribution: number | null;
+      club: { name: string };
+    }>();
   if (!campaign) notFound();
 
   const head = (
@@ -69,10 +79,33 @@ export default async function ContributePage(props: PageProps<"/campagnes/[slug]
   const admin = createAdminClient();
   const { data: history } = await admin
     .from("contributions")
-    .select("amount")
+    .select("amount, campaign_id, status")
     .eq("user_id", profile.id)
-    .in("status", ["initiated", "pending", "completed"]);
-  const cumulative = (history ?? []).reduce((sum: number, row: { amount: number }) => sum + Number(row.amount), 0);
+    .in("status", ["initiated", "pending", "completed", "refund_pending"]);
+  const rows = (history ?? []) as { amount: number; campaign_id: string; status: string }[];
+  const cumulative = rows.filter((r) => r.status !== "refund_pending").reduce((sum, row) => sum + Number(row.amount), 0);
+  // Déjà versé à cette campagne : sert au plafond par supporter.
+  const onCampaign = rows.filter((r) => r.campaign_id === campaign.id).reduce((sum, row) => sum + Number(row.amount), 0);
+  const remaining = campaign.max_contribution === null ? null : Math.max(0, Number(campaign.max_contribution) - onCampaign);
+  if (remaining !== null && remaining < Number(campaign.min_contribution)) {
+    return (
+      <div className="wrap page" style={{ maxWidth: 1000 }}>
+        {head}
+        <div className="panel empty">
+          <p>
+            <b>Vous avez atteint le maximum par supporter pour cette campagne.</b>
+          </p>
+          <p className="small muted" style={{ marginTop: 6 }}>
+            Le club a fixé un plafond de {formatMoney(campaign.max_contribution ?? 0, campaign.currency)} par supporter, pour une collecte
+            partagée par le plus grand nombre. Merci pour votre soutien : vous pouvez encore faire connaître la campagne.
+          </p>
+          <Link className="btn btn-ghost btn-sm" style={{ marginTop: 14 }} href={`/campagnes/${campaign.slug}`}>
+            Retour à la campagne
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="wrap page" style={{ maxWidth: 1000 }}>
@@ -90,6 +123,9 @@ export default async function ContributePage(props: PageProps<"/campagnes/[slug]
         cumulative={cumulative}
         kycStatus={profile.kyc_status}
         simulation={simulation}
+        minAmount={Number(campaign.min_contribution)}
+        remaining={remaining}
+        alreadyGiven={onCampaign}
       />
     </div>
   );

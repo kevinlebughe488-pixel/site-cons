@@ -34,10 +34,31 @@ export function formatDate(iso: string | null | undefined, withTime = false): st
   return `${day} · ${time}`;
 }
 
+/** « 1 supporter », « 125 supporters ». */
+export function plural(n: number, singular: string, pluralForm = `${singular}s`): string {
+  return `${formatNumber(n)} ${Math.abs(n) >= 2 ? pluralForm : singular}`;
+}
+
 /** Jours restants jusqu'à la date de clôture incluse (0 si dépassée). */
 export function daysLeft(endDate: string): number {
   const end = new Date(`${endDate}T23:59:59+01:00`).getTime();
   return Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
+}
+
+/** Ce qu'affiche une fiche de campagne sous « Durée restante » (ou équivalent selon le statut). */
+export function campaignTiming(c: { status: string; end_date: string; duration_days: number; closed_at?: string | null }): {
+  label: string;
+  value: string;
+} {
+  if (c.status === "published") {
+    const left = daysLeft(c.end_date);
+    return left > 0
+      ? { label: "Durée restante", value: plural(left, "jour") }
+      : { label: "Collecte", value: "terminée, clôture en cours" };
+  }
+  if (c.status === "funded" || c.status === "failed") return { label: "Clôturée le", value: formatDate(c.closed_at ?? c.end_date) };
+  if (c.status === "suspended") return { label: "Fin prévue", value: formatDate(c.end_date) };
+  return { label: "Durée de la collecte", value: plural(c.duration_days, "jour") };
 }
 
 export function todayInKinshasa(): string {

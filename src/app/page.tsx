@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CAMPAIGN_WITH_CLUB, listCampaigns } from "@/lib/campaigns";
 import { CampaignCard } from "@/components/CampaignCard";
 import { Crest, FieldSvg, ProgressBar } from "@/components/visuals";
-import { daysLeft, formatMoney, formatNumber, percent } from "@/lib/format";
+import { daysLeft, formatMoney, formatNumber, percent, plural } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import type { CampaignWithClub, Milestone } from "@/lib/types";
 
@@ -66,7 +66,7 @@ export default async function HomePage() {
                   Mes contributions
                 </Link>
               ) : (
-                <Link className="btn btn-ghost" href="/inscription">
+                <Link className="btn btn-ghost" href="/inscription?profil=supporter">
                   Créer mon compte supporter
                 </Link>
               )}
@@ -110,9 +110,10 @@ export default async function HomePage() {
               </div>
               <ProgressBar raised={featured.raised_amount} goal={featured.goal_amount} />
               <div className="meta num">
-                <span>{percent(featured.raised_amount, featured.goal_amount)} % atteints</span>
-                <span>{featured.backers_count} supporters</span>
-                <span>{daysLeft(featured.end_date)} jours restants</span>
+                <span>{percent(featured.raised_amount, featured.goal_amount)} % atteint</span>
+                <span>{plural(featured.backers_count, "supporter")}</span>
+                <span>{plural(daysLeft(featured.end_date), "jour restant", "jours restants")}</span>
+                <span>dès {formatMoney(featured.min_contribution, featured.currency)}</span>
               </div>
               <Link className="btn btn-gold" href={`/campagnes/${featured.slug}/contribuer`}>
                 Contribuer à cette campagne
@@ -129,9 +130,14 @@ export default async function HomePage() {
               <div className="eyebrow">En cours</div>
               <h2 style={{ marginTop: 6 }}>Les campagnes ouvertes</h2>
             </div>
-            <Link className="btn btn-ghost btn-sm" href="/campagnes">
-              Toutes les campagnes →
-            </Link>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link className="btn btn-ghost btn-sm" href="/classement">
+                Les plus soutenues
+              </Link>
+              <Link className="btn btn-ghost btn-sm" href="/campagnes">
+                Toutes les campagnes →
+              </Link>
+            </div>
           </div>
           {live.length ? (
             <div className="grid">
@@ -196,8 +202,9 @@ export default async function HomePage() {
               </div>
               <h2 style={{ marginTop: 6 }}>Votre club a un projet ? Proposez-le.</h2>
               <p style={{ marginTop: 12, opacity: 0.9 }}>
-                Inscrivez votre club, puis déposez le dossier : objectif, budget détaillé, calendrier et jalons.
-                L&apos;équipe Tribune vérifie l&apos;identité du club et la cohérence du budget avant publication.
+                Inscrivez votre club : l&apos;équipe Tribune vérifie son existence, son représentant légal et son compte de
+                versement. Déposez ensuite votre projet : objectif, budget détaillé, durée de collecte, contribution
+                minimum et jalons.
               </p>
             </div>
             <div style={{ display: "grid", gap: 12, alignContent: "center" }}>
@@ -219,8 +226,8 @@ export default async function HomePage() {
                   <span>Versement au club par tranches, à chaque jalon prouvé</span>
                 </div>
               </div>
-              <Link className="btn btn-gold" href="/club" style={{ justifySelf: "start" }}>
-                Proposer une campagne
+              <Link className="btn btn-gold" href={viewer ? "/club" : "/inscription?profil=club"} style={{ justifySelf: "start" }}>
+                {viewer ? "Mon espace club" : "Inscrire mon club"}
               </Link>
             </div>
           </div>

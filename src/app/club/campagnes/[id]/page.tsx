@@ -3,24 +3,19 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { completeMilestone, postUpdate } from "@/lib/actions/club";
+import { completeMilestone, postNews } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { CampaignPill, Pill, ProgressBar } from "@/components/visuals";
-import { formatDate, formatMoney, percent, todayInKinshasa } from "@/lib/format";
+import { CampaignPill, coverUrl, Pill, ProgressBar } from "@/components/visuals";
+import { campaignTiming, formatDate, formatMoney, percent, plural, todayInKinshasa } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import type { BudgetLine, Campaign, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
 import { CampaignEditor } from "../CampaignEditor";
+import { CoverUpload } from "../CoverUpload";
 import { FeesNotice } from "../FeesNotice";
 
 export const metadata: Metadata = { title: "Gérer la campagne" };
 
 type Detail = Campaign & { budget: BudgetLine[]; milestones: Milestone[]; updates: CampaignUpdate[] };
-
-function addDays(isoDate: string, days: number): string {
-  const d = new Date(`${isoDate}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 export default async function ManageCampaignPage(props: PageProps<"/club/campagnes/[id]">) {
   const { id } = await props.params;
@@ -33,7 +28,7 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
     supabase
       .from("campaigns")
       .select(
-        "*, budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, title, body, status, created_at, published_at)",
+        "*, budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at)",
       )
       .eq("id", id)
       .maybeSingle<Detail>(),
@@ -47,10 +42,10 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
   const budget = [...c.budget].sort((a, b) => a.position - b.position);
   const milestones = [...c.milestones].sort((a, b) => a.position - b.position);
   const updates = [...c.updates].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const today = todayInKinshasa();
+  const timing = campaignTiming(c);
 
   return (
-    <div className="wrap page" style={{ maxWidth: 1000 }}>
+    <div className="wrap page">
       <div className="crumbs muted">
         <Link href="/club">← Espace club</Link>
       </div>
@@ -70,22 +65,38 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
 
       {editable ? <FeesNotice publicationFee={settings.publication_fee} /> : null}
       {editable ? (
-        <CampaignEditor
-          publicationFee={settings.publication_fee}
-          minDate={addDays(today, 14)}
-          maxDate={addDays(today, 70)}
-          initial={{
-            id: c.id,
-            title: c.title,
-            category: c.category,
-            summary: c.summary,
-            description: c.description,
-            goal: String(Number(c.goal_amount)),
-            end_date: c.end_date,
-            budget: budget.map((b) => ({ label: b.label, amount: String(Number(b.amount)) })),
-            milestones: milestones.map((m) => ({ label: m.label, target: m.target_label })),
-          }}
-        />
+        <div className="split">
+          <CampaignEditor
+            publicationFee={settings.publication_fee}
+            today={todayInKinshasa()}
+            initial={{
+              id: c.id,
+              title: c.title,
+              category: c.category,
+              summary: c.summary,
+              description: c.description,
+              goal: String(Number(c.goal_amount)),
+              duration_days: String(c.duration_days),
+              min_contribution: String(Number(c.min_contribution)),
+              max_contribution: c.max_contribution === null ? "" : String(Number(c.max_contribution)),
+              budget: budget.map((b) => ({ label: b.label, amount: String(Number(b.amount)) })),
+              milestones: milestones.map((m) => ({ label: m.label, target: m.target_label })),
+            }}
+          />
+          <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
+            <div className="panel">
+              <h3>Photo de couverture</h3>
+              <CoverUpload campaignId={c.id} coverSrc={c.cover_path ? coverUrl(c.cover_path) : null} />
+            </div>
+            <div className="panel">
+              <h3>Ce que verront les supporters</h3>
+              <p className="small muted">
+                La fiche de la campagne montre le montant collecté, l&apos;objectif, le pourcentage atteint, le nombre de
+                supporters, la contribution minimum et la durée restante. La collecte commence le jour de la publication.
+              </p>
+            </div>
+          </aside>
+        </div>
       ) : (
         <div className="split">
           <div style={{ display: "grid", gap: 24 }}>
@@ -93,9 +104,23 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
               <div className="big num">{formatMoney(c.raised_amount, c.currency)}</div>
               <p className="muted num" style={{ margin: "4px 0 12px" }}>
                 collectés sur {formatMoney(c.goal_amount, c.currency)} · {percent(c.raised_amount, c.goal_amount)} % ·{" "}
-                {c.backers_count} supporters · clôture le {formatDate(c.end_date)}
+                {plural(c.backers_count, "supporter")} · {c.status === "in_review" ? `durée prévue : ${plural(c.duration_days, "jour")}` : `fin le ${formatDate(c.end_date)}`}
               </p>
               <ProgressBar raised={c.raised_amount} goal={c.goal_amount} />
+              <div className="terms small" style={{ marginTop: 14 }}>
+                <div>
+                  <span>Contribution minimum</span>
+                  <b className="num">{formatMoney(c.min_contribution, c.currency)}</b>
+                </div>
+                <div>
+                  <span>Maximum par supporter</span>
+                  <b className="num">{c.max_contribution === null ? "Aucun" : formatMoney(c.max_contribution, c.currency)}</b>
+                </div>
+                <div>
+                  <span>{timing.label}</span>
+                  <b className="num">{timing.value}</b>
+                </div>
+              </div>
               {["published", "funded", "failed"].includes(c.status) ? (
                 <p style={{ marginTop: 14 }}>
                   <Link href={`/campagnes/${c.slug}`}>Voir la page publique →</Link>
@@ -168,21 +193,47 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                 </p>
               </div>
             ) : null}
+            {c.cover_path ? (
+              <div className="panel">
+                <h3>Photo de couverture</h3>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={coverUrl(c.cover_path)} alt="" className="cover-preview" />
+                <p className="small muted" style={{ marginTop: 8 }}>Pour la changer, écrivez à l&apos;équipe Tribune.</p>
+              </div>
+            ) : null}
             {["published", "suspended", "funded", "failed"].includes(c.status) ? (
               <div className="panel">
                 <h3>Publier une nouvelle</h3>
-                <ActionForm action={postUpdate}>
+                <ActionForm action={postNews}>
                   <input type="hidden" name="campaign_id" value={c.id} />
+                  <fieldset className="audience">
+                    <legend className="small" style={{ fontWeight: 700 }}>
+                      Destinataires
+                    </legend>
+                    <label className="check">
+                      <input type="radio" name="audience" value="public" defaultChecked />
+                      <span>
+                        <b>Tout le monde</b> · <span className="small muted">publiée sur la page de la campagne, contributeurs prévenus</span>
+                      </span>
+                    </label>
+                    <label className="check">
+                      <input type="radio" name="audience" value="contributors" />
+                      <span>
+                        <b>Seulement les contributeurs</b> ·{" "}
+                        <span className="small muted">message réservé aux {plural(c.backers_count, "supporter")} qui ont contribué</span>
+                      </span>
+                    </label>
+                  </fieldset>
                   <div className="field">
                     <label htmlFor="title">Titre</label>
-                    <input type="text" id="title" name="title" />
+                    <input type="text" id="title" name="title" maxLength={140} />
                   </div>
                   <div className="field">
                     <label htmlFor="body">Texte</label>
-                    <textarea id="body" name="body" placeholder="Où en est le projet ?" />
+                    <textarea id="body" name="body" placeholder="Où en est le projet ? Un merci, une échéance, une photo publiée…" />
                   </div>
                   <SubmitButton className="btn btn-ghost btn-sm">Envoyer pour relecture</SubmitButton>
-                  <p className="small muted">Chaque nouvelle est relue par Tribune avant publication.</p>
+                  <p className="small muted">Chaque nouvelle et chaque message sont relus par Tribune avant publication.</p>
                 </ActionForm>
               </div>
             ) : null}
@@ -192,12 +243,13 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                 {updates.map((u) => (
                   <div className="update" key={u.id}>
                     <span className="small muted">
-                      {formatDate(u.created_at)} ·{" "}
+                      {formatDate(u.created_at)} · {u.audience === "contributors" ? "contributeurs seulement · " : ""}
                       <Pill tone={u.status === "published" ? "ok" : u.status === "pending" ? "info" : "bad"}>
                         {u.status === "published" ? "Publiée" : u.status === "pending" ? "En relecture" : "Refusée"}
                       </Pill>
                     </span>
                     <h4>{u.title}</h4>
+                    {u.status === "rejected" && u.review_note ? <p className="small muted">Motif : {u.review_note}</p> : null}
                   </div>
                 ))}
               </div>

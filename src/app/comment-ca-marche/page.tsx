@@ -9,17 +9,29 @@ import { getSettings } from "@/lib/settings";
 export const metadata: Metadata = { title: "Comment ça marche" };
 
 const SUPPORTER_STEPS = [
-  ["Il crée son compte", "Avec son e-mail, son nom et son numéro Mobile Money. Au-delà de 1 000 $ cumulés, il déclare une pièce d'identité."],
-  ["Il choisit une campagne", "Rénovation du terrain, matériel pour les jeunes, déplacement…"],
+  ["Il crée son compte", "« Je suis supporter » : e-mail, nom et numéro Mobile Money. Au-delà de 1 000 $ cumulés, il déclare une pièce d'identité."],
+  ["Il choisit une campagne", "Rénovation du terrain, matériel pour les jeunes, déplacement… Chaque fiche affiche l'objectif, le montant collecté, la contribution minimum et la durée restante."],
   ["Il paie", "Par M-Pesa, Airtel Money ou Orange Money : la demande arrive sur son téléphone, il la valide avec son code secret."],
   ["Il reçoit une confirmation", "L'opérateur confirme le paiement, la contribution est inscrite au registre avec sa référence."],
-  ["Il suit l'avancement", "Le club publie ses nouvelles et les preuves de chaque jalon."],
+  ["Il fait connaître la campagne", "Il la partage sur WhatsApp ou Facebook avec son lien d'ambassadeur, et commente pour poser ses questions au club."],
+  ["Il suit l'avancement", "Notifications à chaque étape : objectif atteint, nouvelles et messages du club, preuves des jalons, clôture."],
 ];
 function clubSteps(fee: number) {
   return [
-    ["Il inscrit le club", "Nom, président, contact et compte Mobile Money qui recevra les versements. L'inscription est gratuite."],
-    ["L'équipe vérifie le club", "Identité du club et de ses dirigeants. Le club est alors « vérifié »."],
-    ["Il dépose une campagne", "Objectif, budget détaillé égal à l'objectif, calendrier et jalons."],
+    ["Il crée son compte", "« Je représente un club » : le compte personnel du représentant, confirmé par SMS. L'inscription est gratuite."],
+    [
+      "Il remplit le dossier du club",
+      "Nom officiel, sigle, discipline, ville et adresse du siège, date de création, identifiant juridique s'il existe, représentant légal et ses coordonnées, compte de versement au nom du club.",
+    ],
+    ["Il dépose les documents", "Au moins un document qui atteste l'existence du club (statuts, enregistrement, affiliation), puis il envoie le dossier."],
+    [
+      "L'équipe vérifie le club",
+      "Trois contrôles : existence du club, représentant légal, compte de versement. Elle peut demander des compléments. L'inscription seule ne permet pas de lancer une campagne.",
+    ],
+    [
+      "Il dépose une campagne",
+      "Objectif, budget détaillé égal à l'objectif, durée de la collecte, contribution minimum (et maximum par supporter si besoin), jalons et photo du projet.",
+    ],
     [
       "L'équipe instruit le dossier",
       "Trois critères : clarté, faisabilité, cohérence. Décision motivée : publié, à corriger ou refusé. Au-delà de 20 000 $, validation par un administrateur.",
@@ -27,10 +39,10 @@ function clubSteps(fee: number) {
     [
       "La campagne est publiée",
       fee > 0
-        ? `Les frais d'instruction et de publication (${formatMoney(fee)}) sont facturés au club, puis la collecte s'ouvre.`
-        : "La collecte s'ouvre pour la durée choisie.",
+        ? `Les frais d'instruction et de publication (${formatMoney(fee)}) sont facturés au club, puis la collecte s'ouvre pour la durée choisie. Les supporters qui suivent le club sont prévenus.`
+        : "La collecte s'ouvre pour la durée choisie. Les supporters qui suivent le club sont prévenus.",
     ],
-    ["Le club rend compte", "Nouvelles relues avant publication, preuves de chaque jalon, rapport final."],
+    ["Le club rend compte", "Nouvelles et messages aux contributeurs relus avant publication, réponses aux commentaires, preuves de chaque jalon, rapport final."],
   ];
 }
 
@@ -61,7 +73,7 @@ export default async function HowItWorksPage() {
       <div className="wrap page" style={{ display: "grid", gap: 48 }}>
         <div className={journeys.length > 1 ? "split half" : undefined}>
           {journeys.map(([title, steps]) => (
-            <div key={title}>
+            <div key={title} id={title === "Le parcours d'un club" ? "club" : undefined} style={{ scrollMarginTop: 90 }}>
               <h2 style={{ marginBottom: 16 }}>{title}</h2>
               <ol className="steps">
                 {steps.map(([t, d], i) => (
@@ -245,6 +257,29 @@ export default async function HowItWorksPage() {
           <details>
             <summary>Je n&apos;ai pas reçu la demande de paiement sur mon téléphone.</summary>
             <p>Vérifiez le numéro et l&apos;opérateur choisis, puis réessayez. Une demande non validée expire au bout de quelques minutes sans débit.</p>
+          </details>
+          <details>
+            <summary>Qu&apos;est-ce qu&apos;un ambassadeur ?</summary>
+            <p>
+              Chaque supporter a un lien de partage personnel. Quand quelqu&apos;un contribue après l&apos;avoir suivi, la
+              contribution est attribuée à l&apos;ambassadeur dans le classement. Vous choisissez d&apos;y apparaître sous
+              votre prénom ou anonymement.
+            </p>
+          </details>
+          <details>
+            <summary>Pourquoi un maximum par supporter sur certaines campagnes ?</summary>
+            <p>
+              Un club peut plafonner le total versé par une même personne pour que le projet soit porté par le plus grand
+              nombre de supporters. Le plafond est affiché sur la fiche avant de payer.
+            </p>
+          </details>
+          <details>
+            <summary>Mon club vient de s&apos;inscrire : pourquoi ne peut-il pas encore lancer de campagne ?</summary>
+            <p>
+              L&apos;inscription ouvre un dossier. L&apos;équipe Tribune vérifie d&apos;abord l&apos;existence du club, son
+              représentant légal et son compte de versement, à partir des documents déposés. Une fois le club vérifié, il
+              peut déposer sa première campagne.
+            </p>
           </details>
           <details>
             <summary>Pourquoi me demande-t-on une pièce d&apos;identité ?</summary>

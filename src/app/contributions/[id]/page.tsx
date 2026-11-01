@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { ShareButtons } from "@/components/ShareButtons";
 import { createClient } from "@/lib/supabase/server";
 import { contributionRef, syncContribution } from "@/lib/payments/service";
 import { providerLabel } from "@/lib/payments/providers";
@@ -24,16 +26,16 @@ const FAILURE_HINTS: Record<string, string> = {
 
 export default async function ContributionPage(props: PageProps<"/contributions/[id]">) {
   const { id } = await props.params;
-  await requireViewer(`/contributions/${id}`);
+  const viewer = await requireViewer(`/contributions/${id}`);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
   const supabase = await createClient();
   const load = () =>
     supabase
       .from("contributions")
-      .select("*, campaign:campaigns(title, slug)")
+      .select("*, campaign:campaigns(title, slug, club:clubs(name))")
       .eq("id", id)
-      .maybeSingle<Contribution & { campaign: { title: string; slug: string } | null }>();
+      .maybeSingle<Contribution & { campaign: { title: string; slug: string; club: { name: string } | null } | null }>();
 
   let { data: c } = await load();
   if (!c) notFound();
@@ -114,6 +116,20 @@ export default async function ContributionPage(props: PageProps<"/contributions/
             </div>
           ) : null}
         </div>
+        {ok && c.campaign ? (
+          <div className="panel" style={{ width: "100%", maxWidth: 520, textAlign: "left", background: "var(--surface-2)" }}>
+            <h3 style={{ marginBottom: 6 }}>Devenez ambassadeur de la campagne</h3>
+            <p className="small muted" style={{ marginBottom: 12 }}>
+              Partagez-la avec vos amis supporters : chaque contribution faite après avoir suivi votre lien vous est
+              attribuée dans le classement des ambassadeurs.
+            </p>
+            <ShareButtons
+              url={`${env.siteUrl}/campagnes/${c.campaign.slug}${viewer.profile.referral_code ? `?ref=${viewer.profile.referral_code}` : ""}`}
+              text={`J'ai soutenu « ${c.campaign.title} »${c.campaign.club ? ` (${c.campaign.club.name})` : ""} sur Tribune. Rejoignez-moi !`}
+              compact
+            />
+          </div>
+        ) : null}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           <Link className="btn btn-primary" href="/compte">
             Voir mes contributions

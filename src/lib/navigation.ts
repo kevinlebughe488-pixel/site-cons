@@ -2,6 +2,7 @@
 // (Les pages vérifient elles-mêmes les droits : ceci ne règle que l'affichage.)
 import { can, canUseClubSpace } from "@/lib/rbac";
 import type { Viewer } from "@/lib/auth";
+import type { ClubStatus } from "@/lib/types";
 
 export type NavLink = { href: string; label: string };
 export type FooterColumn = { title: string; links: NavLink[] };
@@ -29,6 +30,12 @@ const TRUST: FooterColumn = {
     { href: "/comment-ca-marche#securite", label: "Données personnelles" },
     { href: "/comment-ca-marche#faq", label: "Réclamations" },
   ],
+};
+
+/** Lien vers l'espace club d'un compte supporter, selon l'avancement de son dossier. */
+// Libellé court : l'état du dossier est affiché en tête de l'espace club (et notifié).
+const CLUB_SPACE_LABEL: Partial<Record<ClubStatus, string>> = {
+  rejected: "Inscrire mon club",
 };
 
 export function navigationFor(viewer: Viewer | null): Navigation {
@@ -65,6 +72,7 @@ export function navigationFor(viewer: Viewer | null): Navigation {
             { href: "/club", label: "Mes campagnes" },
             ...(verified ? [{ href: "/club/campagnes/nouvelle", label: "Déposer une campagne" }] : []),
             { href: "/campagnes", label: "Campagnes publiées sur Tribune" },
+            ...(verified && viewer?.club ? [{ href: `/clubs/${viewer.club.slug}`, label: "Page publique du club" }] : []),
           ],
         },
         {
@@ -85,10 +93,15 @@ export function navigationFor(viewer: Viewer | null): Navigation {
     const items: NavLink[] = [
       { href: "/", label: "Accueil" },
       { href: "/campagnes", label: "Campagnes" },
+      { href: "/actualites", label: "Actualités" },
+      { href: "/classement", label: "Classement" },
       { href: "/compte", label: "Mes contributions" },
     ];
-    if (viewer.club && canUseClubSpace(role)) items.push({ href: "/club", label: "Mon club (en attente)" });
-    items.push({ href: "/comment-ca-marche", label: "Comment ça marche" });
+    // Compte ouvert pour un club : le dossier du club reste à portée de main.
+    if (canUseClubSpace(role) && (viewer.club || viewer.profile.signup_intent === "club")) {
+      items.splice(1, 0, { href: "/club", label: viewer.club ? (CLUB_SPACE_LABEL[viewer.club.status] ?? "Mon club") : "Inscrire mon club" });
+    }
+    // « Comment ça marche » reste dans le pied de page : l'en-tête doit tenir sur une ligne.
     return {
       home: "/",
       tagline: "Les supporters financent leur club",
@@ -100,6 +113,7 @@ export function navigationFor(viewer: Viewer | null): Navigation {
           links: [
             { href: "/campagnes", label: "Toutes les campagnes" },
             { href: "/compte", label: "Mes contributions et reçus" },
+            { href: "/compte#ambassadeur", label: "Mon lien d'ambassadeur" },
             { href: "/comment-ca-marche", label: "Comment ça marche" },
           ],
         },
@@ -123,6 +137,8 @@ export function navigationFor(viewer: Viewer | null): Navigation {
     items: [
       { href: "/", label: "Accueil" },
       { href: "/campagnes", label: "Campagnes" },
+      { href: "/actualites", label: "Actualités" },
+      { href: "/classement", label: "Classement" },
       { href: "/comment-ca-marche", label: "Comment ça marche" },
     ],
     accountLabel: "Mon compte",
@@ -131,14 +147,15 @@ export function navigationFor(viewer: Viewer | null): Navigation {
         title: "Supporters",
         links: [
           { href: "/campagnes", label: "Toutes les campagnes" },
-          { href: "/comment-ca-marche", label: "Comment ça marche" },
-          { href: "/inscription", label: "Créer un compte" },
+          { href: "/classement", label: "Campagnes les plus soutenues" },
+          { href: "/inscription?profil=supporter", label: "Créer un compte supporter" },
         ],
       },
       {
         title: "Clubs",
         links: [
-          { href: "/club", label: "Proposer une campagne" },
+          { href: "/inscription?profil=club", label: "Inscrire mon club" },
+          { href: "/comment-ca-marche#club", label: "La vérification des clubs" },
           { href: "/comment-ca-marche#frais", label: "Frais et règles" },
         ],
       },

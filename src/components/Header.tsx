@@ -25,6 +25,18 @@ export async function Header() {
         <div className="user-menu">
           {viewer ? (
             <>
+              <Link
+                className="bell"
+                href="/notifications"
+                aria-label={viewer.unread ? `Notifications : ${viewer.unread} non lue${viewer.unread > 1 ? "s" : ""}` : "Notifications"}
+                title="Notifications"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                  <path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9Z" />
+                  <path d="M10 20a2 2 0 0 0 4 0" />
+                </svg>
+                {viewer.unread ? <span className="count">{viewer.unread > 99 ? "99+" : viewer.unread}</span> : null}
+              </Link>
               <Link className="account" href="/compte" title={nav.accountLabel}>
                 <span className="avatar">
                   {(viewer.profile.first_name[0] + viewer.profile.last_name[0]).toUpperCase()}

@@ -1,41 +1,60 @@
 import Link from "next/link";
 import type { CampaignWithClub } from "@/lib/types";
-import { daysLeft, formatDate, formatMoney, percent } from "@/lib/format";
-import { CampaignCover, CampaignPill, ProgressBar } from "@/components/visuals";
+import { campaignTiming, formatMoney, percent, plural } from "@/lib/format";
+import { CampaignCover, CampaignStatusBadge, coverUrl, Crest, ProgressBar } from "@/components/visuals";
 
+/**
+ * Fiche d'une campagne : le club et l'état de la collecte en tête, la photo du
+ * projet, puis ce qu'un supporter doit voir d'un coup d'œil (collecté, objectif,
+ * avancement, nombre de supporters, contribution minimum, durée restante).
+ */
 export function CampaignCard({ campaign: c }: { campaign: CampaignWithClub }) {
-  const left = daysLeft(c.end_date);
+  const timing = campaignTiming(c);
   return (
-    <Link className="card" href={`/campagnes/${c.slug}`}>
+    <Link className="card camp-card" href={`/campagnes/${c.slug}`}>
+      <div className="card-head">
+        <span className="club-line">
+          <Crest club={c.club} size={20} />
+          <b>{c.club.name}</b>
+        </span>
+        <CampaignStatusBadge campaign={c} />
+      </div>
       <div className="cover">
-        <CampaignCover club={c.club} />
-        <CampaignPill status={c.status} />
-        <span className="tag">Don</span>
+        {c.cover_path ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverUrl(c.cover_path)} alt="" loading="lazy" decoding="async" />
+        ) : (
+          <CampaignCover club={c.club} />
+        )}
+        <span className="tag">Don · {c.category}</span>
       </div>
       <div className="body">
-        <div className="club-line">
-          {c.club.name} · {c.category}
+        <h3>Projet : {c.title}</h3>
+        <div className="money num">
+          <div>
+            <b className="raised">{formatMoney(c.raised_amount, c.currency)}</b>
+            <span>Montant collecté</span>
+          </div>
+          <div className="r">
+            <b>{formatMoney(c.goal_amount, c.currency)}</b>
+            <span>Objectif financier</span>
+          </div>
         </div>
-        <h3>{c.title}</h3>
         <ProgressBar raised={c.raised_amount} goal={c.goal_amount} />
         <div className="figs num">
-          <span>
-            <b>{formatMoney(c.raised_amount, c.currency)}</b> sur {formatMoney(c.goal_amount, c.currency)}
-          </span>
-          <span>
-            <b>{percent(c.raised_amount, c.goal_amount)} %</b>
-          </span>
+          <span>{percent(c.raised_amount, c.goal_amount)} % atteint</span>
+          <span>{plural(c.backers_count, "supporter")}</span>
         </div>
-        <div className="figs num">
-          <span>
-            {c.backers_count} supporter{c.backers_count > 1 ? "s" : ""}
-          </span>
-          <span>
-            {c.status === "published" && left > 0
-              ? `${left} jour${left > 1 ? "s" : ""} restant${left > 1 ? "s" : ""}`
-              : `Clôture le ${formatDate(c.end_date)}`}
-          </span>
-        </div>
+        <dl className="terms">
+          <div>
+            <dt>Contribution minimum</dt>
+            <dd className="num">{formatMoney(c.min_contribution, c.currency)}</dd>
+          </div>
+          <div>
+            <dt>{timing.label}</dt>
+            <dd className="num">{timing.value}</dd>
+          </div>
+        </dl>
       </div>
     </Link>
   );

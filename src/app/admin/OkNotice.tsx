@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 // Seules des clés connues sont acceptées dans l'adresse, jamais du texte libre.
 export const OK_MESSAGES = {
   club_verify: "Club vérifié. Ses gestionnaires peuvent maintenant créer des campagnes.",
+  club_request_changes: "Compléments demandés au club : il est prévenu et peut compléter son dossier.",
   club_reject: "Demande d'inscription refusée.",
   club_suspend: "Club suspendu, ainsi que ses campagnes en cours.",
   club_reactivate: "Club réactivé.",
@@ -16,7 +17,9 @@ export const OK_MESSAGES = {
   campaign_reactivate: "Campagne réactivée.",
   campaign_close: "Campagne clôturée.",
   update_publish: "Nouvelle publiée.",
-  update_reject: "Nouvelle refusée.",
+  update_reject: "Nouvelle refusée : le club est prévenu du motif.",
+  comment_hide: "Commentaire masqué.",
+  comment_keep: "Commentaire conservé, signalements effacés.",
   kyc_approve: "Identité vérifiée.",
   kyc_reject: "Pièce d'identité refusée.",
   refund: "Remboursement demandé. Il sera confirmé par l'opérateur.",

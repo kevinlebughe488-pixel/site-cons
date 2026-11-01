@@ -36,6 +36,8 @@ type StartContribution = {
   phone: string;
   provider: string;
   anonymous: boolean;
+  /** Ambassadeur dont le lien a amené le supporter (jamais lui-même). */
+  referredBy?: string | null;
 };
 
 /** Enregistre la contribution puis envoie la demande de paiement au téléphone du supporter. */
@@ -58,6 +60,7 @@ export async function startContribution(input: StartContribution): Promise<strin
     mmo_provider: input.provider,
     payer_phone: input.phone,
     anonymous: input.anonymous,
+    referred_by: input.referredBy && input.referredBy !== input.userId ? input.referredBy : null,
   });
   if (error) throw new Error(`Enregistrement de la contribution impossible : ${error.message}`);
 
