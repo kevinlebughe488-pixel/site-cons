@@ -27,8 +27,10 @@ const TRUST: FooterColumn = {
   links: [
     { href: "/comment-ca-marche#plumes-capital", label: "Qui sommes-nous" },
     { href: "/comment-ca-marche#securite", label: "Sécurité des paiements" },
-    { href: "/comment-ca-marche#securite", label: "Données personnelles" },
-    { href: "/comment-ca-marche#faq", label: "Réclamations" },
+    { href: "/conditions", label: "Conditions d'utilisation" },
+    { href: "/confidentialite", label: "Confidentialité et cookies" },
+    { href: "/conditions#mentions-legales", label: "Mentions légales" },
+    { href: "/conditions#reclamations", label: "Réclamations" },
   ],
 };
 

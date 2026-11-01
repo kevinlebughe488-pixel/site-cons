@@ -3,3 +3,5 @@
 export const REFERRAL_COOKIE = "tribune_ref";
 export const REFERRAL_MAX_AGE = 30 * 24 * 3600;
 export const REFERRAL_PATTERN = /^[a-z0-9]{6,12}$/;
+/** Réponse au bandeau cookies : « oui » autorise le cookie ambassadeur, « non » le refuse. */
+export const COOKIE_CONSENT = "tribune_cookies";

@@ -3,6 +3,7 @@ import { Barlow_Condensed, Source_Sans_3 } from "next/font/google";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DemoBanner } from "@/components/DemoBanner";
+import { CookieBanner } from "@/components/CookieBanner";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main id="app">{children}</main>
         <Footer />
+        <CookieBanner />
       </body>
     </html>
   );

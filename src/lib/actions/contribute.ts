@@ -10,7 +10,7 @@ import { daysLeft, formatMoney, KYC_THRESHOLD } from "@/lib/format";
 import { normalizeDrcPhone } from "@/lib/phone";
 import { isKnownProvider } from "@/lib/payments/providers";
 import { startContribution } from "@/lib/payments/service";
-import { REFERRAL_COOKIE } from "@/lib/referral";
+import { COOKIE_CONSENT, REFERRAL_COOKIE } from "@/lib/referral";
 
 const MAX_AMOUNT = 5000;
 const MAX_OPEN_PAYMENTS = 3;
@@ -109,7 +109,8 @@ export async function contribute(_: FormState, form: FormData): Promise<FormStat
 
   // Ambassadeur : la personne dont le lien de partage a amené ce supporter (cookie posé par le proxy).
   let referredBy: string | null = null;
-  const ref = (await cookies()).get(REFERRAL_COOKIE)?.value;
+  const jar = await cookies();
+  const ref = jar.get(COOKIE_CONSENT)?.value === "oui" ? jar.get(REFERRAL_COOKIE)?.value : undefined;
   if (ref && /^[a-z0-9]{6,12}$/.test(ref)) {
     const { data: ambassador } = await admin.from("profiles").select("id").eq("referral_code", ref).maybeSingle<{ id: string }>();
     if (ambassador && ambassador.id !== profile.id) referredBy = ambassador.id;

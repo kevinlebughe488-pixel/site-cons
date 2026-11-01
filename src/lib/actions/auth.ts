@@ -62,7 +62,8 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
     fields.followed_club_id = "";
   }
   fields.consent = checked(form, "consent") ? "on" : "";
-  fields.newsletter = forClub || checked(form, "newsletter") ? "on" : "";
+  // Case décochée par défaut : pas d'accord implicite.
+  fields.newsletter = !forClub && checked(form, "newsletter") ? "on" : "";
   const fail = (error: string, field?: string): FormState => ({ error, field, fields });
 
   const parsed = registerSchema.safeParse({ ...fields, password: form.get("password") });
@@ -73,7 +74,7 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
   const phone = normalizeAnyPhone(fields.phone);
   if (!phone) return fail("Indiquez un numéro de téléphone complet, par exemple +243 81 234 5678.", "phone");
   if (!fields.consent) {
-    return fail("Cochez la case de consentement : sans elle, nous ne pouvons pas enregistrer vos contributions.", "consent");
+    return fail("Cochez la case : il faut avoir 18 ans et accepter les conditions d'utilisation et la politique de confidentialité.", "consent");
   }
   const email = parsed.data.email.toLowerCase();
   const conflict = await findConflict(phone, email);

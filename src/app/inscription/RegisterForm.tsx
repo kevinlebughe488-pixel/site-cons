@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { register } from "@/lib/actions/auth";
 import { FieldError, Flash, SubmitButton } from "@/components/forms";
 
@@ -99,9 +100,19 @@ export function RegisterForm({ kind, clubs, returnTo }: Props) {
       <label className="check">
         <input type="checkbox" name="consent" defaultChecked={f.consent === "on"} {...invalid("consent")} />
         <span>
+          J&apos;ai au moins 18 ans et j&apos;accepte les{" "}
+          <Link href="/conditions" target="_blank">
+            conditions d&apos;utilisation
+          </Link>{" "}
+          et la{" "}
+          <Link href="/confidentialite" target="_blank">
+            politique de confidentialité
+          </Link>
+          .{" "}
           {club
-            ? "J'accepte que Tribune conserve mon identité et les informations du club que je représente pour vérifier le club, tracer les fonds et respecter les obligations de vigilance. Mes coordonnées ne sont jamais publiées."
-            : "J'accepte que Tribune conserve mon identité et l'historique de mes contributions pour la traçabilité des fonds et les obligations de vigilance. Mes coordonnées ne sont jamais publiées."}
+            ? "Tribune conserve mon identité et les informations du club pour le vérifier et tracer les fonds."
+            : "Tribune conserve mon identité et l'historique de mes contributions pour tracer les fonds."}{" "}
+          Mes coordonnées ne sont jamais publiées.
         </span>
       </label>
       {state.field === "consent" ? (
@@ -111,7 +122,7 @@ export function RegisterForm({ kind, clubs, returnTo }: Props) {
       ) : null}
       {club ? null : (
         <label className="check">
-          <input type="checkbox" name="newsletter" defaultChecked={state.fields ? f.newsletter === "on" : true} />
+          <input type="checkbox" name="newsletter" defaultChecked={f.newsletter === "on"} />
           <span>Recevoir les nouvelles des campagnes que je soutiens</span>
         </label>
       )}

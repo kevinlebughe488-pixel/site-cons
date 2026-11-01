@@ -1,16 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { REFERRAL_COOKIE, REFERRAL_MAX_AGE, REFERRAL_PATTERN } from "@/lib/referral";
+import { COOKIE_CONSENT, REFERRAL_COOKIE, REFERRAL_MAX_AGE, REFERRAL_PATTERN } from "@/lib/referral";
 
 // Rafraîchit la session Supabase (cookies) à chaque navigation.
 // Les contrôles d'accès eux-mêmes sont faits dans les pages et dans la base.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  // Lien d'ambassadeur (?ref=CODE) : le code est gardé 30 jours, la contribution suivante lui est attribuée.
+  // Lien d'ambassadeur (?ref=CODE) : gardé 30 jours, seulement si le visiteur a accepté ce cookie
+  // (bandeau cookies). S'il l'a refusé, un éventuel ancien cookie est effacé.
   const ref = request.nextUrl.searchParams.get("ref")?.toLowerCase();
+  const consent = request.cookies.get(COOKIE_CONSENT)?.value;
   const keepReferral = (res: NextResponse) => {
-    if (ref && REFERRAL_PATTERN.test(ref)) {
+    if (consent === "non" && request.cookies.has(REFERRAL_COOKIE)) res.cookies.delete(REFERRAL_COOKIE);
+    if (consent === "oui" && ref && REFERRAL_PATTERN.test(ref)) {
       res.cookies.set(REFERRAL_COOKIE, ref, {
         httpOnly: true,
         sameSite: "lax",

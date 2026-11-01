@@ -467,3 +467,12 @@ details.reply .comment-form{margin-top:8px}
 .club-tile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-decoration:none;color:inherit}
 .club-tile:hover{border-color:var(--muted)}
 .club-tile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- textes juridiques et bandeau cookies ---- */
+.legal-page h2{font-size:1.5rem;margin-bottom:10px}
+.legal-page ul{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
+footer .legal-links{margin-top:10px}
+footer .legal-links a{display:inline;padding:0;text-decoration:underline}
+.cookie-banner{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;max-width:760px;margin-inline:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:0 12px 32px -12px rgba(0,0,0,.35);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cookie-banner p{flex:1 1 280px}
+.cookie-banner .acts{display:flex;gap:8px}

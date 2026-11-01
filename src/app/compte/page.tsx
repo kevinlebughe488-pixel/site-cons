@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { updateProfile } from "@/lib/actions/account";
+import { requestAccountDeletion, updateProfile } from "@/lib/actions/account";
 import { followClub, setAmbassadorVisibility } from "@/lib/actions/community";
 import { env } from "@/lib/env";
 import { ShareButtons } from "@/components/ShareButtons";
@@ -275,6 +275,18 @@ export default async function AccountPage() {
               <Link className="btn btn-ghost btn-sm" href="/compte/mot-de-passe">
                 Changer mon mot de passe
               </Link>
+            </div>
+            <div className="panel">
+              <h3>Supprimer mon compte</h3>
+              <p className="small muted" style={{ marginBottom: 10 }}>
+                Vos données personnelles sont effacées. Les contributions que la loi oblige à conserver sont gardées à part
+                pendant la durée légale. <Link href="/confidentialite">En savoir plus</Link>
+              </p>
+              <ActionForm action={requestAccountDeletion}>
+                <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…" confirm="Demander la suppression de votre compte Tribune ?">
+                  Demander la suppression
+                </SubmitButton>
+              </ActionForm>
             </div>
           </aside>
         </div>

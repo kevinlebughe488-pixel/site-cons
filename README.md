@@ -193,6 +193,19 @@ d'investissement.
 - **Classement** (`/classement`) : campagnes les plus soutenues (nombre de supporters, puis montant),
   clubs les plus soutenus, ambassadeurs.
 
+## Textes juridiques et cookies
+
+- `/conditions` : conditions d'utilisation (18 ans minimum, dons, remboursements « tout ou rien »,
+  règles des commentaires) et mentions légales ; `/confidentialite` : données collectées, durées,
+  prestataires, droits, liste des cookies. **Complétez les coordonnées de Plumes Capital dans
+  [`src/lib/legal.ts`](src/lib/legal.ts)** (RCCM, Id. Nat., siège, contact) et faites relire ces
+  textes par un juriste.
+- Bandeau cookies : les cookies nécessaires (connexion, code SMS) n'en dépendent pas ; le cookie
+  ambassadeur (`tribune_ref`) n'est posé qu'après « Accepter ».
+- Inscription : case « 18 ans et plus + conditions + confidentialité » obligatoire ; la case des
+  nouvelles n'est plus cochée d'avance. « Mon compte » permet de demander la suppression du compte
+  (inscrite au journal d'audit : `compte.suppression_demandee`).
+
 ## Connexion en deux étapes (codes SMS)
 
 Aucun e-mail n'est envoyé : le compte est vérifié par un **code à 6 chiffres envoyé par SMS** au
