@@ -25,6 +25,8 @@ export type Permission =
   | "contribution:read"
   | "club:register"
   | "club:manage"
+  | "comment:create"
+  | "comment:moderate"
   | "backoffice:access"
   | "campaign:review"
   | "campaign:approve_large"
@@ -44,15 +46,17 @@ export type Permission =
   | "settings:update"
   | "audit:read";
 
-const SUPPORTER: Permission[] = ["account:read", "contribution:create", "contribution:read", "club:register"];
+const SUPPORTER: Permission[] = ["account:read", "contribution:create", "contribution:read", "club:register", "comment:create"];
 
-const CLUB_MANAGER: Permission[] = ["account:read", "club:manage"];
+// Le gestionnaire commente seulement les campagnes de son club (la base le vérifie) : il y répond aux supporters.
+const CLUB_MANAGER: Permission[] = ["account:read", "club:manage", "comment:create"];
 
 const COMPLIANCE: Permission[] = [
   "account:read",
   "backoffice:access",
   "campaign:review",
   "update:review",
+  "comment:moderate",
   "club:review",
   "user:read",
   "kyc:review",

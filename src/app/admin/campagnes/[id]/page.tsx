@@ -6,9 +6,10 @@ import { can } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { closeCampaign, recordPublicationFee, refundCampaign, reviewCampaign, suspendCampaign } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { CampaignPill, Crest, Pill } from "@/components/visuals";
+import { CampaignPill, coverUrl, Crest, Pill } from "@/components/visuals";
+import { CoverUpload } from "@/app/club/campagnes/CoverUpload";
 import { CLUB_STATUS_LABELS, CONTRIBUTION_STATUS_LABELS } from "@/lib/labels";
-import { formatDate, formatMoney, percent } from "@/lib/format";
+import { formatDate, formatMoney, percent, plural } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { REVIEW_CRITERIA, type BudgetLine, type Campaign, type Club, type Contribution, type Milestone, type PublicationFee } from "@/lib/types";
 
@@ -82,8 +83,20 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
                 <b>{formatMoney(c.goal_amount, c.currency)}</b>
               </div>
               <div>
-                <span className="muted">Clôture</span>
+                <span className="muted">Durée de la collecte</span>
+                <span>{plural(c.duration_days, "jour")}</span>
+              </div>
+              <div>
+                <span className="muted">{c.published_at ? "Fin de la collecte" : "Fin si publiée aujourd'hui"}</span>
                 <span>{formatDate(c.end_date)}</span>
+              </div>
+              <div>
+                <span className="muted">Contribution minimum</span>
+                <span>{formatMoney(c.min_contribution, c.currency)}</span>
+              </div>
+              <div>
+                <span className="muted">Maximum par supporter</span>
+                <span>{c.max_contribution === null ? "Aucun" : formatMoney(c.max_contribution, c.currency)}</span>
               </div>
               <div>
                 <span className="muted">Envoyée en revue</span>
@@ -92,6 +105,21 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
             </div>
             {c.summary ? <p><b>{c.summary}</b></p> : null}
             <p style={{ whiteSpace: "pre-line", marginTop: 8 }}>{c.description || <span className="muted">Pas de description.</span>}</p>
+          </div>
+
+          <div className="panel">
+            <h3>Photo de couverture</h3>
+            <p className="small muted" style={{ marginBottom: 10 }}>
+              Vérifiez qu&apos;elle montre bien le projet du club et ne contient pas de donnée personnelle.
+            </p>
+            {can(role, "campaign:review") ? (
+              <CoverUpload campaignId={c.id} coverSrc={c.cover_path ? coverUrl(c.cover_path) : null} />
+            ) : c.cover_path ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl(c.cover_path)} alt="" className="cover-preview" />
+            ) : (
+              <p className="small muted">Pas de photo.</p>
+            )}
           </div>
 
           <div className="panel">

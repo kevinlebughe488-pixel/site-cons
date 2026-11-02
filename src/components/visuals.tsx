@@ -1,12 +1,17 @@
 import type { CampaignStatus, Club } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/labels";
-import { percent } from "@/lib/format";
+import { daysLeft, percent } from "@/lib/format";
 
 type CrestClub = Pick<Club, "short_name" | "color_primary" | "color_secondary"> & { logo_path?: string | null };
 
 /** Adresse publique d'un logo stocké dans Supabase Storage. */
 export function logoUrl(path: string): string {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/club-logos/${path}`;
+}
+
+/** Adresse publique de la photo de couverture d'une campagne. */
+export function coverUrl(path: string): string {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/campaign-images/${path}`;
 }
 
 export function Crest({ club, size = 34 }: { club: CrestClub; size?: number }) {
@@ -109,6 +114,18 @@ const PILL_CLASS: Record<CampaignStatus, string> = {
 
 export function CampaignPill({ status }: { status: CampaignStatus }) {
   return <span className={`pill ${PILL_CLASS[status]}`}>{STATUS_LABELS[status]}</span>;
+}
+
+/** Statut tel que le voit un supporter : « Campagne active » tant que la collecte est ouverte. */
+export function CampaignStatusBadge({ campaign }: { campaign: { status: CampaignStatus; end_date: string } }) {
+  if (campaign.status === "published") {
+    return daysLeft(campaign.end_date) > 0 ? (
+      <span className="pill s-publiee">Campagne active</span>
+    ) : (
+      <span className="pill s-cloturee">Collecte terminée</span>
+    );
+  }
+  return <CampaignPill status={campaign.status} />;
 }
 
 /** Pastille générique : tone = ok | warn | bad | info | muted | gold. */

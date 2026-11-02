@@ -9,7 +9,9 @@ import { DRC_PROVIDERS, guessProvider } from "@/lib/payments/providers";
 import { normalizeDrcPhone } from "@/lib/phone";
 import type { KycStatus } from "@/lib/types";
 
-const PRESETS = [5, 10, 25, 50, 100];
+const PRESETS = [5, 10, 25, 50, 100, 250];
+/** Plafond d'une contribution, fixé par la plateforme (en plus du plafond éventuel de la campagne). */
+const MAX_PER_PAYMENT = 5000;
 
 type Props = {
   campaignSlug: string;
@@ -18,12 +20,21 @@ type Props = {
   cumulative: number;
   kycStatus: KycStatus;
   simulation: boolean;
+  /** Contribution minimum fixée par le club. */
+  minAmount: number;
+  /** Ce que le supporter peut encore verser à cette campagne (null : pas de plafond). */
+  remaining: number | null;
+  /** Déjà versé par le supporter à cette campagne. */
+  alreadyGiven: number;
 };
 
-export function ContributeForm({ campaignSlug, currency, defaultPhone, cumulative, kycStatus, simulation }: Props) {
+export function ContributeForm({ campaignSlug, currency, defaultPhone, cumulative, kycStatus, simulation, minAmount, remaining, alreadyGiven }: Props) {
   const [state, action] = useActionState(contribute, {});
   const f = state.fields ?? {};
-  const [amount, setAmount] = useState(f.amount || "25");
+  const ceiling = Math.min(MAX_PER_PAYMENT, remaining ?? MAX_PER_PAYMENT);
+  const presets = PRESETS.filter((v) => v >= minAmount && v <= ceiling).slice(0, 5);
+  const suggested = presets.includes(25) ? 25 : (presets[0] ?? minAmount);
+  const [amount, setAmount] = useState(f.amount || String(suggested));
   const [phone, setPhone] = useState(f.phone || defaultPhone);
   const [provider, setProvider] = useState(f.provider || guessProvider(normalizeDrcPhone(defaultPhone)) || DRC_PROVIDERS[0].code);
 
@@ -45,7 +56,7 @@ export function ContributeForm({ campaignSlug, currency, defaultPhone, cumulativ
         <div className="field">
           <label htmlFor="amount">Montant ({currency})</label>
           <div className="chips">
-            {PRESETS.map((v) => (
+            {presets.map((v) => (
               <button key={v} type="button" className="chip" aria-pressed={value === v} onClick={() => setAmount(String(v))}>
                 {formatMoney(v, currency)}
               </button>
@@ -55,14 +66,25 @@ export function ContributeForm({ campaignSlug, currency, defaultPhone, cumulativ
             type="number"
             id="amount"
             name="amount"
-            min={1}
+            min={minAmount}
+            max={ceiling}
             step={1}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             style={{ marginTop: 10 }}
             inputMode="numeric"
           />
-          <div className="hint">Montant minimum : 1 $. Montant entier.</div>
+          <div className="hint">
+            Montant entier, au moins {formatMoney(minAmount, currency)} (minimum fixé par le club)
+            {remaining !== null
+              ? `, au plus ${formatMoney(ceiling, currency)} : maximum par supporter pour cette campagne${alreadyGiven > 0 ? `, dont ${formatMoney(alreadyGiven, currency)} déjà versés` : ""}.`
+              : "."}
+          </div>
+          {value > 0 && value < minAmount ? (
+            <div className="hint field-error">Le minimum pour cette campagne est de {formatMoney(minAmount, currency)}.</div>
+          ) : value > ceiling ? (
+            <div className="hint field-error">Le maximum possible ici est de {formatMoney(ceiling, currency)}.</div>
+          ) : null}
         </div>
 
         <div className="field">

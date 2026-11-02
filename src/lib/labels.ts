@@ -12,10 +12,22 @@ export const STATUS_LABELS: Record<CampaignStatus, string> = {
 };
 
 export const CLUB_STATUS_LABELS: Record<ClubStatus, string> = {
-  pending: "En attente de vérification",
+  draft: "Dossier en préparation",
+  pending: "En cours de vérification",
+  changes_requested: "Compléments demandés",
   verified: "Vérifié",
   rejected: "Refusé",
   suspended: "Suspendu",
+};
+
+/** Couleur de la pastille de statut d'un club. */
+export const CLUB_STATUS_TONE: Record<ClubStatus, "ok" | "warn" | "bad" | "info" | "muted"> = {
+  draft: "muted",
+  pending: "info",
+  changes_requested: "warn",
+  verified: "ok",
+  rejected: "bad",
+  suspended: "bad",
 };
 
 export const CONTRIBUTION_STATUS_LABELS: Record<ContributionStatus, string> = {
@@ -33,6 +45,11 @@ export const KYC_LABELS: Record<KycStatus, string> = {
   verified: "Niveau 2 · vérifiée",
   rejected: "Pièce refusée",
 };
+
+export const PAYOUT_METHOD_LABELS = {
+  mobile_money: "Mobile Money",
+  bank: "Compte bancaire",
+} as const;
 
 export const DOC_TYPES: Record<string, string> = {
   carte_electeur: "Carte d'électeur",

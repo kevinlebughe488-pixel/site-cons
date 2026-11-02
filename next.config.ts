@@ -3,8 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: {
-    // Les logos de club (1 Mo maximum) sont envoyés par une action serveur.
-    serverActions: { bodySizeLimit: "2mb" },
+    // Logos (1 Mo), photos de campagne (2 Mo) et documents des clubs (4 Mo) sont envoyés par des
+    // actions serveur. Sur Vercel, une requête est de toute façon limitée à 4,5 Mo.
+    serverActions: { bodySizeLimit: "5mb" },
   },
   async headers() {
     return [

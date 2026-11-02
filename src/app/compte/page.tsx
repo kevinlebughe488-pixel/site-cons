@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { updateProfile } from "@/lib/actions/account";
+import { requestAccountDeletion, updateProfile } from "@/lib/actions/account";
+import { followClub, setAmbassadorVisibility } from "@/lib/actions/community";
+import { env } from "@/lib/env";
+import { ShareButtons } from "@/components/ShareButtons";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { FieldSvg, Pill } from "@/components/visuals";
 import { CONTRIBUTION_STATUS_LABELS, DOC_TYPES, KYC_LABELS } from "@/lib/labels";
 import { can, ROLE_LABELS } from "@/lib/rbac";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, plural } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { contributionRef } from "@/lib/payments/service";
 import type { Contribution, ContributionStatus } from "@/lib/types";
@@ -39,6 +42,15 @@ export default async function AccountPage() {
   const mine = (data ?? []) as (Contribution & { campaign: { title: string; slug: string } | null })[];
   const confirmed = mine.filter((c) => c.status === "completed");
   const total = confirmed.reduce((s, c) => s + Number(c.amount), 0);
+  const [{ data: ambassador }, { data: followed }] = contributes
+    ? await Promise.all([
+        supabase.rpc("my_ambassador_stats").maybeSingle<{ supporters: number; contributions: number; amount: number }>(),
+        me.followed_club_id
+          ? supabase.from("clubs").select("id, slug, name").eq("id", me.followed_club_id).maybeSingle<{ id: string; slug: string; name: string }>()
+          : Promise.resolve({ data: null }),
+      ])
+    : [{ data: null }, { data: null }];
+  const referralUrl = me.referral_code ? `${env.siteUrl}/?ref=${me.referral_code}` : null;
 
   return (
     <>
@@ -70,7 +82,7 @@ export default async function AccountPage() {
             <div className="kpi">
               <div className="l">Contributions confirmées</div>
               <div className="v num">{confirmed.length}</div>
-              <div className="d">sur {new Set(confirmed.map((c) => c.campaign_id)).size} campagne(s)</div>
+              <div className="d">sur {plural(new Set(confirmed.map((c) => c.campaign_id)).size, "campagne")}</div>
             </div>
             <div className="kpi">
               <div className="l">Vérification d&apos;identité</div>
@@ -151,6 +163,66 @@ export default async function AccountPage() {
             </div>
           )}
           <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
+            {contributes && referralUrl ? (
+              <div className="panel" id="ambassadeur">
+                <div className="eyebrow">Ambassadeur</div>
+                <h3 style={{ marginTop: 4 }}>Faites connaître les campagnes</h3>
+                <p className="small muted" style={{ marginBottom: 12 }}>
+                  Partagez votre lien (ou le bouton « Partager » d&apos;une campagne) : les supporters qui contribuent après
+                  l&apos;avoir suivi vous sont attribués.
+                </p>
+                <div className="recap small" style={{ marginBottom: 12 }}>
+                  <div>
+                    <span className="muted">Supporters amenés</span>
+                    <b className="num">{Number(ambassador?.supporters ?? 0)}</b>
+                  </div>
+                  <div>
+                    <span className="muted">Collecté grâce à vous</span>
+                    <b className="num">{formatMoney(Number(ambassador?.amount ?? 0))}</b>
+                  </div>
+                  <div>
+                    <span className="muted">Votre code</span>
+                    <span className="num">{me.referral_code}</span>
+                  </div>
+                </div>
+                <ShareButtons url={referralUrl} text="Je soutiens les clubs de foot congolais sur Tribune : financez un projet de votre club par Mobile Money !" compact />
+                <ActionForm action={setAmbassadorVisibility} className="form" >
+                  <input type="hidden" name="visible" value={me.ambassador_public ? "false" : "true"} />
+                  <p className="small muted" style={{ marginTop: 12 }}>
+                    Dans le <Link href="/classement#ambassadeurs">classement</Link>, vous apparaissez{" "}
+                    {me.ambassador_public ? `sous le nom « ${me.first_name} ${me.last_name.slice(0, 1)}. »` : "comme « Ambassadeur anonyme »"}.
+                  </p>
+                  <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…">
+                    {me.ambassador_public ? "Apparaître anonymement" : "Afficher mon prénom dans le classement"}
+                  </SubmitButton>
+                </ActionForm>
+              </div>
+            ) : null}
+            {contributes ? (
+              <div className="panel">
+                <h3>Club suivi</h3>
+                {followed ? (
+                  <>
+                    <p className="small" style={{ marginBottom: 10 }}>
+                      Vous suivez <Link href={`/clubs/${followed.slug}`}>{followed.name}</Link> : ses nouveaux projets et ses
+                      actualités arrivent dans vos notifications.
+                    </p>
+                    <ActionForm action={followClub} className="inline-form">
+                      <input type="hidden" name="club_id" value={followed.id} />
+                      <input type="hidden" name="follow" value="false" />
+                      <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…">
+                        Ne plus suivre
+                      </SubmitButton>
+                    </ActionForm>
+                  </>
+                ) : (
+                  <p className="small muted">
+                    Aucun. Ouvrez la page d&apos;un club depuis une campagne ou le <Link href="/classement">classement</Link> et
+                    choisissez « Suivre ce club ».
+                  </p>
+                )}
+              </div>
+            ) : null}
             <div className="panel">
               <h3>Mes informations</h3>
               <ActionForm action={updateProfile}>
@@ -203,6 +275,18 @@ export default async function AccountPage() {
               <Link className="btn btn-ghost btn-sm" href="/compte/mot-de-passe">
                 Changer mon mot de passe
               </Link>
+            </div>
+            <div className="panel">
+              <h3>Supprimer mon compte</h3>
+              <p className="small muted" style={{ marginBottom: 10 }}>
+                Vos données personnelles sont effacées. Les contributions que la loi oblige à conserver sont gardées à part
+                pendant la durée légale. <Link href="/confidentialite">En savoir plus</Link>
+              </p>
+              <ActionForm action={requestAccountDeletion}>
+                <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…" confirm="Demander la suppression de votre compte Tribune ?">
+                  Demander la suppression
+                </SubmitButton>
+              </ActionForm>
             </div>
           </aside>
         </div>

@@ -2,9 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { saveCampaign } from "@/lib/actions/club";
-import { Flash, SubmitButton } from "@/components/forms";
-import { formatMoney } from "@/lib/format";
-import { CAMPAIGN_CATEGORIES } from "@/lib/types";
+import { FieldError, Flash, SubmitButton } from "@/components/forms";
+import { formatDate, formatMoney } from "@/lib/format";
+import { CAMPAIGN_CATEGORIES, CAMPAIGN_LIMITS } from "@/lib/types";
 
 type Line = { label: string; amount: string };
 type Step = { label: string; target: string };
@@ -16,7 +16,9 @@ export type EditorValues = {
   summary: string;
   description: string;
   goal: string;
-  end_date: string;
+  duration_days: string;
+  min_contribution: string;
+  max_contribution: string;
   budget: Line[];
   milestones: Step[];
 };
@@ -30,15 +32,20 @@ function parse<T>(raw: string | undefined, fallback: T): T {
   }
 }
 
+function addDays(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function CampaignEditor({
   initial,
-  minDate,
-  maxDate,
+  today,
   publicationFee,
 }: {
   initial: EditorValues;
-  minDate: string;
-  maxDate: string;
+  /** Date du jour à Kinshasa (AAAA-MM-JJ), pour montrer la date de fin si la campagne était publiée aujourd'hui. */
+  today: string;
   /** Frais d'instruction et de publication en vigueur (USD). */
   publicationFee: number;
 }) {
@@ -51,8 +58,12 @@ export function CampaignEditor({
     f ? parse(f.milestones, initial.milestones) : initial.milestones.length ? initial.milestones : [{ label: "", target: "" }],
   );
   const [goal, setGoal] = useState(f?.goal ?? initial.goal);
+  const [duration, setDuration] = useState(f?.duration_days ?? initial.duration_days);
   const total = budget.reduce((s, l) => s + (Number(l.amount) || 0), 0);
   const balanced = total === Number(goal) && total > 0;
+  const days = Number(duration);
+  const durationOk = Number.isInteger(days) && days >= CAMPAIGN_LIMITS.minDuration && days <= CAMPAIGN_LIMITS.maxDuration;
+  const invalid = (name: string) => (state.field === name ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {});
 
   const update = <T,>(list: T[], set: (v: T[]) => void, i: number, patch: Partial<T>) =>
     set(list.map((item, j) => (j === i ? { ...item, ...patch } : item)));
@@ -66,26 +77,21 @@ export function CampaignEditor({
 
       <div className="field">
         <label htmlFor="title">Titre du projet</label>
-        <input type="text" id="title" name="title" defaultValue={f?.title ?? initial.title} placeholder="Ex. : Tenues pour l'équipe U17" />
+        <input type="text" id="title" name="title" defaultValue={f?.title ?? initial.title} placeholder="Ex. : Construction d'un centre d'entraînement" {...invalid("title")} />
+        <FieldError state={state} name="title" />
       </div>
-      <div className="two">
-        <div className="field">
-          <label htmlFor="category">Thème</label>
-          <select id="category" name="category" defaultValue={f?.category ?? initial.category}>
-            {CAMPAIGN_CATEGORIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="end_date">Date de clôture</label>
-          <input type="date" id="end_date" name="end_date" min={minDate} max={maxDate} defaultValue={f?.end_date ?? initial.end_date} />
-          <div className="hint">Entre 2 et 10 semaines après l&apos;envoi en revue.</div>
-        </div>
+      <div className="field">
+        <label htmlFor="category">Thème</label>
+        <select id="category" name="category" defaultValue={f?.category ?? initial.category}>
+          {CAMPAIGN_CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
       </div>
       <div className="field">
         <label htmlFor="summary">Résumé en une phrase</label>
         <input type="text" id="summary" name="summary" maxLength={300} defaultValue={f?.summary ?? initial.summary} />
+        <div className="hint">Il apparaît sur la fiche de la campagne et dans les partages sur les réseaux sociaux.</div>
       </div>
       <div className="field">
         <label htmlFor="description">Description</label>
@@ -98,10 +104,73 @@ export function CampaignEditor({
         />
         <div className="hint">Au moins 80 caractères pour l&apos;envoi en revue.</div>
       </div>
-      <div className="field">
-        <label htmlFor="goal">Objectif (USD)</label>
-        <input type="number" id="goal" name="goal" min={100} step={1} value={goal} onChange={(e) => setGoal(e.target.value)} />
-      </div>
+
+      <fieldset>
+        <legend>Objectif et conditions de la collecte</legend>
+        <div className="two">
+          <div className="field">
+            <label htmlFor="goal">Objectif financier (USD)</label>
+            <input type="number" id="goal" name="goal" min={100} step={1} value={goal} onChange={(e) => setGoal(e.target.value)} inputMode="numeric" {...invalid("goal")} />
+            <FieldError state={state} name="goal" />
+          </div>
+          <div className="field">
+            <label htmlFor="duration_days">Durée de la collecte (jours)</label>
+            <input
+              type="number"
+              id="duration_days"
+              name="duration_days"
+              min={CAMPAIGN_LIMITS.minDuration}
+              max={CAMPAIGN_LIMITS.maxDuration}
+              step={1}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              inputMode="numeric"
+              {...invalid("duration_days")}
+            />
+            <FieldError state={state} name="duration_days" />
+            <div className="hint">
+              Entre {CAMPAIGN_LIMITS.minDuration} et {CAMPAIGN_LIMITS.maxDuration} jours, à partir de la publication.
+              {durationOk ? ` Publiée aujourd'hui, la campagne se terminerait le ${formatDate(addDays(today, days - 1))}.` : ""}
+            </div>
+          </div>
+        </div>
+        <div className="two">
+          <div className="field">
+            <label htmlFor="min_contribution">Contribution minimum par supporter (USD)</label>
+            <input
+              type="number"
+              id="min_contribution"
+              name="min_contribution"
+              min={1}
+              max={CAMPAIGN_LIMITS.maxMinContribution}
+              step={1}
+              defaultValue={f?.min_contribution ?? initial.min_contribution}
+              inputMode="numeric"
+              {...invalid("min_contribution")}
+            />
+            <FieldError state={state} name="min_contribution" />
+            <div className="hint">Un montant bas permet à plus de supporters de participer.</div>
+          </div>
+          <div className="field">
+            <label htmlFor="max_contribution">
+              Maximum par supporter (USD) <span className="muted">— facultatif</span>
+            </label>
+            <input
+              type="number"
+              id="max_contribution"
+              name="max_contribution"
+              min={1}
+              step={1}
+              defaultValue={f?.max_contribution ?? initial.max_contribution}
+              placeholder="Aucun plafond"
+              inputMode="numeric"
+              {...invalid("max_contribution")}
+            />
+            <FieldError state={state} name="max_contribution" />
+            <div className="hint">Plafond du total versé par un même supporter, si vous voulez une collecte très partagée.</div>
+          </div>
+        </div>
+      </fieldset>
 
       <div className="field">
         <label>Budget détaillé</label>
@@ -137,6 +206,7 @@ export function CampaignEditor({
             Total : {formatMoney(total)} {balanced ? "= objectif ✓" : `· l'objectif est ${formatMoney(Number(goal) || 0)}`}
           </span>
         </div>
+        <FieldError state={state} name="budget" />
       </div>
 
       <div className="field">
@@ -167,6 +237,7 @@ export function CampaignEditor({
         <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setMilestones([...milestones, { label: "", target: "" }])}>
           + Ajouter un jalon
         </button>
+        <FieldError state={state} name="milestones" />
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

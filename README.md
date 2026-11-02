@@ -1,8 +1,10 @@
 # Tribune Supporters
 
 Plateforme de financement participatif des clubs de football congolais par leurs supporters :
-campagnes vérifiées, paiement **Mobile Money** (M-Pesa, Airtel Money, Orange Money) via
-**pawaPay**, registre de chaque contribution, et back-office avec des rôles séparés.
+clubs et campagnes vérifiés, paiement **Mobile Money** (M-Pesa, Airtel Money, Orange Money) via
+**pawaPay**, registre de chaque contribution, communication entre le club et ses supporters
+(commentaires, actualités, messages aux contributeurs, notifications, classement, ambassadeurs)
+et back-office avec des rôles séparés.
 
 Tribune est opérée par **Plumes Capital** (SAS de droit OHADA, RDC) : c'est la première plateforme de
 son plan d'affaires (financement participatif), avant le crédit interentreprises et la tokenisation.
@@ -16,10 +18,10 @@ son plan d'affaires (financement participatif), avant le crédit interentreprise
 
 | Rôle | Ce qu'il voit et fait |
 | --- | --- |
-| **Supporter** | Campagnes publiques, contribuer, son compte et ses reçus, inscrire un club |
-| **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue), nouvelles, preuves des jalons |
-| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur trois critères, vérifier les clubs et les identités, relire les nouvelles, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
-| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, enregistrer le règlement des frais de publication, régler les tarifs, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs |
+| **Supporter** | Campagnes publiques, contribuer, son compte et ses reçus, commenter, suivre un club, son lien d'ambassadeur, ses notifications, inscrire un club (dossier) |
+| **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue) avec photo, nouvelles, actualités du club, messages aux contributeurs, réponses aux commentaires, preuves des jalons |
+| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur trois critères, vérifier les dossiers des clubs sur trois points de contrôle (ou demander des compléments), vérifier les identités, relire les nouvelles et les messages, modérer les commentaires, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
+| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, enregistrer le règlement des frais de publication, régler les tarifs, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs (Mobile Money ou banque) |
 
 Les rôles sont **séparés** : ils ne s'additionnent pas. Un gestionnaire, un chargé de conformité ou un
 administrateur ne contribue pas, ne déclare pas de pièce d'identité et n'inscrit pas de club ; un
@@ -32,7 +34,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (33 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (67 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -63,6 +65,10 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261027000200_telephone_unique.sql` (un numéro de téléphone = un seul compte)
    - `supabase/migrations/20261027000300_verification_sms.sql` (codes de vérification par SMS)
    - `supabase/migrations/20261030000100_plan_affaires.sql` (frais de publication, critères d'instruction, indicateurs du plan d'affaires)
+   - `supabase/migrations/20261101000100_statuts_clubs.sql` (statuts « dossier en préparation » et « compléments demandés » ; à exécuter seul, avant le suivant)
+   - `supabase/migrations/20261101000200_inscription_clubs.sql` (type de compte, dossier du club, documents, procédure de vérification)
+   - `supabase/migrations/20261101000300_parametres_campagnes.sql` (durée de collecte, montants minimum et maximum par supporter, photo)
+   - `supabase/migrations/20261101000400_communication.sql` (notifications, commentaires, actualités et messages, ambassadeurs, classements)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -104,22 +110,101 @@ npm run seed:demo -- --confirmer
 
 Crée 10 vrais clubs de la Linafoot (TP Mazembe, AS Vita Club, DC Motema Pembe, FC Saint-Éloi Lupopo,
 AS Maniema Union, CS Don Bosco, SM Sanga Balende, FC Renaissance du Congo, OC Bukavu Dawa, Les Aigles
-du Congo), 7 campagnes **fictives**, ~470 contributions simulées et des comptes de test
-(mot de passe `Tribune-demo-2026`) :
+du Congo), 7 campagnes **fictives**, ~400 contributions simulées (dont une partie attribuée à des
+ambassadeurs), des commentaires, des actualités, un message aux contributeurs, des notifications et des
+comptes de test (mot de passe `Tribune-demo-2026`) :
 
 | Compte | Rôle |
 | --- | --- |
 | `admin@tribune.test` | Administrateur |
 | `conformite@tribune.test` | Conformité |
 | `gestion.mazembe@tribune.test`, `gestion.vita@…`, `gestion.dcmp@…` | Gestionnaires de club |
-| `gestion.aigles@tribune.test` | Club en attente de vérification |
-| `supporter@tribune.test`, `supporter01@…` à `supporter24@…` | Supporters |
+| `gestion.aigles@tribune.test` | Club en cours de vérification (dossier envoyé avec un document) |
+| `representant@tribune.test` | Représentant d'un club pas encore inscrit (pour tester le dossier) |
+| `supporter@tribune.test`, `supporter01@…` à `supporter24@…` | Supporters (`supporter@` suit TP Mazembe et est ambassadeur) |
 
 **Logos** : déposez les fichiers dans `scripts/demo-logos/`, nommés d'après le club
 (`tp-mazembe.png`, `as-vita-club.webp`…, PNG/JPEG/WebP, 1 Mo maximum) avant de lancer le script.
+**Photos de campagne** : de même dans `scripts/demo-covers/` (`tp-mazembe.jpg`…, 2 Mo maximum).
 Les clubs peuvent aussi envoyer leur logo depuis leur espace. Les logos sont des marques des clubs :
 pour un site public, utilisez-les avec leur accord. Ne lancez pas ce script sur le site public, car
 les projets présentés sont inventés.
+
+## Inscription et vérification des clubs
+
+La rubrique **Clubs** du menu (`/clubs`) présente l'inscription d'un club (étapes, pièces à préparer,
+frais) et l'annuaire des clubs vérifiés ; chaque club a sa page publique (`/clubs/<club>`).
+
+À l'inscription, la personne choisit **« Je représente un club »** ou **« Je suis supporter »**. Le
+représentant crée son compte personnel (confirmé par SMS), puis ouvre le **dossier du club** :
+
+- nom officiel, sigle, discipline sportive, ville et adresse du siège, date de création ;
+- identifiant juridique ou administratif (enregistrement, arrêté, affiliation, RCCM…), s'il existe ;
+- représentant légal : nom, fonction, téléphone, e-mail ;
+- compte de versement **au nom du club** : Mobile Money (numéro et opérateur) ou banque ;
+- documents (PDF ou photos, 4 Mo au plus, photos allégées dans le navigateur avant l'envoi) : au moins
+  un document qui atteste l'existence du club (statuts, enregistrement ou affiliation), plus la pièce
+  d'identité du représentant et le justificatif du compte, conseillés.
+
+L'inscription **ne donne aucun droit** : le dossier passe de « en préparation » à « en cours de
+vérification » quand le club l'envoie. L'équipe Tribune confirme trois points de contrôle (existence du
+club, représentant légal, compte de versement) pour le vérifier, ou demande des compléments (le club
+corrige et renvoie), ou refuse. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
+club et inscrite au journal d'audit.
+
+Les données sensibles (adresse, coordonnées du représentant, compte de versement) sont dans la table
+`club_private`, lisible seulement par les membres du club et l'équipe ; les documents sont dans un
+bucket privé (`club-documents`) et servis par le site (`/club/documents/<id>`) après vérification des
+droits, jamais par un lien public.
+
+## Paramètres d'une campagne
+
+Le club fixe, et l'équipe vérifie à l'instruction :
+
+- la **durée de la collecte** (14 à 70 jours), qui démarre le jour de la publication : la date de fin
+  est calculée à ce moment-là (le temps d'instruction ne raccourcit plus la collecte) ;
+- la **contribution minimum** par supporter, et si besoin un **maximum par supporter** (plafond du
+  cumul de ses contributions à la campagne, pour une collecte partagée par le plus grand nombre) ;
+- une **photo de couverture**, modifiable par le club tant que le dossier n'est pas envoyé, puis par l'équipe.
+
+La fiche d'une campagne affiche le club et l'état de la collecte, la photo, le montant collecté,
+l'objectif, le pourcentage atteint, le nombre de supporters, la contribution minimum et la durée
+restante. Les montants minimum et maximum sont vérifiés par l'application et par la base (déclencheur
+sur `contributions`). Les campagnes sont des **dons** : le site parle de « contribution », jamais
+d'investissement.
+
+## Communication
+
+- **Notifications** dans le site (cloche dans l'en-tête, page `/notifications`), créées par la base :
+  lancement d'un projet par un club suivi (ou soutenu auparavant), objectif atteint, nouvelles et
+  messages du club, suspension, clôture (financée ou remboursée), réponses aux commentaires, décisions
+  de l'équipe pour les clubs. Pas encore d'envoi par SMS ou e-mail.
+- **Commentaires** sur les campagnes publiques : supporters et réponses du club (un niveau de
+  réponses), mention « contributeur », signalements, modération par l'équipe (`/admin/commentaires`).
+- **Actualités** : nouvelles d'une campagne ou actualités du club sans campagne (page `/clubs/<club>`
+  et fil `/actualites`), et **messages réservés aux contributeurs** d'une campagne. Tout est relu par
+  l'équipe avant publication ; un refus est motivé.
+- **Partage** : WhatsApp, Facebook, X, Telegram, copie du lien, partage du téléphone. L'aperçu
+  (image du lien) est la photo du projet, allégée à l'envoi pour rester léger sur WhatsApp, ou à
+  défaut une image aux couleurs du club générée par `/campagnes/<slug>/image-partage`.
+- **Ambassadeurs** : chaque compte a un code (`?ref=…`), gardé 30 jours dans un cookie ; la
+  contribution suivante lui est attribuée. Le compte affiche ses résultats ; le classement montre son
+  prénom seulement s'il l'accepte.
+- **Classement** (`/classement`) : campagnes les plus soutenues (nombre de supporters, puis montant),
+  clubs les plus soutenus, ambassadeurs.
+
+## Textes juridiques et cookies
+
+- `/conditions` : conditions d'utilisation (18 ans minimum, dons, remboursements « tout ou rien »,
+  règles des commentaires) et mentions légales ; `/confidentialite` : données collectées, durées,
+  prestataires, droits, liste des cookies. **Complétez les coordonnées de Plumes Capital dans
+  [`src/lib/legal.ts`](src/lib/legal.ts)** (RCCM, Id. Nat., siège, contact) et faites relire ces
+  textes par un juriste.
+- Bandeau cookies : les cookies nécessaires (connexion, code SMS) n'en dépendent pas ; le cookie
+  ambassadeur (`tribune_ref`) n'est posé qu'après « Accepter ».
+- Inscription : case « 18 ans et plus + conditions + confidentialité » obligatoire ; la case des
+  nouvelles n'est plus cochée d'avance. « Mon compte » permet de demander la suppression du compte
+  (inscrite au journal d'audit : `compte.suppression_demandee`).
 
 ## Connexion en deux étapes (codes SMS)
 
@@ -242,7 +327,8 @@ node scripts/check-rls.mjs     # règles d'accès, sur une base de test avec les
 
 - **Versements aux clubs** : le compte Mobile Money de chaque club est enregistré, mais les
   versements par tranche (API *payouts* de pawaPay) ne sont pas encore automatisés.
-- Notifications SMS et e-mail aux supporters (reçus, nouvelles, remboursements).
+- Notifications SMS et e-mail aux supporters (reçus, nouvelles, remboursements) : les notifications
+  existent dans le site (table `notifications`), il reste à les envoyer aussi par SMS ou e-mail.
 - Connexion par code SMS (Supabase Auth « phone »), utile pour les supporters sans e-mail.
 - Vérification de la signature des notifications pawaPay (en plus de la revérification actuelle).
 - Clôture automatique des campagnes à leur date de fin (tâche planifiée).

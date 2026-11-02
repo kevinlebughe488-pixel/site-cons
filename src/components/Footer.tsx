@@ -31,6 +31,10 @@ export async function Footer() {
           public, ne prête pas et n&apos;investit pas pour son propre compte. Les paiements Mobile Money sont encaissés
           par un prestataire agréé (pawaPay) et chaque contribution est tracée. Commission de 5&nbsp;% sur les fonds
           collectés, affichée avant chaque paiement.
+          <div className="legal-links">
+            <Link href="/conditions">Conditions d&apos;utilisation</Link> · <Link href="/confidentialite">Confidentialité et cookies</Link> ·{" "}
+            <Link href="/conditions#mentions-legales">Mentions légales</Link>
+          </div>
         </div>
       </div>
     </footer>

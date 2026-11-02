@@ -11,7 +11,7 @@ import { normalizeAnyPhone } from "@/lib/phone";
 import { env } from "@/lib/env";
 import { cancelChallenge, confirmChallenge, resendChallenge, startChallenge, VerificationError } from "@/lib/verification";
 
-const REGISTER_FIELDS = ["first_name", "last_name", "email", "phone", "residence", "location", "followed_club_id", "consent", "newsletter"];
+const REGISTER_FIELDS = ["first_name", "last_name", "email", "phone", "residence", "location", "followed_club_id", "consent", "newsletter", "account_type"];
 
 const registerSchema = z.object({
   first_name: z.string().min(1, "Indiquez votre prénom.").max(80),
@@ -55,8 +55,15 @@ async function findConflict(phone: string, email: string): Promise<"phone" | "em
 
 export async function register(_: FormState, form: FormData): Promise<FormState> {
   const fields = keepFields(form, REGISTER_FIELDS);
+  // « Je représente un club » : compte personnel du représentant, qui remplira ensuite le dossier du club.
+  const forClub = fields.account_type === "club";
+  if (forClub) {
+    fields.residence = "rdc";
+    fields.followed_club_id = "";
+  }
   fields.consent = checked(form, "consent") ? "on" : "";
-  fields.newsletter = checked(form, "newsletter") ? "on" : "";
+  // Case décochée par défaut : pas d'accord implicite.
+  fields.newsletter = !forClub && checked(form, "newsletter") ? "on" : "";
   const fail = (error: string, field?: string): FormState => ({ error, field, fields });
 
   const parsed = registerSchema.safeParse({ ...fields, password: form.get("password") });
@@ -67,7 +74,7 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
   const phone = normalizeAnyPhone(fields.phone);
   if (!phone) return fail("Indiquez un numéro de téléphone complet, par exemple +243 81 234 5678.", "phone");
   if (!fields.consent) {
-    return fail("Cochez la case de consentement : sans elle, nous ne pouvons pas enregistrer vos contributions.", "consent");
+    return fail("Cochez la case : il faut avoir 18 ans et accepter les conditions d'utilisation et la politique de confidentialité.", "consent");
   }
   const email = parsed.data.email.toLowerCase();
   const conflict = await findConflict(phone, email);
@@ -94,6 +101,7 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
       country: rest.join(", ") || (parsed.data.residence === "rdc" ? "RDC" : null),
       followed_club_id: parsed.data.followed_club_id || null,
       newsletter: fields.newsletter === "on",
+      signup_intent: forClub ? "club" : "supporter",
     },
   });
   if (error || !data.user) {
@@ -110,7 +118,13 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
   }
 
   try {
-    await startChallenge({ userId: data.user.id, phone, purpose: "signup", returnTo: safeReturnPath(text(form, "suite"), "/") });
+    await startChallenge({
+      userId: data.user.id,
+      phone,
+      purpose: "signup",
+      // Après le code SMS, le représentant d'un club arrive directement sur le dossier du club.
+      returnTo: forClub ? "/club" : safeReturnPath(text(form, "suite"), "/"),
+    });
   } catch (err) {
     // Le compte reste en attente : la personne pourra le terminer en se connectant.
     return fail(err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Connectez-vous pour recevoir un nouveau code.");
