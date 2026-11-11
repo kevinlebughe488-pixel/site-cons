@@ -10,3 +10,4 @@ dev/supabase-local/.env
 .vercel
 .DS_Store
 AGENTS.md
+graphify-out/cache/
