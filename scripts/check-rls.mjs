@@ -174,6 +174,10 @@ const inflated = await compliance.rpc("review_campaign", {
 });
 expect("conformité : ne peut pas publier un budget à 3 fois le prix de référence", /contrôle automatique/.test(inflated.error?.message ?? ""), inflated.error?.message);
 
+expect("visiteur : ne voit pas les photos d'une campagne en préparation", denied(await anon.from("campaign_photos").select("id, campaign:campaigns!inner(status)").eq("campaign.status", "draft")));
+expect("gestionnaire : ne peut pas ajouter une photo sans passer par le serveur", !!(await manager.from("campaign_photos").insert({ campaign_id: anyCampaign.id, file_path: "x/p.jpg", caption: "Fausse photo" })).error);
+expect("gestionnaire : ne peut pas modifier la légende d'une photo", !!(await manager.from("campaign_photos").update({ caption: "Modifiée" }).eq("campaign_id", anyCampaign.id)).error);
+
 // Plafonds fixés par le club : vérifiés par la base, même pour une écriture du serveur.
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (serviceKey) {

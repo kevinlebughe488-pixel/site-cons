@@ -10,13 +10,14 @@ import { CAMPAIGN_WITH_CLUB } from "@/lib/campaigns";
 import { CampaignStatusBadge, coverUrl, Crest, FieldSvg, ProgressBar } from "@/components/visuals";
 import { ShareButtons } from "@/components/ShareButtons";
 import { campaignTiming, daysLeft, formatDate, formatMoney, formatNumber, percent, plural } from "@/lib/format";
-import type { BudgetLine, CampaignUpdate, CampaignWithClub, CommentRow, Milestone } from "@/lib/types";
+import type { BudgetLine, CampaignPhoto, CampaignUpdate, CampaignWithClub, CommentRow, Milestone } from "@/lib/types";
 import { Comments } from "./Comments";
 
 type Detail = CampaignWithClub & {
   budget: BudgetLine[];
   milestones: Milestone[];
   updates: CampaignUpdate[];
+  photos: CampaignPhoto[];
 };
 
 // Mis en cache pour la requête : le titre de la page et la page elle-même partagent la même lecture.
@@ -27,7 +28,8 @@ const loadCampaign = cache(async (slug: string) => {
     .select(
       `${CAMPAIGN_WITH_CLUB}, budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id),
        milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note),
-       updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at)`,
+       updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at),
+       photos:campaign_photos(id, campaign_id, file_path, caption, taken_on, position, created_at)`,
     )
     .eq("slug", slug)
     .maybeSingle<Detail>();
@@ -68,6 +70,11 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
 
   const budget = [...c.budget].sort((a, b) => a.position - b.position);
   const milestones = [...c.milestones].sort((a, b) => a.position - b.position);
+  // Photos de la situation actuelle : la couverture en tête de page, les autres dans « La situation aujourd'hui ».
+  const photos = [...c.photos].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
+  const cover = photos.find((ph) => ph.file_path === c.cover_path) ?? null;
+  const others = photos.filter((ph) => ph !== cover);
+  const photoDate = (ph: CampaignPhoto) => (ph.taken_on ? ` · photo du ${formatDate(ph.taken_on)}` : "");
   // Nouvelles publiques et, pour un contributeur, messages qui lui sont réservés (la base filtre).
   const updates = c.updates
     .filter((u) => u.status === "published")
@@ -126,11 +133,20 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
             </p>
           ) : null}
           {c.cover_path ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="camp-photo" src={coverUrl(c.cover_path)} alt={`Photo du projet : ${c.title}`} />
+            <figure className="camp-figure">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="camp-photo" src={coverUrl(c.cover_path)} alt={cover ? cover.caption : `Photo du projet : ${c.title}`} />
+              {cover ? (
+                <figcaption>
+                  <b>Aujourd&apos;hui :</b> {cover.caption}
+                  {photoDate(cover)}
+                </figcaption>
+              ) : null}
+            </figure>
           ) : null}
           <nav className="subnav" aria-label="Sections de la campagne">
             <a href="#projet">Le projet</a>
+            {others.length ? <a href="#situation">Photos ({photos.length})</a> : null}
             <a href="#budget">Budget</a>
             <a href="#jalons">Jalons et preuves</a>
             <a href="#nouvelles">Nouvelles ({updates.length})</a>
@@ -146,6 +162,25 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
               <p key={i}>{para}</p>
             ))}
           </div>
+
+          {others.length ? (
+            <div className="block" id="situation">
+              <h2>La situation aujourd&apos;hui</h2>
+              <p className="muted">Les photos envoyées par le club, vérifiées par l&apos;équipe Tribune avant la publication.</p>
+              <div className="gallery">
+                {others.map((ph) => (
+                  <figure key={ph.id}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={coverUrl(ph.file_path)} alt={ph.caption} loading="lazy" decoding="async" />
+                    <figcaption>
+                      {ph.caption}
+                      <span className="muted">{photoDate(ph)}</span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="block" id="budget">
             <h2>À quoi sert l&apos;argent</h2>
@@ -175,6 +210,7 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
             {c.published_at && c.compliance_level ? (
               <ul className="verified">
                 <li>Club vérifié : existence, représentant légal, compte de versement</li>
+                <li>Photos de la situation actuelle vérifiées</li>
                 <li>Devis des fournisseurs contrôlés par l&apos;équipe Tribune</li>
                 <li>Prix comparés au prix normal du marché, poste par poste</li>
               </ul>

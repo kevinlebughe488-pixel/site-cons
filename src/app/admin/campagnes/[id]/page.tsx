@@ -6,10 +6,10 @@ import { can } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { closeCampaign, recordPublicationFee, refundCampaign, reviewCampaign, suspendCampaign } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { CampaignPill, coverUrl, Crest, Pill } from "@/components/visuals";
-import { CoverUpload } from "@/app/club/campagnes/CoverUpload";
+import { CampaignPill, Crest, Pill } from "@/components/visuals";
+import { CampaignPhotos } from "@/app/club/campagnes/CampaignPhotos";
 import { CLUB_STATUS_LABELS, CONTRIBUTION_STATUS_LABELS } from "@/lib/labels";
-import { formatDate, formatMoney, percent, plural } from "@/lib/format";
+import { formatDate, formatMoney, percent, plural, todayInKinshasa } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import type { ComplianceReport } from "@/lib/compliance";
 import { ComplianceReportView } from "@/components/ComplianceReport";
@@ -19,6 +19,7 @@ import {
   type BudgetLine,
   type Campaign,
   type CampaignDocument,
+  type CampaignPhoto,
   type Club,
   type Contribution,
   type Milestone,
@@ -27,7 +28,7 @@ import {
 
 export const metadata: Metadata = { title: "Instruction · Back-office" };
 
-type Detail = Campaign & { club: Club; budget: BudgetLine[]; milestones: Milestone[] };
+type Detail = Campaign & { club: Club; budget: BudgetLine[]; milestones: Milestone[]; photos: CampaignPhoto[] };
 
 export default async function AdminCampaignPage(props: PageProps<"/admin/campagnes/[id]">) {
   const { id } = await props.params;
@@ -39,7 +40,7 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
   const [{ data: c }, { data: contribs }, { data: fee }, settings, { data: documents }, { data: report }] = await Promise.all([
     supabase
       .from("campaigns")
-      .select("*, club:clubs(*), budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note)")
+      .select("*, club:clubs(*), budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), photos:campaign_photos(id, campaign_id, file_path, caption, taken_on, position, created_at)")
       .eq("id", id)
       .maybeSingle<Detail>(),
     supabase.from("contributions").select("status, amount").eq("campaign_id", id),
@@ -151,18 +152,17 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
           </div>
 
           <div className="panel">
-            <h3>Photo de couverture</h3>
+            <h3>Photos de la situation actuelle</h3>
             <p className="small muted" style={{ marginBottom: 10 }}>
-              Vérifiez qu&apos;elle montre bien le projet du club et ne contient pas de donnée personnelle.
+              Vérifiez qu&apos;elles montrent bien la situation du club (lieu, date) et ne contiennent pas de donnée personnelle.
             </p>
-            {can(role, "campaign:review") ? (
-              <CoverUpload campaignId={c.id} coverSrc={c.cover_path ? coverUrl(c.cover_path) : null} />
-            ) : c.cover_path ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverUrl(c.cover_path)} alt="" className="cover-preview" />
-            ) : (
-              <p className="small muted">Pas de photo.</p>
-            )}
+            <CampaignPhotos
+              campaignId={c.id}
+              photos={[...c.photos].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at))}
+              coverPath={c.cover_path}
+              editable={can(role, "campaign:review")}
+              today={todayInKinshasa()}
+            />
           </div>
 
           <div className="panel">

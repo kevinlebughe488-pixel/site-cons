@@ -5,21 +5,21 @@ import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { completeMilestone, postNews } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { CampaignPill, coverUrl, Pill, ProgressBar } from "@/components/visuals";
+import { CampaignPill, Pill, ProgressBar } from "@/components/visuals";
 import { campaignTiming, formatDate, formatMoney, percent, plural, todayInKinshasa } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { listPriceReferences } from "@/lib/campaigns";
 import type { ComplianceReport } from "@/lib/compliance";
-import type { BudgetLine, Campaign, CampaignDocument, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
+import type { BudgetLine, Campaign, CampaignDocument, CampaignPhoto, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
 import { ComplianceReportView } from "@/components/ComplianceReport";
 import { CampaignDocuments } from "../CampaignDocuments";
 import { CampaignEditor } from "../CampaignEditor";
-import { CoverUpload } from "../CoverUpload";
+import { CampaignPhotos } from "../CampaignPhotos";
 import { FeesNotice } from "../FeesNotice";
 
 export const metadata: Metadata = { title: "Gérer la campagne" };
 
-type Detail = Campaign & { budget: BudgetLine[]; milestones: Milestone[]; updates: CampaignUpdate[] };
+type Detail = Campaign & { budget: BudgetLine[]; milestones: Milestone[]; updates: CampaignUpdate[]; photos: CampaignPhoto[] };
 
 export default async function ManageCampaignPage(props: PageProps<"/club/campagnes/[id]">) {
   const { id } = await props.params;
@@ -32,7 +32,7 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
     supabase
       .from("campaigns")
       .select(
-        "*, budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at)",
+        "*, budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at), photos:campaign_photos(id, campaign_id, file_path, caption, taken_on, position, created_at)",
       )
       .eq("id", id)
       .maybeSingle<Detail>(),
@@ -51,6 +51,7 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
   const budget = [...c.budget].sort((a, b) => a.position - b.position);
   const milestones = [...c.milestones].sort((a, b) => a.position - b.position);
   const updates = [...c.updates].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const photos = [...c.photos].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
   const timing = campaignTiming(c);
 
   return (
@@ -109,8 +110,12 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
               </div>
             ) : null}
             <div className="panel">
-              <h3>Photo de couverture</h3>
-              <CoverUpload campaignId={c.id} coverSrc={c.cover_path ? coverUrl(c.cover_path) : null} />
+              <h3>Photos de la situation actuelle</h3>
+              <p className="small muted" style={{ marginBottom: 10 }}>
+                Montrez aux supporters de quoi il s&apos;agit : la pelouse aujourd&apos;hui, le vestiaire, le matériel usé… Jusqu&apos;à 6
+                photos, chacune avec une légende.
+              </p>
+              <CampaignPhotos campaignId={c.id} photos={photos} coverPath={c.cover_path} editable today={todayInKinshasa()} />
             </div>
             <div className="panel">
               <h3>Devis des fournisseurs</h3>
@@ -223,12 +228,11 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                 <CampaignDocuments campaignId={c.id} documents={docs} editable={false} />
               </div>
             ) : null}
-            {c.cover_path ? (
+            {photos.length ? (
               <div className="panel">
-                <h3>Photo de couverture</h3>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={coverUrl(c.cover_path)} alt="" className="cover-preview" />
-                <p className="small muted" style={{ marginTop: 8 }}>Pour la changer, écrivez à l&apos;équipe Tribune.</p>
+                <h3>Photos de la situation actuelle</h3>
+                <CampaignPhotos campaignId={c.id} photos={photos} coverPath={c.cover_path} editable={false} today={todayInKinshasa()} />
+                <p className="small muted" style={{ marginTop: 8 }}>Pour les changer, écrivez à l&apos;équipe Tribune.</p>
               </div>
             ) : null}
             {["published", "suspended", "funded", "failed"].includes(c.status) ? (

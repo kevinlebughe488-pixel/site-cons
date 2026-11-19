@@ -13,7 +13,7 @@
 // Photos de campagne : de même dans scripts/demo-covers/ (ex. tp-mazembe.jpg),
 // une photo par club ; sans photo, la fiche affiche les couleurs du club.
 import { createClient } from "@supabase/supabase-js";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -298,12 +298,22 @@ async function main() {
     for (const ext of ["jpg", "jpeg", "png", "webp"]) {
       const file = path.join("scripts", "demo-covers", `${c.club}.${ext}`);
       if (!existsSync(file)) continue;
-      const coverPath = `${row.id}/couverture-${Date.now()}.${ext === "jpeg" ? "jpg" : ext}`;
-      const { error } = await db.storage.from("campaign-images").upload(coverPath, readFileSync(file), {
+      const coverPath = `${row.id}/photo-${randomUUID()}.${ext === "jpeg" ? "jpg" : ext}`;
+      const bytes = readFileSync(file);
+      const { error } = await db.storage.from("campaign-images").upload(coverPath, bytes, {
         contentType: ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg",
       });
       if (error) console.warn(`  photo ${c.club} non envoyée : ${error.message}`);
-      else await db.from("campaigns").update({ cover_path: coverPath }).eq("id", row.id);
+      else {
+        await db.from("campaigns").update({ cover_path: coverPath }).eq("id", row.id);
+        await must(
+          db.from("campaign_photos").insert({
+            campaign_id: row.id, file_path: coverPath, caption: "La situation avant le projet (photo de démonstration)",
+            taken_on: dateIn(-50), sha256: createHash("sha256").update(bytes).digest("hex"), uploaded_by: managerIds[c.club] ?? adminId,
+          }),
+          "photo de la campagne",
+        );
+      }
       break;
     }
     await must(

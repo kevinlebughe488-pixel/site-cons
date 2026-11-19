@@ -171,6 +171,17 @@ export type PriceReference = {
   updated_at: string;
 };
 
+/** Photo de la situation actuelle (bucket public « campaign-images »). */
+export type CampaignPhoto = {
+  id: string;
+  campaign_id: string;
+  file_path: string;
+  caption: string;
+  taken_on: string | null;
+  position: number;
+  created_at: string;
+};
+
 export type CampaignDocumentKind = "devis" | "facture" | "autre";
 
 export const CAMPAIGN_DOCUMENT_KINDS: { id: CampaignDocumentKind; label: string }[] = [

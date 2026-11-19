@@ -34,7 +34,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (79 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (82 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -71,6 +71,7 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261101000300_parametres_campagnes.sql` (durée de collecte, montants minimum et maximum par supporter, photo)
    - `supabase/migrations/20261101000400_communication.sql` (notifications, commentaires, actualités et messages, ambassadeurs, classements)
    - `supabase/migrations/20261120000100_controle_conformite.sql` (référentiel des prix, devis des fournisseurs, contrôle automatique des campagnes)
+   - `supabase/migrations/20261120000200_photos_situation.sql` (photos de la situation actuelle, photos copiées)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -167,7 +168,11 @@ Le club fixe, et l'équipe vérifie à l'instruction :
   est calculée à ce moment-là (le temps d'instruction ne raccourcit plus la collecte) ;
 - la **contribution minimum** par supporter, et si besoin un **maximum par supporter** (plafond du
   cumul de ses contributions à la campagne, pour une collecte partagée par le plus grand nombre) ;
-- une **photo de couverture**, modifiable par le club tant que le dossier n'est pas envoyé, puis par l'équipe.
+- des **photos de la situation actuelle** (jusqu'à 6, au moins une) : ce que les supporters verront avant
+  de contribuer, par exemple l'état de la pelouse pour une rénovation. Chaque photo a une légende et la date
+  de prise de vue ; l'une d'elles sert de couverture. Le club les gère tant que le dossier n'est pas envoyé,
+  puis l'équipe. La page publique montre la couverture avec sa légende (« Aujourd'hui : … ») et les autres
+  photos dans « La situation aujourd'hui ».
 
 La fiche d'une campagne affiche le club et l'état de la collecte, la photo, le montant collecté,
 l'objectif, le pourcentage atteint, le nombre de supporters, la contribution minimum et la durée
@@ -183,10 +188,10 @@ Avant l'envoi en revue et avant la publication, la base calcule un **contrôle a
 | Point de contrôle | Bloquant si… | Signalé si… |
 | --- | --- | --- |
 | Club vérifié | le club n'est pas (ou plus) vérifié | |
-| Photo de la situation actuelle | aucune photo | |
+| Photos de la situation actuelle | aucune photo | la plus récente a plus de 6 mois, ou sa date est inconnue |
 | Devis de fournisseur | aucun devis ni facture pro forma joint | |
 | Prix | un poste coûte **3 fois le prix de référence ou plus** (article choisi, prix confirmé) | un poste dépasse 1,5 fois, ou n'a pas de prix de référence |
-| Description originale | le texte est identique à celui d'une campagne antérieure d'un autre club | |
+| Description et photos originales | le texte, ou une photo (même empreinte SHA-256), est identique à celui d'une campagne antérieure d'un autre club | |
 | Antécédents du club | | jalons d'une campagne financée toujours sans preuve après 3 mois, autre collecte en cours |
 
 - **Référentiel des prix** (Back-office → Référentiel des prix) : le prix normal de chaque article ou
