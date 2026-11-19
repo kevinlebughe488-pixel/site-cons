@@ -5,10 +5,27 @@ import { navigationFor } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CAMPAIGN_WITH_CLUB, listCampaigns } from "@/lib/campaigns";
 import { CampaignCard } from "@/components/CampaignCard";
-import { Crest, FieldSvg, ProgressBar } from "@/components/visuals";
-import { daysLeft, formatMoney, formatNumber, percent, plural } from "@/lib/format";
+import { HomeHero, type FollowedClub } from "@/components/HomeHero";
+import { formatMoney, percent } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CampaignWithClub, Milestone } from "@/lib/types";
+
+/** Total des contributions confirmées du supporter connecté. */
+async function myContributions(supabase: SupabaseClient, userId: string): Promise<number> {
+  const { data } = await supabase.from("contributions").select("amount").eq("user_id", userId).eq("status", "completed");
+  return (data ?? []).reduce((s, c) => s + Number(c.amount), 0);
+}
+
+async function followedClub(supabase: SupabaseClient, clubId: string | null): Promise<FollowedClub | null> {
+  if (!clubId) return null;
+  const { data } = await supabase
+    .from("clubs")
+    .select("id, slug, name, short_name, color_primary, color_secondary, logo_path")
+    .eq("id", clubId)
+    .maybeSingle<FollowedClub>();
+  return data;
+}
 
 export default async function HomePage() {
   // L'accueil public s'adresse aux supporters : les autres rôles vont sur leur espace.
@@ -35,93 +52,25 @@ export default async function HomePage() {
     getSettings(supabase),
   ]);
   const stats = statsRes.data;
-  const featured = [...live].sort((a, b) => percent(b.raised_amount, b.goal_amount) - percent(a.raised_amount, a.goal_amount))[0];
+  const followedId = viewer?.profile.followed_club_id ?? null;
+  // Connecté : la campagne du club suivi passe à la une, s'il en a une en cours.
+  const byProgress = [...live].sort((a, b) => percent(b.raised_amount, b.goal_amount) - percent(a.raised_amount, a.goal_amount));
+  const mine = followedId ? live.find((c) => c.club.id === followedId) : undefined;
+  const featured = mine ?? byProgress[0];
   const proven = provenRes.data;
+  const [myTotal, followed] = viewer ? await Promise.all([myContributions(supabase, viewer.profile.id), followedClub(supabase, followedId)]) : [0, null];
 
   return (
     <>
-      <section className="hero on-pitch">
-        <FieldSvg />
-        <div className="wrap">
-          <div>
-            <div className="eyebrow" style={{ color: "var(--gold)" }}>
-              {viewer ? `Bonjour ${viewer.profile.first_name}` : "Financement participatif des clubs"}
-            </div>
-            <h1 style={{ marginTop: 12 }}>
-              Le club, c&apos;est vous.
-              <br />
-              <em>Financez-le</em> et voyez où va chaque dollar.
-            </h1>
-            <p className="lead">
-              Une pelouse, des chaussures pour les jeunes, un bus pour les déplacements : choisissez un projet de votre
-              club, payez par M-Pesa, Airtel Money ou Orange Money et suivez l&apos;avancement avec les factures et les
-              photos.
-            </p>
-            <div className="ctas">
-              <Link className="btn btn-gold" href="/campagnes">
-                Voir les campagnes
-              </Link>
-              {viewer ? (
-                <Link className="btn btn-ghost" href="/compte">
-                  Mes contributions
-                </Link>
-              ) : (
-                <Link className="btn btn-ghost" href="/inscription?profil=supporter">
-                  Créer mon compte supporter
-                </Link>
-              )}
-            </div>
-            {stats ? (
-              <div className="facts num">
-                <div>
-                  <b>{formatMoney(stats.total_raised)}</b>collectés par les supporters
-                </div>
-                <div>
-                  <b>{formatNumber(stats.supporters)}</b>supporters contributeurs
-                </div>
-                <div>
-                  <b>{stats.active_campaigns}</b>campagne{stats.active_campaigns > 1 ? "s" : ""} en cours
-                </div>
-              </div>
-            ) : null}
-          </div>
-          {featured ? (
-            <div className="board" aria-label="Campagne à la une">
-              <div className="head">
-                <Crest club={featured.club} size={40} />
-                <div>
-                  <div className="club">{featured.club.name}</div>
-                  <div className="small" style={{ opacity: 0.8 }}>
-                    À la une · {featured.category}
-                  </div>
-                </div>
-              </div>
-              <h3 style={{ marginTop: 14, fontSize: "1.6rem" }}>{featured.title}</h3>
-              <div className="score num">
-                <div>
-                  <div className="v">{formatMoney(featured.raised_amount, featured.currency)}</div>
-                  <div className="l">Collectés</div>
-                </div>
-                <div className="sep">/</div>
-                <div className="r">
-                  <div className="v">{formatMoney(featured.goal_amount, featured.currency)}</div>
-                  <div className="l">Objectif</div>
-                </div>
-              </div>
-              <ProgressBar raised={featured.raised_amount} goal={featured.goal_amount} />
-              <div className="meta num">
-                <span>{percent(featured.raised_amount, featured.goal_amount)} % atteint</span>
-                <span>{plural(featured.backers_count, "supporter")}</span>
-                <span>{plural(daysLeft(featured.end_date), "jour restant", "jours restants")}</span>
-                <span>dès {formatMoney(featured.min_contribution, featured.currency)}</span>
-              </div>
-              <Link className="btn btn-gold" href={`/campagnes/${featured.slug}/contribuer`}>
-                Contribuer à cette campagne
-              </Link>
-            </div>
-          ) : null}
-        </div>
-      </section>
+      <HomeHero
+        firstName={viewer?.profile.first_name ?? null}
+        liveCount={live.length}
+        myTotal={myTotal}
+        followed={followed}
+        featured={featured ?? null}
+        featuredIsMine={!!mine && featured === mine}
+        stats={stats ?? null}
+      />
 
       <section className="band">
         <div className="wrap">
@@ -202,9 +151,7 @@ export default async function HomePage() {
               </div>
               <h2 style={{ marginTop: 6 }}>Votre club a un projet ? Proposez-le.</h2>
               <p style={{ marginTop: 12, opacity: 0.9 }}>
-                Inscrivez votre club : l&apos;équipe Tribune vérifie son existence, son représentant légal et son compte de
-                versement. Déposez ensuite votre projet : objectif, budget détaillé, durée de collecte, contribution
-                minimum et jalons.
+                Inscrivez votre club, déposez votre projet : l&apos;équipe Tribune vérifie tout avant la publication.
               </p>
             </div>
             <div style={{ display: "grid", gap: 12, alignContent: "center" }}>

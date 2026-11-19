@@ -13,7 +13,7 @@
 // Photos de campagne : de même dans scripts/demo-covers/ (ex. tp-mazembe.jpg),
 // une photo par club ; sans photo, la fiche affiche les couleurs du club.
 import { createClient } from "@supabase/supabase-js";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -224,11 +224,24 @@ async function main() {
     }
   }
 
+  // Référentiel des prix : en démonstration, les prix de départ sont confirmés par l'équipe conformité.
+  await must(db.from("price_references").update({ confirmed_at: new Date().toISOString(), confirmed_by: complianceId }).is("confirmed_at", null), "référentiel des prix");
+  const refs = await must(db.from("price_references").select("id, label"), "référentiel des prix");
+  const refId = (label) => {
+    const found = refs.find((r) => r.label === label);
+    if (!found) throw new Error(`Article absent du référentiel : ${label}`);
+    return found.id;
+  };
+
   console.log("Campagnes…");
   const CAMPAIGNS = [
     { club: "tp-mazembe", title: "Équipements pour l'école de football U13–U15", category: "Formation des jeunes", goal: 8000, target: 0.72, status: "published", ends: 12, min: 5,
       summary: "Chaussures, ballons et chasubles pour 64 jeunes de l'école de football.",
-      budget: [["Chaussures (64 paires)", 3800], ["Ballons et chasubles", 2100], ["Trousse de soins", 600], ["Transport des équipements", 1500]],
+      budget: [
+        ["Chaussures de football (64 paires)", 3200, 64, "Chaussures de football"], ["Ballons taille 5 (40)", 1200, 40, "Ballon de football taille 5"],
+        ["Chasubles et plots d'entraînement", 900], ["Trousses de soins (2)", 300, 2, "Trousse médicale de terrain"],
+        ["Transport des équipements", 1500], ["Encadrement des stages", 900],
+      ],
       miles: [["Liste des enfants et des tailles", "sept. 2026", true], ["Objectif de collecte atteint", "nov. 2026"], ["Achat et distribution", "déc. 2026"]] },
     { club: "as-vita-club", title: "Rénovation des vestiaires du terrain d'entraînement", category: "Infrastructure", goal: 18000, target: 0.41, status: "published", ends: 30, min: 10, max: 1000,
       summary: "Douches, sanitaires et bancs neufs pour les équipes jeunes et seniors.",
@@ -236,23 +249,27 @@ async function main() {
       miles: [["Trois devis comparés", "oct. 2026", true], ["Objectif de collecte atteint", "nov. 2026"], ["Travaux", "déc. 2026"], ["Réception des vestiaires", "janv. 2027"]] },
     { club: "dc-motema-pembe", title: "Un minibus pour l'équipe féminine", category: "Transport", goal: 15000, target: 0.29, status: "published", ends: 40, min: 5,
       summary: "Un minibus d'occasion de 30 places pour les déplacements du championnat féminin.",
-      budget: [["Minibus d'occasion 30 places", 12500], ["Révision et pneus", 1200], ["Assurance première année", 1300]],
+      budget: [["Minibus d'occasion 30 places", 12500, 1, "Bus de 30 places d'occasion"], ["Révision et pneus", 1200], ["Assurance première année", 1300]],
       miles: [["Véhicule choisi et contrôlé", "oct. 2026", true], ["Objectif de collecte atteint", "déc. 2026"], ["Achat et immatriculation", "déc. 2026"]] },
     { club: "sm-sanga-balende", title: "Éclairage du terrain d'entraînement", category: "Infrastructure", goal: 12000, target: 0.12, status: "published", ends: 50, min: 1,
       summary: "Des projecteurs pour s'entraîner après 18 h, quand il fait moins chaud.",
-      budget: [["Projecteurs LED (8)", 6400], ["Mâts et câblage", 3900], ["Installation", 1700]],
+      budget: [["Projecteurs LED (8)", 6400, 8, "Projecteur LED d'éclairage de terrain"], ["Mâts et câblage", 3900], ["Installation", 1700]],
       miles: [["Étude électrique", "nov. 2026"], ["Objectif de collecte atteint", "déc. 2026"], ["Installation", "janv. 2027"]] },
     { club: "fc-saint-eloi-lupopo", title: "Kit médical et formation aux premiers secours", category: "Santé", goal: 5000, target: 1.04, status: "funded", ends: -20, min: 5,
       summary: "Un défibrillateur, une trousse complète et deux jours de formation pour les éducateurs.",
-      budget: [["Défibrillateur", 2400], ["Trousse et consommables", 900], ["Formation (8 éducateurs)", 1700]],
+      budget: [["Défibrillateur", 2400], ["Trousses et consommables (6)", 900, 6, "Trousse médicale de terrain"], ["Formation (8 éducateurs)", 1700]],
       miles: [["Objectif atteint", "sept. 2026", true], ["Matériel livré", "oct. 2026", true], ["Formation réalisée", "oct. 2026", true]] },
     { club: "as-maniema-union", title: "Déplacement en phase finale de la Coupe du Congo", category: "Déplacement", goal: 9000, target: 0, status: "in_review", ends: 35, min: 10,
       summary: "Transport, hébergement et repas pour 25 joueurs et 6 encadrants.",
-      budget: [["Transport aller-retour", 4800], ["Hébergement", 2600], ["Repas", 1600]],
+      // Le bus est loué 3 fois le prix de référence : le contrôle automatique bloque la publication (démonstration).
+      budget: [
+        ["Location de bus 30 places (6 jours)", 6300, 6, "Location de bus de 30 places"], ["Hébergement (50 nuitées)", 1750, 50, "Hébergement en déplacement"],
+        ["Repas (60 repas-jour)", 900, 60, "Repas en déplacement"], ["Péages", 50],
+      ],
       miles: [["Billets réservés", "nov. 2026"], ["Compétition disputée", "déc. 2026"], ["Rapport et justificatifs", "janv. 2027"]] },
     { club: "cs-don-bosco", title: "Tenues domicile et extérieur 2027", category: "Équipement", goal: 6500, target: 0, status: "draft", ends: 45, min: 5,
       summary: "Deux jeux de maillots pour l'équipe première et les U19.",
-      budget: [["Maillots et shorts (80)", 4800], ["Chaussettes", 700], ["Flocage", 1000]],
+      budget: [["Maillots de match (80)", 2400, 80, "Maillot de match"], ["Shorts et chaussettes (80)", 1600, 80, "Tenue d'entraînement (maillot, short, chaussettes)"], ["Flocage", 2500]],
       miles: [["Commande passée", "déc. 2026"]] },
   ];
 
@@ -281,15 +298,48 @@ async function main() {
     for (const ext of ["jpg", "jpeg", "png", "webp"]) {
       const file = path.join("scripts", "demo-covers", `${c.club}.${ext}`);
       if (!existsSync(file)) continue;
-      const coverPath = `${row.id}/couverture-${Date.now()}.${ext === "jpeg" ? "jpg" : ext}`;
-      const { error } = await db.storage.from("campaign-images").upload(coverPath, readFileSync(file), {
+      const coverPath = `${row.id}/photo-${randomUUID()}.${ext === "jpeg" ? "jpg" : ext}`;
+      const bytes = readFileSync(file);
+      const { error } = await db.storage.from("campaign-images").upload(coverPath, bytes, {
         contentType: ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg",
       });
       if (error) console.warn(`  photo ${c.club} non envoyée : ${error.message}`);
-      else await db.from("campaigns").update({ cover_path: coverPath }).eq("id", row.id);
+      else {
+        await db.from("campaigns").update({ cover_path: coverPath }).eq("id", row.id);
+        await must(
+          db.from("campaign_photos").insert({
+            campaign_id: row.id, file_path: coverPath, caption: "La situation avant le projet (photo de démonstration)",
+            taken_on: dateIn(-50), sha256: createHash("sha256").update(bytes).digest("hex"), uploaded_by: managerIds[c.club] ?? adminId,
+          }),
+          "photo de la campagne",
+        );
+      }
       break;
     }
-    await must(db.from("campaign_budget_lines").insert(c.budget.map(([label, amount], i) => ({ campaign_id: row.id, position: i, label, amount }))), "budget");
+    await must(
+      db.from("campaign_budget_lines").insert(
+        c.budget.map(([label, amount, quantity = 1, ref = null], i) => ({
+          campaign_id: row.id, position: i, label, amount, quantity, reference_id: ref ? refId(ref) : null,
+        })),
+      ),
+      "budget",
+    );
+    // Devis de démonstration (sauf le brouillon, qui montre au club ce qu'il lui manque).
+    if (c.status !== "draft") {
+      const docPath = `${row.id}/${randomUUID()}.pdf`;
+      const pdf = demoPdf(`Devis fournisseur - ${c.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "")} - demonstration`);
+      const { error: docError } = await db.storage.from("campaign-documents").upload(docPath, pdf, { contentType: "application/pdf" });
+      if (docError) console.warn(`  devis ${c.club} non envoyé : ${docError.message}`);
+      else {
+        await must(
+          db.from("campaign_documents").insert({
+            campaign_id: row.id, kind: "devis", supplier: "Fournisseur de démonstration, Kinshasa", file_path: docPath,
+            file_name: "devis-demonstration.pdf", mime_type: "application/pdf", size_bytes: pdf.length, uploaded_by: managerIds[c.club] ?? adminId,
+          }),
+          "devis",
+        );
+      }
+    }
     await must(
       db.from("campaign_milestones").insert(
         c.miles.map(([label, target, done], i) => ({
@@ -405,6 +455,13 @@ async function main() {
     ], { defaultToNull: false }),
     "notifications",
   );
+
+  // Niveau du contrôle automatique de chaque campagne (liste du back-office, badge de la page publique).
+  for (const c of campaignIds) {
+    const { data: report, error } = await db.rpc("compute_campaign_compliance", { p_campaign_id: c.id });
+    if (error) console.warn(`  contrôle ${c.club} : ${error.message}`);
+    else await db.from("campaigns").update({ compliance_level: report.level, compliance_checked_at: new Date().toISOString() }).eq("id", c.id);
+  }
 
   await db.from("audit_log").insert({ actor_id: adminId, action: "demo.donnees_creees", entity_type: "platform", entity_id: null, details: { clubs: CLUBS.length, contributions: count } });
   // Comptes de démo : numéros considérés comme vérifiés (codes SMS à la connexion seulement).

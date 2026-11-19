@@ -5,11 +5,21 @@ import { z } from "zod";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { safeReturnPath } from "@/lib/auth";
+import { getViewer, safeReturnPath } from "@/lib/auth";
 import { checked, keepFields, text, type FormState } from "@/lib/forms";
-import { normalizeAnyPhone } from "@/lib/phone";
+import { maskPhone, normalizeAnyPhone } from "@/lib/phone";
+import { sendSms } from "@/lib/sms";
 import { env } from "@/lib/env";
-import { cancelChallenge, confirmChallenge, resendChallenge, startChallenge, VerificationError } from "@/lib/verification";
+import {
+  cancelChallenge,
+  clearPasswordReset,
+  confirmChallenge,
+  grantPasswordReset,
+  passwordResetGrant,
+  resendChallenge,
+  startChallenge,
+  VerificationError,
+} from "@/lib/verification";
 
 const REGISTER_FIELDS = ["first_name", "last_name", "email", "phone", "residence", "location", "followed_club_id", "consent", "newsletter", "account_type"];
 
@@ -185,7 +195,10 @@ export async function verifyCode(_: FormState, form: FormData): Promise<FormStat
   } catch (err) {
     return { error: err instanceof VerificationError ? err.message : "Vérification impossible. Réessayez.", field: "code" };
   }
-  if (result.purpose === "reset") redirect("/compte/mot-de-passe");
+  if (result.purpose === "reset") {
+    await grantPasswordReset(result.userId);
+    redirect("/mot-de-passe-oublie/nouveau");
+  }
   redirect(safeReturnPath(result.returnTo, "/"));
 }
 
@@ -223,13 +236,89 @@ export async function requestPasswordReset(_: FormState, form: FormData): Promis
   redirect("/verification");
 }
 
-export async function updatePassword(_: FormState, form: FormData): Promise<FormState> {
-  const password = form.get("password");
-  if (typeof password !== "string" || password.length < 10) {
-    return { error: "Le mot de passe doit faire au moins 10 caractères." };
+const PASSWORD_MIN = 10;
+const PASSWORD_MAX = 72;
+
+/** Règles communes au changement et à la réinitialisation ; renvoie une erreur ou null. */
+function checkNewPassword(password: unknown, confirm: unknown): FormState | null {
+  if (typeof password !== "string" || password.length < PASSWORD_MIN) {
+    return { error: `Le nouveau mot de passe doit faire au moins ${PASSWORD_MIN} caractères.`, field: "password" };
   }
+  if (password.length > PASSWORD_MAX) return { error: `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} caractères.`, field: "password" };
+  if (password !== confirm) return { error: "Les deux mots de passe ne sont pas identiques.", field: "password_confirm" };
+  return null;
+}
+
+/** Prévient le titulaire du compte par SMS (sécurité). Un échec d'envoi ne bloque rien. */
+async function notifyPasswordChanged(userId: string, how: "change" | "reset") {
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("phone").eq("id", userId).maybeSingle<{ phone: string | null }>();
+  await admin.from("audit_log").insert({
+    actor_id: userId,
+    action: how === "change" ? "compte.mot_de_passe_modifie" : "compte.mot_de_passe_reinitialise",
+    entity_type: "profile",
+    entity_id: userId,
+  });
+  if (!profile?.phone) return null;
+  try {
+    await sendSms(profile.phone, "Tribune : le mot de passe de votre compte vient d'être modifié. Si ce n'est pas vous, contactez l'équipe Tribune.");
+  } catch (err) {
+    console.error("SMS de sécurité non envoyé :", (err as Error).message);
+  }
+  return maskPhone(profile.phone);
+}
+
+/**
+ * Modifier son mot de passe depuis « Mon compte » : il faut l'actuel. Les autres
+ * appareils connectés sont déconnectés et le titulaire est prévenu par SMS.
+ */
+export async function changePassword(_: FormState, form: FormData): Promise<FormState> {
+  const viewer = await getViewer();
+  if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
+  const current = form.get("current_password");
+  const password = form.get("password");
+  if (typeof current !== "string" || !current) return { error: "Indiquez votre mot de passe actuel.", field: "current_password" };
+  const invalid = checkNewPassword(password, form.get("password_confirm"));
+  if (invalid) return invalid;
+  if (password === current) return { error: "Choisissez un mot de passe différent de l'actuel.", field: "password" };
+
+  if (!viewer.profile.email) return { error: "Aucune adresse e-mail n'est liée à ce compte. Utilisez « Mot de passe oublié »." };
+
+  // Vérifie l'actuel sans toucher à la session du navigateur.
+  const probe = createSupabaseClient(env.supabaseUrl, env.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error: wrong } = await probe.auth.signInWithPassword({ email: viewer.profile.email, password: current });
+  if (wrong) return { error: "Le mot de passe actuel est incorrect.", field: "current_password" };
+  await probe.auth.signOut({ scope: "local" });
+
   const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: "Changement impossible. Recommencez depuis « Mot de passe oublié »." };
-  return { success: "Mot de passe mis à jour." };
+  const { error } = await supabase.auth.updateUser({ password: password as string });
+  if (error) {
+    if (/password/i.test(error.message)) return { error: "Ce mot de passe est trop simple. Choisissez-en un autre.", field: "password" };
+    return { error: "Modification impossible pour le moment. Réessayez." };
+  }
+  await supabase.auth.signOut({ scope: "others" });
+  const phone = await notifyPasswordChanged(viewer.profile.id, "change");
+  return { success: phone ? `Un SMS de confirmation a été envoyé au ${phone}.` : "Mot de passe modifié." };
+}
+
+/** Mot de passe oublié : nouveau mot de passe, autorisé par le code SMS qui vient d'être validé. */
+export async function resetPassword(_: FormState, form: FormData): Promise<FormState> {
+  const viewer = await getViewer();
+  const granted = await passwordResetGrant();
+  if (!viewer || !granted || granted !== viewer.profile.id) {
+    return { error: "L'autorisation a expiré. Recommencez depuis « Mot de passe oublié »." };
+  }
+  const invalid = checkNewPassword(form.get("password"), form.get("password_confirm"));
+  if (invalid) return invalid;
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: form.get("password") as string });
+  if (error) {
+    if (/same|different/i.test(error.message)) return { error: "Choisissez un mot de passe différent de l'ancien.", field: "password" };
+    if (/password/i.test(error.message)) return { error: "Ce mot de passe est trop simple. Choisissez-en un autre.", field: "password" };
+    return { error: "Changement impossible. Recommencez depuis « Mot de passe oublié »." };
+  }
+  await clearPasswordReset();
+  await supabase.auth.signOut({ scope: "others" });
+  await notifyPasswordChanged(viewer.profile.id, "reset");
+  redirect("/compte?ok=mot_de_passe");
 }

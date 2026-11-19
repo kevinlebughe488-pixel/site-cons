@@ -1,6 +1,6 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -13,7 +13,7 @@ import { slugify, todayInKinshasa } from "@/lib/format";
 import { normalizeAnyPhone, normalizeDrcPhone } from "@/lib/phone";
 import { isKnownProvider } from "@/lib/payments/providers";
 import { cleanFileName, readUpload } from "@/lib/uploads";
-import { CAMPAIGN_CATEGORIES, CAMPAIGN_LIMITS, CLUB_DOCUMENT_KINDS, type Club } from "@/lib/types";
+import { CAMPAIGN_CATEGORIES, CAMPAIGN_DOCUMENT_KINDS, CAMPAIGN_LIMITS, CLUB_DOCUMENT_KINDS, type Club } from "@/lib/types";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const EDITABLE_DOSSIER: Club["status"][] = ["draft", "changes_requested"];
@@ -238,7 +238,17 @@ export async function uploadClubLogo(_: FormState, form: FormData): Promise<Form
 // Campagnes
 // ---------------------------------------------------------------------
 
-const lineSchema = z.object({ label: z.string().trim().min(2).max(160), amount: z.coerce.number().positive().max(1_000_000) });
+const lineSchema = z.object({
+  label: z.string().trim().min(2).max(160),
+  amount: z.coerce.number().positive().max(1_000_000),
+  quantity: z.coerce
+    .number()
+    .max(1_000_000)
+    .default(1)
+    .transform((v) => Math.round(v * 100) / 100)
+    .pipe(z.number().positive()),
+  reference_id: z.union([z.uuid(), z.literal(""), z.null()]).default(null).transform((v) => v || null),
+});
 const milestoneSchema = z.object({ label: z.string().trim().min(2).max(160), target: z.string().trim().max(40) });
 
 function parseJsonList<T>(raw: string, schema: z.ZodType<T>): T[] | null {
@@ -290,7 +300,7 @@ export async function saveCampaign(_: FormState, form: FormData): Promise<FormSt
     return fail("Le maximum par supporter doit être un montant entier, au moins égal au minimum et au plus égal à l'objectif.", "max_contribution");
   }
   const budget = parseJsonList(fields.budget, lineSchema);
-  if (!budget) return fail("Chaque ligne de budget doit avoir un libellé et un montant positif.", "budget");
+  if (!budget) return fail("Chaque poste du budget doit avoir un libellé, une quantité et un montant positifs.", "budget");
   const milestones = parseJsonList(fields.milestones, milestoneSchema);
   if (!milestones) return fail("Chaque jalon doit avoir un libellé.", "milestones");
 
@@ -327,53 +337,201 @@ export async function saveCampaign(_: FormState, form: FormData): Promise<FormSt
   return { success: "Brouillon enregistré.", fields };
 }
 
-const COVER_MAX_BYTES = 2 * 1024 * 1024;
+const CAMPAIGN_DOC_MAX = 10;
+const EDITABLE_CAMPAIGN = ["draft", "changes_requested"];
 
-/**
- * Photo de couverture d'une campagne. Le club la change tant que le dossier est
- * modifiable (elle fait partie de ce que l'équipe vérifie) ; l'équipe, à tout moment.
- */
-export async function uploadCampaignCover(_: FormState, form: FormData): Promise<FormState> {
+type CampaignRef = { id: string; club_id: string; slug: string; status: string; cover_path: string | null };
+
+/** Campagne que la personne peut compléter : son club tant que le dossier est modifiable, ou l'équipe. */
+async function editableCampaign(campaignId: string): Promise<{ campaign: CampaignRef; actor: string } | { error: string }> {
   const viewer = await getViewer();
   if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
-  const admin = createAdminClient();
-  const { data: campaign } = await admin
+  const { data: campaign } = await createAdminClient()
     .from("campaigns")
     .select("id, club_id, slug, status, cover_path")
-    .eq("id", text(form, "campaign_id"))
-    .maybeSingle<{ id: string; club_id: string; slug: string; status: string; cover_path: string | null }>();
+    .eq("id", campaignId)
+    .maybeSingle<CampaignRef>();
   if (!campaign) return { error: "Campagne introuvable." };
   const staff = isStaff(viewer.profile.role);
   const own = viewer.club?.id === campaign.club_id && can(viewer.profile.role, "club:manage");
   if (!staff && !own) return { error: "Vous ne pouvez pas modifier cette campagne." };
-  if (!staff && !["draft", "changes_requested"].includes(campaign.status)) {
-    return { error: "La photo ne se change plus une fois la campagne envoyée. Écrivez à l'équipe Tribune si besoin." };
+  if (!staff && !EDITABLE_CAMPAIGN.includes(campaign.status)) {
+    return { error: "Le dossier est envoyé : photos et devis ne se modifient plus. Écrivez à l'équipe Tribune si besoin." };
   }
+  return { campaign, actor: viewer.profile.id };
+}
 
-  const remove = form.get("intent") === "remove";
-  let path: string | null = null;
-  if (!remove) {
-    const file = await readUpload(form.get("cover"), { maxBytes: COVER_MAX_BYTES, allowPdf: false, label: "une photo" });
-    if ("error" in file) return { error: file.error };
-    path = `${campaign.id}/couverture-${Date.now()}.${file.ext}`;
-    const { error: uploadError } = await admin.storage
-      .from("campaign-images")
-      .upload(path, file.bytes, { contentType: file.mime, upsert: false });
-    if (uploadError) return { error: "Envoi de la photo impossible pour le moment. Réessayez." };
+/** Met à jour le niveau du contrôle automatique (liste du back-office) et les pages de la campagne. */
+async function refreshCampaign(c: CampaignRef) {
+  const admin = createAdminClient();
+  const { data: report } = await admin.rpc("compute_campaign_compliance", { p_campaign_id: c.id });
+  if (report && ["draft", "changes_requested", "in_review"].includes(c.status)) {
+    await admin.from("campaigns").update({ compliance_level: report.level, compliance_checked_at: new Date().toISOString() }).eq("id", c.id);
   }
-  await admin.from("campaigns").update({ cover_path: path }).eq("id", campaign.id);
-  if (campaign.cover_path) await admin.storage.from("campaign-images").remove([campaign.cover_path]);
-  await admin.from("audit_log").insert({
-    actor_id: viewer.profile.id,
-    action: remove ? "campagne.photo_retiree" : "campagne.photo",
-    entity_type: "campaign",
-    entity_id: campaign.id,
+  revalidatePath(`/club/campagnes/${c.id}`);
+  revalidatePath(`/admin/campagnes/${c.id}`);
+  revalidatePath("/admin/campagnes");
+  revalidatePath(`/campagnes/${c.slug}`);
+}
+
+/** Devis ou justificatif de prix : vérifié par l'équipe Tribune avant la publication. */
+export async function uploadCampaignDocument(_: FormState, form: FormData): Promise<FormState> {
+  const found = await editableCampaign(text(form, "campaign_id"));
+  if ("error" in found) return { error: found.error };
+  const { campaign, actor } = found;
+  const kind = text(form, "kind");
+  if (!CAMPAIGN_DOCUMENT_KINDS.some((k) => k.id === kind)) return { error: "Choisissez le type de justificatif." };
+  const supplier = text(form, "supplier").slice(0, 120);
+  if (kind !== "autre" && supplier.length < 2) return { error: "Indiquez le nom du fournisseur : l'équipe Tribune le contactera pour vérifier le devis." };
+
+  const file = await readUpload(form.get("file"), { maxBytes: DOCUMENT_MAX_BYTES, allowPdf: true, label: "un fichier (PDF ou photo)" });
+  if ("error" in file) return { error: file.error };
+
+  const admin = createAdminClient();
+  const { count } = await admin.from("campaign_documents").select("id", { count: "exact", head: true }).eq("campaign_id", campaign.id);
+  if ((count ?? 0) >= CAMPAIGN_DOC_MAX) return { error: `La campagne compte déjà ${CAMPAIGN_DOC_MAX} justificatifs. Retirez-en un avant d'en ajouter.` };
+
+  const path = `${campaign.id}/${randomUUID()}.${file.ext}`;
+  const { error: uploadError } = await admin.storage.from("campaign-documents").upload(path, file.bytes, { contentType: file.mime, upsert: false });
+  if (uploadError) return { error: "Envoi du justificatif impossible pour le moment. Réessayez." };
+  const { error } = await admin.from("campaign_documents").insert({
+    campaign_id: campaign.id,
+    kind,
+    supplier,
+    file_path: path,
+    file_name: cleanFileName(form.get("file"), `devis.${file.ext}`),
+    mime_type: file.mime,
+    size_bytes: file.bytes.length,
+    uploaded_by: actor,
   });
-  revalidatePath(`/club/campagnes/${campaign.id}`);
-  revalidatePath(`/admin/campagnes/${campaign.id}`);
-  revalidatePath(`/campagnes/${campaign.slug}`);
+  if (error) {
+    await admin.storage.from("campaign-documents").remove([path]);
+    return { error: "Enregistrement du justificatif impossible. Réessayez." };
+  }
+  await admin.from("audit_log").insert({
+    actor_id: actor, action: "campagne.justificatif_ajoute", entity_type: "campaign", entity_id: campaign.id, details: { type: kind, fournisseur: supplier },
+  });
+  await refreshCampaign(campaign);
+  return { success: "Justificatif ajouté." };
+}
+
+export async function deleteCampaignDocument(_: FormState, form: FormData): Promise<FormState> {
+  const admin = createAdminClient();
+  const { data: doc } = await admin
+    .from("campaign_documents")
+    .select("id, campaign_id, file_path, kind")
+    .eq("id", text(form, "document_id"))
+    .maybeSingle<{ id: string; campaign_id: string; file_path: string; kind: string }>();
+  if (!doc) return { error: "Justificatif introuvable." };
+  const found = await editableCampaign(doc.campaign_id);
+  if ("error" in found) return { error: found.error };
+  await admin.from("campaign_documents").delete().eq("id", doc.id);
+  await admin.storage.from("campaign-documents").remove([doc.file_path]);
+  await admin.from("audit_log").insert({
+    actor_id: found.actor, action: "campagne.justificatif_retire", entity_type: "campaign", entity_id: doc.campaign_id, details: { type: doc.kind },
+  });
+  await refreshCampaign(found.campaign);
+  return { success: "Justificatif retiré." };
+}
+
+const PHOTO_MAX = 6;
+const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Photo de la situation actuelle (bucket public « campaign-images ») : légende et
+ * date obligatoires. La première photo devient la couverture de la campagne.
+ */
+export async function uploadCampaignPhoto(_: FormState, form: FormData): Promise<FormState> {
+  const found = await editableCampaign(text(form, "campaign_id"));
+  if ("error" in found) return { error: found.error };
+  const { campaign, actor } = found;
+  const caption = text(form, "caption").slice(0, 200);
+  if (caption.length < 3) return { error: "Décrivez la photo en quelques mots : ce qu'elle montre et où.", field: "caption" };
+  const takenOn = text(form, "taken_on");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(takenOn) || takenOn < "2000-01-01" || takenOn > todayInKinshasa()) {
+    return { error: "Indiquez la date de la photo (pas dans le futur).", field: "taken_on" };
+  }
+  const file = await readUpload(form.get("photo"), { maxBytes: PHOTO_MAX_BYTES, allowPdf: false, label: "une photo" });
+  if ("error" in file) return { error: file.error, field: "photo" };
+
+  const admin = createAdminClient();
+  const { count } = await admin.from("campaign_photos").select("id", { count: "exact", head: true }).eq("campaign_id", campaign.id);
+  if ((count ?? 0) >= PHOTO_MAX) return { error: `La campagne a déjà ${PHOTO_MAX} photos. Retirez-en une avant d'en ajouter.` };
+
+  const path = `${campaign.id}/photo-${randomUUID()}.${file.ext}`;
+  const { error: uploadError } = await admin.storage.from("campaign-images").upload(path, file.bytes, { contentType: file.mime, upsert: false });
+  if (uploadError) return { error: "Envoi de la photo impossible pour le moment. Réessayez." };
+  const { error } = await admin.from("campaign_photos").insert({
+    campaign_id: campaign.id,
+    file_path: path,
+    caption,
+    taken_on: takenOn,
+    // Empreinte du fichier : le contrôle repère une photo déjà envoyée par un autre club.
+    sha256: createHash("sha256").update(file.bytes).digest("hex"),
+    position: count ?? 0,
+    uploaded_by: actor,
+  });
+  if (error) {
+    await admin.storage.from("campaign-images").remove([path]);
+    return { error: "Enregistrement de la photo impossible. Réessayez." };
+  }
+  if (!campaign.cover_path) await admin.from("campaigns").update({ cover_path: path }).eq("id", campaign.id);
+  await admin.from("audit_log").insert({
+    actor_id: actor, action: "campagne.photo_ajoutee", entity_type: "campaign", entity_id: campaign.id, details: { legende: caption, date: takenOn },
+  });
+  await refreshCampaign(campaign);
   revalidatePath("/");
-  return { success: remove ? "Photo retirée." : "Photo de couverture enregistrée." };
+  return { success: "Photo ajoutée." };
+}
+
+type PhotoRow = { id: string; campaign_id: string; file_path: string };
+
+async function photoWithRights(photoId: string): Promise<{ photo: PhotoRow; campaign: CampaignRef; actor: string } | { error: string }> {
+  const { data: photo } = await createAdminClient()
+    .from("campaign_photos")
+    .select("id, campaign_id, file_path")
+    .eq("id", photoId)
+    .maybeSingle<PhotoRow>();
+  if (!photo) return { error: "Photo introuvable." };
+  const found = await editableCampaign(photo.campaign_id);
+  return "error" in found ? found : { photo, ...found };
+}
+
+/** Choisit la photo affichée sur la fiche et en tête de la campagne. */
+export async function setCampaignCover(_: FormState, form: FormData): Promise<FormState> {
+  const found = await photoWithRights(text(form, "photo_id"));
+  if ("error" in found) return { error: found.error };
+  const admin = createAdminClient();
+  await admin.from("campaigns").update({ cover_path: found.photo.file_path }).eq("id", found.campaign.id);
+  await admin.from("audit_log").insert({ actor_id: found.actor, action: "campagne.couverture", entity_type: "campaign", entity_id: found.campaign.id });
+  await refreshCampaign(found.campaign);
+  revalidatePath("/");
+  return { success: "Photo de couverture choisie." };
+}
+
+export async function deleteCampaignPhoto(_: FormState, form: FormData): Promise<FormState> {
+  const found = await photoWithRights(text(form, "photo_id"));
+  if ("error" in found) return { error: found.error };
+  const { photo, campaign, actor } = found;
+  const admin = createAdminClient();
+  await admin.from("campaign_photos").delete().eq("id", photo.id);
+  if (campaign.cover_path === photo.file_path) {
+    // La couverture passe à la photo suivante, s'il en reste une.
+    const { data: next } = await admin
+      .from("campaign_photos")
+      .select("file_path")
+      .eq("campaign_id", campaign.id)
+      .order("position")
+      .order("created_at")
+      .limit(1)
+      .maybeSingle<{ file_path: string }>();
+    await admin.from("campaigns").update({ cover_path: next?.file_path ?? null }).eq("id", campaign.id);
+  }
+  await admin.storage.from("campaign-images").remove([photo.file_path]);
+  await admin.from("audit_log").insert({ actor_id: actor, action: "campagne.photo_retiree", entity_type: "campaign", entity_id: campaign.id });
+  await refreshCampaign(campaign);
+  revalidatePath("/");
+  return { success: "Photo retirée." };
 }
 
 /** Nouvelle (page publique), actualité du club ou message réservé aux contributeurs : relue avant publication. */

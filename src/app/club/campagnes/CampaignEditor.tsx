@@ -4,9 +4,11 @@ import { useActionState, useState } from "react";
 import { saveCampaign } from "@/lib/actions/club";
 import { FieldError, Flash, SubmitButton } from "@/components/forms";
 import { formatDate, formatMoney } from "@/lib/format";
-import { CAMPAIGN_CATEGORIES, CAMPAIGN_LIMITS } from "@/lib/types";
+import { formatRatio, rateLine, suggestReference } from "@/lib/compliance";
+import { CAMPAIGN_CATEGORIES, CAMPAIGN_LIMITS, type PriceReference } from "@/lib/types";
 
-type Line = { label: string; amount: string };
+/** Poste du budget. `manual` : l'article de référence a été choisi à la main (sinon il est suggéré d'après le libellé). */
+type Line = { label: string; amount: string; quantity: string; reference_id: string; manual?: boolean };
 type Step = { label: string; target: string };
 
 export type EditorValues = {
@@ -42,8 +44,11 @@ export function CampaignEditor({
   initial,
   today,
   publicationFee,
+  references,
 }: {
   initial: EditorValues;
+  /** Référentiel des prix (articles actifs). */
+  references: PriceReference[];
   /** Date du jour à Kinshasa (AAAA-MM-JJ), pour montrer la date de fin si la campagne était publiée aujourd'hui. */
   today: string;
   /** Frais d'instruction et de publication en vigueur (USD). */
@@ -51,9 +56,26 @@ export function CampaignEditor({
 }) {
   const [state, action] = useActionState(saveCampaign, {});
   const f = state.fields;
+  const emptyLine: Line = { label: "", amount: "", quantity: "1", reference_id: "" };
   const [budget, setBudget] = useState<Line[]>(() =>
-    f ? parse(f.budget, initial.budget) : initial.budget.length ? initial.budget : [{ label: "", amount: "" }],
+    (f ? parse(f.budget, initial.budget) : initial.budget.length ? initial.budget : [emptyLine]).map((l) => ({
+      ...emptyLine,
+      ...l,
+      quantity: String(l.quantity || "1"),
+      reference_id: l.reference_id ?? "",
+      manual: true,
+    })),
   );
+  const refById = new Map(references.map((r) => [r.id, r]));
+  const groups = CAMPAIGN_CATEGORIES.map((c) => ({ category: c, refs: references.filter((r) => r.category === c) })).filter((g) => g.refs.length);
+  const analysis = budget.map((line) => {
+    const chosen = line.reference_id ? (refById.get(line.reference_id) ?? null) : null;
+    const ref = chosen ?? (line.label.trim() ? suggestReference(line.label, references) : null);
+    const quantity = Number(line.quantity) || 0;
+    const unit = quantity > 0 ? (Number(line.amount) || 0) / quantity : 0;
+    return { ref, chosen: !!chosen, unit, ...rateLine(unit, ref, !!chosen) };
+  });
+  const blocking = analysis.filter((a) => a.level === "block").length;
   const [milestones, setMilestones] = useState<Step[]>(() =>
     f ? parse(f.milestones, initial.milestones) : initial.milestones.length ? initial.milestones : [{ label: "", target: "" }],
   );
@@ -72,7 +94,15 @@ export function CampaignEditor({
     <form className="panel form" action={action} noValidate>
       <Flash state={state} />
       {initial.id ? <input type="hidden" name="campaign_id" value={initial.id} /> : null}
-      <input type="hidden" name="budget" value={JSON.stringify(budget.filter((l) => l.label.trim() || l.amount))} />
+      <input
+        type="hidden"
+        name="budget"
+        value={JSON.stringify(
+          budget
+            .filter((l) => l.label.trim() || l.amount)
+            .map((l) => ({ label: l.label, amount: l.amount, quantity: l.quantity || "1", reference_id: l.reference_id || null })),
+        )}
+      />
       <input type="hidden" name="milestones" value={JSON.stringify(milestones.filter((m) => m.label.trim()))} />
 
       <div className="field">
@@ -174,38 +204,109 @@ export function CampaignEditor({
 
       <div className="field">
         <label>Budget détaillé</label>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 8 }}>
+          Pour chaque poste, choisissez l&apos;article du référentiel et la quantité : le prix unitaire est comparé au prix
+          normal. Un poste à 3 fois le prix de référence ou plus bloque l&apos;envoi.
+        </p>
         <div className="rowlist">
-          {budget.map((line, i) => (
-            <div className="budget-row" key={i}>
-              <input
-                type="text"
-                aria-label={`Poste ${i + 1}`}
-                placeholder="Poste (ex. : Maillots, 40 pièces)"
-                value={line.label}
-                onChange={(e) => update(budget, setBudget, i, { label: e.target.value })}
-              />
-              <input
-                type="number"
-                aria-label={`Montant du poste ${i + 1}`}
-                placeholder="Montant"
-                min={1}
-                value={line.amount}
-                onChange={(e) => update(budget, setBudget, i, { amount: e.target.value })}
-              />
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBudget(budget.filter((_, j) => j !== i))} aria-label="Retirer ce poste">
-                ✕
-              </button>
-            </div>
-          ))}
+          {budget.map((line, i) => {
+            const a = analysis[i];
+            return (
+              <div className={`budget-line lvl-${a.level}`} key={i}>
+                <input
+                  type="text"
+                  className="bl-label"
+                  aria-label={`Poste ${i + 1}`}
+                  placeholder="Poste (ex. : Maillots de match)"
+                  value={line.label}
+                  onChange={(e) => {
+                    const label = e.target.value;
+                    const auto = line.manual ? null : suggestReference(label, references);
+                    update(budget, setBudget, i, line.manual ? { label } : { label, reference_id: auto?.id ?? "" });
+                  }}
+                />
+                <label className="bl-ref">
+                  <span>Article de référence</span>
+                  <select
+                    aria-label={`Article de référence du poste ${i + 1}`}
+                    value={line.reference_id}
+                    onChange={(e) => update(budget, setBudget, i, { reference_id: e.target.value, manual: true })}
+                  >
+                  <option value="">Autre (pas dans la liste)</option>
+                  {groups.map((g) => (
+                    <optgroup key={g.category} label={g.category}>
+                      {g.refs.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label} — {formatMoney(r.unit_price)} / {r.unit}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  </select>
+                </label>
+                <label className="bl-qty">
+                  <span>Quantité</span>
+                  <input
+                    type="number"
+                    aria-label={`Quantité du poste ${i + 1}`}
+                    min={0.01}
+                    step="any"
+                    value={line.quantity}
+                    onChange={(e) => update(budget, setBudget, i, { quantity: e.target.value })}
+                  />
+                </label>
+                <label className="bl-amount">
+                  <span>Montant total ($)</span>
+                  <input
+                    type="number"
+                    aria-label={`Montant total du poste ${i + 1}`}
+                    min={1}
+                    value={line.amount}
+                    onChange={(e) => update(budget, setBudget, i, { amount: e.target.value })}
+                  />
+                </label>
+                <button type="button" className="btn btn-ghost btn-sm bl-del" onClick={() => setBudget(budget.filter((_, j) => j !== i))} aria-label="Retirer ce poste">
+                  ✕
+                </button>
+                {a.unit > 0 && line.label.trim() ? (
+                  <div className="bl-check small">
+                    {formatMoney(a.unit)} l&apos;unité
+                    {a.ref && a.ratio !== null ? (
+                      <>
+                        {" · "}référence {formatMoney(a.ref.unit_price)} / {a.ref.unit}
+                        {a.chosen ? "" : " (suggérée)"}
+                        {" · "}
+                        <b>
+                          {a.level === "ok"
+                            ? "au prix normal ✓"
+                            : a.level === "block"
+                              ? `${formatRatio(a.ratio)} fois le prix normal : corrigez le montant ou la quantité`
+                              : `${formatRatio(a.ratio)} fois le prix normal : à justifier par le devis`}
+                        </b>
+                      </>
+                    ) : (
+                      " · pas de prix de référence : le devis fera foi"
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBudget([...budget, { label: "", amount: "" }])}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBudget([...budget, emptyLine])}>
             + Ajouter un poste
           </button>
           <span className="small num" style={{ color: balanced ? "var(--ok)" : "var(--warn)", fontWeight: 700 }}>
             Total : {formatMoney(total)} {balanced ? "= objectif ✓" : `· l'objectif est ${formatMoney(Number(goal) || 0)}`}
           </span>
         </div>
+        {blocking ? (
+          <p className="flash error" style={{ marginTop: 10, marginBottom: 0 }}>
+            {blocking > 1 ? `${blocking} postes dépassent` : "Un poste dépasse"} 3 fois le prix de référence : la campagne ne pourra pas être
+            envoyée en revue tant que le montant n&apos;est pas corrigé.
+          </p>
+        ) : null}
         <FieldError state={state} name="budget" />
       </div>
 

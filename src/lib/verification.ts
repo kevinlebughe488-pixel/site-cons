@@ -18,6 +18,8 @@ import { sendSms, smsMode } from "@/lib/sms";
 export type ChallengePurpose = "signup" | "login" | "reset";
 
 const COOKIE = "tribune_verif";
+const RESET_COOKIE = "tribune_reinit";
+const RESET_TTL_MINUTES = 15;
 const CODE_TTL_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 const MAX_CODES_PER_WINDOW = 3;
@@ -116,7 +118,7 @@ export async function resendChallenge() {
 }
 
 /** Vérifie le code ; s'il est bon, ouvre la session et renvoie le défi validé. */
-export async function confirmChallenge(code: string): Promise<{ purpose: ChallengePurpose; returnTo: string | null }> {
+export async function confirmChallenge(code: string): Promise<{ purpose: ChallengePurpose; returnTo: string | null; userId: string }> {
   const c = await currentChallenge();
   if (!c) throw new VerificationError("La vérification a expiré. Recommencez.");
   const admin = createAdminClient();
@@ -156,10 +158,46 @@ export async function confirmChallenge(code: string): Promise<{ purpose: Challen
   if (error) throw new VerificationError("Connexion impossible pour le moment. Réessayez.");
 
   (await cookies()).delete(COOKIE);
-  return { purpose: c.purpose, returnTo: c.return_to };
+  return { purpose: c.purpose, returnTo: c.return_to, userId: c.user_id };
 }
 
 /** Abandonne la vérification en cours. */
 export async function cancelChallenge() {
   (await cookies()).delete(COOKIE);
+}
+
+// Mot de passe oublié : après le code SMS, la personne a 15 minutes pour choisir
+// un nouveau mot de passe sans donner l'ancien. Cette autorisation est un cookie
+// signé par le serveur, lié au compte : une session ouverte autrement (connexion
+// normale) ne permet pas de changer le mot de passe sans l'actuel.
+
+function resetSignature(userId: string, expires: number): string {
+  return createHmac("sha256", env.supabaseServiceRoleKey).update(`reinit:${userId}:${expires}`).digest("hex");
+}
+
+/** Autorise le choix d'un nouveau mot de passe sans l'ancien (après un code SMS « mot de passe oublié »). */
+export async function grantPasswordReset(userId: string) {
+  const expires = Date.now() + RESET_TTL_MINUTES * 60_000;
+  (await cookies()).set(RESET_COOKIE, `${userId}.${expires}.${resetSignature(userId, expires)}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: RESET_TTL_MINUTES * 60,
+  });
+}
+
+/** Compte autorisé à choisir un nouveau mot de passe sans l'ancien, ou null. */
+export async function passwordResetGrant(): Promise<string | null> {
+  const raw = (await cookies()).get(RESET_COOKIE)?.value ?? "";
+  const [userId, expiresRaw, signature] = raw.split(".");
+  const expires = Number(expiresRaw);
+  if (!userId || !signature || !Number.isFinite(expires) || expires < Date.now()) return null;
+  const expected = Buffer.from(resetSignature(userId, expires), "hex");
+  const given = Buffer.from(signature, "hex");
+  return expected.length === given.length && timingSafeEqual(expected, given) ? userId : null;
+}
+
+export async function clearPasswordReset() {
+  (await cookies()).delete(RESET_COOKIE);
 }
