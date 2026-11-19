@@ -111,6 +111,19 @@ svg.field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .board .score .r .v{color:var(--on-pitch)}
 .board .meta{display:flex;justify-content:space-between;font-size:.88rem;margin-top:10px;opacity:.9;gap:10px;flex-wrap:wrap}
 .board .btn{width:100%;margin-top:18px}
+a.board{display:block;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+a.board:hover{border-color:var(--gold);transform:translateY(-2px)}
+.board-photo{display:block;width:calc(100% + 44px);margin:-22px -22px 16px;aspect-ratio:16/7;object-fit:cover;border-radius:var(--r-lg) var(--r-lg) 0 0}
+
+/* accueil connecté : peu de texte, trois raccourcis */
+.hero-me .wrap{padding-block:40px 48px}
+.hero-me h1{font-size:clamp(2.1rem,5vw,3.4rem)}
+.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:28px;max-width:560px}
+.quick a{display:grid;gap:6px;align-content:start;justify-items:start;padding:14px;border-radius:var(--r);background:rgba(0,0,0,.2);border:1px solid var(--pitch-line);text-decoration:none;color:inherit;min-width:0;transition:border-color .15s}
+.quick a:hover{border-color:var(--gold)}
+.quick b{font-family:var(--f-display);font-size:1.6rem;line-height:1;color:var(--gold)}
+.quick span{font-size:.85rem;opacity:.85;overflow-wrap:anywhere}
+@media (max-width:480px){.quick{grid-template-columns:minmax(0,1fr)}.quick a{grid-template-columns:auto 1fr;align-items:center;gap:12px}}
 
 /* sections */
 section.band{padding-block:56px}
@@ -476,3 +489,16 @@ footer .legal-links a{display:inline;padding:0;text-decoration:underline}
 .cookie-banner{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;max-width:760px;margin-inline:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:0 12px 32px -12px rgba(0,0,0,.35);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .cookie-banner p{flex:1 1 280px}
 .cookie-banner .acts{display:flex;gap:8px}
+
+/* mot de passe : bouton « Afficher », règles, écran de confirmation */
+.page-title{font-size:clamp(2rem,4.5vw,2.6rem);margin-bottom:10px}
+.pw{position:relative}
+.pw input{padding-right:92px}
+.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);font-weight:700;font-size:.85rem;padding:8px 10px;border-radius:8px;cursor:pointer}
+.pw-toggle:hover{color:var(--ink);background:var(--line)}
+.pw-rules{list-style:none;padding:0;margin:0;display:grid;gap:4px;font-size:.88rem;color:var(--muted)}
+.pw-rules li.ok{color:var(--ok);font-weight:600}
+.pw-rules li span{display:inline-block;width:1.1em}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+.done-screen{text-align:center;display:grid;gap:12px;justify-items:center;padding-block:36px}
+.done-icon{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-size:2rem;font-weight:800}

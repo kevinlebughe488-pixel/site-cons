@@ -26,8 +26,9 @@ const STATUS_TONE: Record<ContributionStatus, "ok" | "warn" | "bad" | "info" | "
   refunded: "muted",
 };
 
-export default async function AccountPage() {
+export default async function AccountPage(props: PageProps<"/compte">) {
   const { profile: me, club } = await requirePermission("account:read", "/compte");
+  const { ok } = await props.searchParams;
   // Les contributions et la vérification d'identité ne concernent que les supporters.
   const contributes = can(me.role, "contribution:read");
   const supabase = await createClient();
@@ -72,6 +73,11 @@ export default async function AccountPage() {
         </div>
       </div>
       <div className="wrap page">
+        {ok === "mot_de_passe" ? (
+          <p className="flash success" role="status">
+            Nouveau mot de passe enregistré. Vos autres appareils ont été déconnectés.
+          </p>
+        ) : null}
         {contributes ? (
           <div className="kpis" style={{ marginTop: 0 }}>
             <div className="kpi">
@@ -272,8 +278,11 @@ export default async function AccountPage() {
             </div>
             <div className="panel">
               <h3>Sécurité</h3>
+              <p className="small muted" style={{ marginBottom: 10 }}>
+                Connexion par mot de passe et code SMS au {formatPhone(me.phone)}.
+              </p>
               <Link className="btn btn-ghost btn-sm" href="/compte/mot-de-passe">
-                Changer mon mot de passe
+                Modifier mon mot de passe
               </Link>
             </div>
             <div className="panel">
