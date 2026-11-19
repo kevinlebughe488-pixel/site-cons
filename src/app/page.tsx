@@ -5,13 +5,11 @@ import { navigationFor } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CAMPAIGN_WITH_CLUB, listCampaigns } from "@/lib/campaigns";
 import { CampaignCard } from "@/components/CampaignCard";
-import { coverUrl, Crest, FieldSvg, ProgressBar } from "@/components/visuals";
-import { daysLeft, formatMoney, formatNumber, percent, plural } from "@/lib/format";
+import { HomeHero, type FollowedClub } from "@/components/HomeHero";
+import { formatMoney, percent } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CampaignWithClub, Milestone } from "@/lib/types";
-
-type FollowedClub = { id: string; slug: string; name: string; short_name: string; color_primary: string; color_secondary: string; logo_path: string | null };
 
 /** Total des contributions confirmées du supporter connecté. */
 async function myContributions(supabase: SupabaseClient, userId: string): Promise<number> {
@@ -64,102 +62,15 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className={`hero on-pitch${viewer ? " hero-me" : ""}`}>
-        <FieldSvg opacity={0.7} />
-        <div className="wrap">
-          {viewer ? (
-            <div>
-              <div className="eyebrow" style={{ color: "var(--gold)" }}>
-                Bonjour {viewer.profile.first_name}
-              </div>
-              <h1 style={{ marginTop: 10 }}>
-                Quel projet soutenez-vous <em>aujourd&apos;hui</em>&nbsp;?
-              </h1>
-              <nav className="quick" aria-label="Raccourcis">
-                <Link href="/campagnes">
-                  <b className="num">{live.length}</b>
-                  <span>{live.length > 1 ? "campagnes ouvertes" : "campagne ouverte"}</span>
-                </Link>
-                <Link href="/compte">
-                  <b className="num">{formatMoney(myTotal)}</b>
-                  <span>mes contributions</span>
-                </Link>
-                <Link href={followed ? `/clubs/${followed.slug}` : "/clubs"}>
-                  {followed ? <Crest club={followed} size={30} /> : <b>+</b>}
-                  <span>{followed ? followed.name : "suivre un club"}</span>
-                </Link>
-              </nav>
-            </div>
-          ) : (
-            <div>
-              <div className="eyebrow" style={{ color: "var(--gold)" }}>
-                Financement participatif des clubs
-              </div>
-              <h1 style={{ marginTop: 12 }}>
-                Le club, c&apos;est vous. <em>Financez-le.</em>
-              </h1>
-              <p className="lead">Payez par Mobile Money. Suivez chaque dollar, photos et factures à l&apos;appui.</p>
-              <div className="ctas">
-                <Link className="btn btn-gold" href="/campagnes">
-                  Voir les campagnes
-                </Link>
-                <Link className="btn btn-ghost" href="/inscription?profil=supporter">
-                  Créer mon compte
-                </Link>
-              </div>
-              {stats ? (
-                <div className="facts num">
-                  <div>
-                    <b>{formatMoney(stats.total_raised)}</b>collectés
-                  </div>
-                  <div>
-                    <b>{formatNumber(stats.supporters)}</b>supporters
-                  </div>
-                  <div>
-                    <b>{stats.active_campaigns}</b>
-                    {stats.active_campaigns > 1 ? "campagnes" : "campagne"} en cours
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          )}
-          {featured ? (
-            <Link className="board" href={`/campagnes/${featured.slug}`} aria-label={`À la une : ${featured.title}`}>
-              {featured.cover_path ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="board-photo" src={coverUrl(featured.cover_path)} alt="" decoding="async" />
-              ) : null}
-              <div className="head">
-                <Crest club={featured.club} size={36} />
-                <div>
-                  <div className="club">{featured.club.name}</div>
-                  <div className="small" style={{ opacity: 0.8 }}>
-                    {featured === mine ? "Votre club" : "À la une"}
-                  </div>
-                </div>
-              </div>
-              <h3 style={{ marginTop: 12 }}>{featured.title}</h3>
-              <div className="score num">
-                <div>
-                  <div className="v">{formatMoney(featured.raised_amount, featured.currency)}</div>
-                  <div className="l">Collectés</div>
-                </div>
-                <div className="sep">/</div>
-                <div className="r">
-                  <div className="v">{formatMoney(featured.goal_amount, featured.currency)}</div>
-                  <div className="l">Objectif</div>
-                </div>
-              </div>
-              <ProgressBar raised={featured.raised_amount} goal={featured.goal_amount} />
-              <div className="meta num">
-                <span>{percent(featured.raised_amount, featured.goal_amount)} % atteint</span>
-                <span>{plural(daysLeft(featured.end_date), "jour restant", "jours restants")}</span>
-              </div>
-              <span className="btn btn-gold">Voir le projet</span>
-            </Link>
-          ) : null}
-        </div>
-      </section>
+      <HomeHero
+        firstName={viewer?.profile.first_name ?? null}
+        liveCount={live.length}
+        myTotal={myTotal}
+        followed={followed}
+        featured={featured ?? null}
+        featuredIsMine={!!mine && featured === mine}
+        stats={stats ?? null}
+      />
 
       <section className="band">
         <div className="wrap">
