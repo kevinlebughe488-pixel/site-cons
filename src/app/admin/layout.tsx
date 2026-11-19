@@ -12,6 +12,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin", label: "Tableau de bord" },
     { href: "/admin/campagnes", label: "Campagnes" },
     { href: "/admin/clubs", label: "Clubs et inscriptions" },
+    can(role, "campaign:review") && { href: "/admin/prix", label: "Référentiel des prix" },
     can(role, "update:review") && { href: "/admin/nouvelles", label: "Nouvelles à relire" },
     can(role, "comment:moderate") && { href: "/admin/commentaires", label: "Commentaires" },
     can(role, "user:read") && { href: "/admin/utilisateurs", label: "Comptes et rôles" },

@@ -13,7 +13,7 @@ import { startRefund, syncContribution, syncRefund } from "@/lib/payments/servic
 import { activeGateway } from "@/lib/payments";
 import { PawapayGateway } from "@/lib/payments/pawapay";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CLUB_REVIEW_CRITERIA, REVIEW_CRITERIA } from "@/lib/types";
+import { CAMPAIGN_CATEGORIES, CLUB_REVIEW_CRITERIA, REVIEW_CRITERIA } from "@/lib/types";
 
 // Chaque action vérifie la permission côté application, puis la base de données
 // revérifie le rôle dans la fonction appelée (double contrôle).
@@ -47,7 +47,7 @@ export async function reviewCampaign(_: FormState, form: FormData): Promise<Form
   if (!labels[decision]) return { error: "Décision inconnue." };
   const criteria = form.getAll("criteria").filter((v): v is string => typeof v === "string");
   if (decision === "approve" && !REVIEW_CRITERIA.every((c) => criteria.includes(c.id))) {
-    return { error: "Pour publier, cochez les trois critères d'instruction : clarté, faisabilité et cohérence." };
+    return { error: "Pour publier, cochez les quatre critères d'instruction : clarté, faisabilité, cohérence et authenticité." };
   }
   return rpc(
     "campaign:review",
@@ -298,4 +298,40 @@ export async function checkPawapay(): Promise<FormState> {
   } catch (error) {
     return { error: `Connexion à pawaPay impossible : ${(error as Error).message}` };
   }
+}
+
+/** Référentiel des prix : ajouter, corriger ou confirmer un prix normal (journalisé). */
+export async function savePriceReference(_: FormState, form: FormData): Promise<FormState> {
+  const label = text(form, "label");
+  const category = text(form, "category");
+  const unit = text(form, "unit");
+  const price = Number(text(form, "unit_price").replace(",", "."));
+  const source = text(form, "source");
+  if (label.length < 3) return { error: "Indiquez le nom de l'article ou du service.", field: "label" };
+  if (!(CAMPAIGN_CATEGORIES as readonly string[]).includes(category)) return { error: "Choisissez un thème.", field: "category" };
+  if (!unit) return { error: "Indiquez l'unité (pièce, paire, m², jour…).", field: "unit" };
+  if (!(price > 0) || price > 1_000_000) return { error: "Le prix de référence doit être un montant positif.", field: "unit_price" };
+  if (source.length < 3) return { error: "Indiquez la source du prix : devis reçus, relevé de marché, facture…", field: "source" };
+  const keywords = text(form, "keywords")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+  const id = text(form, "id") || null;
+  return rpc(
+    "campaign:review",
+    "save_price_reference",
+    {
+      p_id: id,
+      p_label: label.slice(0, 120),
+      p_category: category,
+      p_unit: unit.slice(0, 30),
+      p_unit_price: Math.round(price * 100) / 100,
+      p_keywords: keywords,
+      p_source: source.slice(0, 300),
+      p_active: form.get("active") !== "off",
+    },
+    id ? "Prix enregistré et confirmé." : "Article ajouté au référentiel.",
+    ["/admin/prix"],
+  );
 }

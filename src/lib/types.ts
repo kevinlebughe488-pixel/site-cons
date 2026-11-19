@@ -124,6 +124,8 @@ export type Campaign = {
   max_contribution: number | null;
   /** Photo de couverture (bucket public « campaign-images »). */
   cover_path: string | null;
+  /** Niveau du dernier contrôle automatique de conformité. */
+  compliance_level: ComplianceLevel | null;
   goal_reached_at: string | null;
   status: CampaignStatus;
   raised_amount: number;
@@ -142,7 +144,52 @@ export type CampaignWithClub = Campaign & {
   >;
 };
 
-export type BudgetLine = { id: string; position: number; label: string; amount: number };
+export type BudgetLine = {
+  id: string;
+  position: number;
+  label: string;
+  /** Montant total du poste (quantité × prix unitaire). */
+  amount: number;
+  quantity: number;
+  /** Article du référentiel des prix choisi par le club (null : « autre »). */
+  reference_id: string | null;
+};
+
+export type ComplianceLevel = "ok" | "warn" | "block";
+
+/** Prix normal d'un article ou d'un service, tenu par l'équipe conformité. */
+export type PriceReference = {
+  id: string;
+  label: string;
+  category: string;
+  unit: string;
+  unit_price: number;
+  keywords: string[];
+  source: string;
+  active: boolean;
+  confirmed_at: string | null;
+  updated_at: string;
+};
+
+export type CampaignDocumentKind = "devis" | "facture" | "autre";
+
+export const CAMPAIGN_DOCUMENT_KINDS: { id: CampaignDocumentKind; label: string }[] = [
+  { id: "devis", label: "Devis ou facture pro forma du fournisseur" },
+  { id: "facture", label: "Facture d'achat" },
+  { id: "autre", label: "Autre justificatif" },
+];
+
+/** Devis et justificatifs de prix joints à une campagne (bucket privé). */
+export type CampaignDocument = {
+  id: string;
+  campaign_id: string;
+  kind: CampaignDocumentKind;
+  supplier: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+};
 export type Milestone = {
   id: string;
   position: number;
@@ -268,6 +315,11 @@ export const REVIEW_CRITERIA = [
   { id: "clarte", label: "Clarté", hint: "Le projet, le budget et l'usage des fonds sont compréhensibles par un supporter." },
   { id: "faisabilite", label: "Faisabilité", hint: "L'objectif, le calendrier et les jalons sont réalistes pour ce club." },
   { id: "coherence", label: "Cohérence", hint: "Le projet sert le club et ses supporters, et les preuves des jalons pourront être publiées." },
+  {
+    id: "authenticite",
+    label: "Authenticité",
+    hint: "Les devis et les photos sont vérifiés : le fournisseur a été contacté et la situation montrée est bien celle du club.",
+  },
 ] as const;
 
 /** Points de contrôle à confirmer avant de vérifier un club. */

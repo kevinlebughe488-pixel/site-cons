@@ -219,7 +219,7 @@ input[type=file]{max-width:100%;font-size:.9rem}
 .field .hint{font-size:.85rem;color:var(--muted);margin-top:4px}
 .field .hint.field-error{color:var(--bad);font-weight:600}
 .field [aria-invalid="true"]{border-color:var(--bad)}
-input[type=text],input[type=tel],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:11px 13px}
+input[type=text],input[type=password],input[type=tel],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:11px 13px}
 input:focus,select:focus,textarea:focus{border-color:var(--pitch);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--pitch) 22%,transparent)}
 textarea{min-height:110px;resize:vertical}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -333,6 +333,17 @@ footer .legal{border-top:1px solid var(--pitch-line);margin-top:28px;padding-top
 .budget-row{display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:center}
 .budget-row.ms{grid-template-columns:1fr 160px auto}
 @media (max-width:560px){.budget-row,.budget-row.ms{grid-template-columns:1fr}}
+/* poste du budget : libellé, article de référence, quantité, montant, contrôle du prix */
+.budget-line{display:grid;grid-template-columns:minmax(0,1fr) 84px 130px auto;grid-template-areas:"label label label del" "ref qty amount amount" "check check check check";gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);border-left-width:4px}
+.budget-line .bl-label{grid-area:label}.budget-line .bl-ref{grid-area:ref;min-width:0}.budget-line .bl-qty{grid-area:qty}.budget-line .bl-amount{grid-area:amount}.budget-line .bl-del{grid-area:del}
+.budget-line .bl-check{grid-area:check;color:var(--muted)}
+.budget-line label{display:grid;gap:3px;margin:0;font-weight:400}
+.budget-line label > span{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.budget-line .bl-del{align-self:start}
+.budget-line.lvl-ok{border-left-color:var(--ok)} .budget-line.lvl-ok .bl-check b{color:var(--ok)}
+.budget-line.lvl-warn{border-left-color:var(--warn)} .budget-line.lvl-warn .bl-check b{color:var(--warn)}
+.budget-line.lvl-block{border-left-color:var(--bad);background:var(--bad-bg)} .budget-line.lvl-block .bl-check b{color:var(--bad)}
+@media (max-width:560px){.budget-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;grid-template-areas:"label label del" "ref ref ref" "qty amount amount" "check check check"}}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
 .tabs a{padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);text-decoration:none;font-weight:600;font-size:.9rem}
 .tabs a[aria-current="page"]{background:var(--pitch);color:var(--on-pitch);border-color:var(--pitch)}
@@ -502,3 +513,16 @@ footer .legal-links a{display:inline;padding:0;text-decoration:underline}
 hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 .done-screen{text-align:center;display:grid;gap:12px;justify-items:center;padding-block:36px}
 .done-icon{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-size:2rem;font-weight:800}
+
+/* contrôle automatique de conformité */
+.compliance-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.checks li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.checks li > div{display:grid;gap:2px}
+.checks .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.85rem}
+.checks .lvl-ok .ic{background:var(--ok-bg);color:var(--ok)}
+.checks .lvl-warn .ic{background:var(--warn-bg);color:var(--warn)}
+.checks .lvl-block .ic{background:var(--bad-bg);color:var(--bad)}
+.checks .lvl-block b{color:var(--bad)}
+.verified{list-style:none;margin:14px 0 0;padding:12px 14px;display:grid;gap:6px;border-radius:var(--r);background:var(--ok-bg);color:var(--ok);font-size:.9rem;font-weight:600}
+.verified li::before{content:"✓ ";font-weight:800}

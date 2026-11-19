@@ -151,6 +151,29 @@ const ranking = (await anon.rpc("ambassador_ranking", { p_limit: 5 })).data ?? [
 expect("visiteur : le classement des ambassadeurs ne contient aucun identifiant", ranking.length > 0 && ranking.every((r) => Object.keys(r).sort().join() === "amount,is_me,label,rank,supporters"));
 expect("gestionnaire : ne peut pas changer la photo d'une campagne publiée", !!(await manager.from("campaigns").update({ cover_path: "x.jpg" }).eq("club_id", anyCampaign.club_id)).error);
 
+// ---------------------------------------------------------------------
+// Contrôle de conformité : référentiel des prix, devis, contrôle automatique
+// ---------------------------------------------------------------------
+expect("visiteur : lit le référentiel des prix", ((await anon.from("price_references").select("id")).data ?? []).length > 0);
+expect(
+  "gestionnaire : ne peut pas modifier le référentiel des prix",
+  !!(await manager.rpc("save_price_reference", { p_id: null, p_label: "Maillot pirate", p_category: "Équipement", p_unit: "pièce", p_unit_price: 999, p_keywords: [], p_source: "x", p_active: true })).error,
+);
+expect("gestionnaire : ne peut pas écrire directement dans le référentiel", !!(await manager.from("price_references").update({ unit_price: 9999 }).gt("unit_price", 0)).error);
+expect("visiteur : ne lit aucun devis", !!(await anon.from("campaign_documents").select("id")).error || denied(await anon.from("campaign_documents").select("id")));
+expect("supporter : ne lit aucun devis", denied(await supporter.from("campaign_documents").select("id")));
+const ownDocs = await manager.from("campaign_documents").select("campaign:campaigns(club_id)");
+expect("gestionnaire : ne lit que les devis de son club", (ownDocs.data ?? []).length > 0 && ownDocs.data.every((d) => d.campaign?.club_id === managerClubId));
+expect("gestionnaire : ne peut pas ajouter un devis sans passer par le serveur", !!(await manager.from("campaign_documents").insert({ campaign_id: anyCampaign.id, kind: "devis", file_path: "x/y.pdf", file_name: "y.pdf", mime_type: "application/pdf", size_bytes: 10 })).error);
+expect("supporter : ne lit pas le contrôle automatique d'une campagne", !!(await supporter.rpc("campaign_compliance", { p_campaign_id: anyCampaign.id })).error);
+expect("gestionnaire : ne lit pas le contrôle d'une campagne d'un autre club", !!(await manager.rpc("campaign_compliance", { p_campaign_id: vita.id })).error);
+expect("gestionnaire : ne peut pas appeler le calcul interne du contrôle", !!(await manager.rpc("compute_campaign_compliance", { p_campaign_id: vita.id })).error);
+expect("conformité : lit le contrôle automatique", !(await compliance.rpc("campaign_compliance", { p_campaign_id: inReview.id })).error);
+const inflated = await compliance.rpc("review_campaign", {
+  p_campaign_id: inReview.id, p_decision: "approve", p_criteria: ["clarte", "faisabilite", "coherence", "authenticite"],
+});
+expect("conformité : ne peut pas publier un budget à 3 fois le prix de référence", /contrôle automatique/.test(inflated.error?.message ?? ""), inflated.error?.message);
+
 // Plafonds fixés par le club : vérifiés par la base, même pour une écriture du serveur.
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (serviceKey) {

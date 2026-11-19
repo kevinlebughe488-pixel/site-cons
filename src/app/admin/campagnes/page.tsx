@@ -4,7 +4,8 @@ import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CAMPAIGN_WITH_CLUB } from "@/lib/campaigns";
 import { STATUS_LABELS } from "@/lib/labels";
-import { CampaignPill } from "@/components/visuals";
+import { CampaignPill, Pill } from "@/components/visuals";
+import { LEVEL_LABELS, LEVEL_TONES } from "@/lib/compliance";
 import { formatDate, formatMoney, percent } from "@/lib/format";
 import type { CampaignStatus, CampaignWithClub } from "@/lib/types";
 
@@ -62,6 +63,11 @@ export default async function AdminCampaignsPage(props: PageProps<"/admin/campag
                   <td className="small">{c.club.name}</td>
                   <td>
                     <CampaignPill status={c.status} />
+                    {c.compliance_level && ["draft", "changes_requested", "in_review"].includes(c.status) ? (
+                      <div style={{ marginTop: 4 }}>
+                        <Pill tone={LEVEL_TONES[c.compliance_level]}>Contrôle : {LEVEL_LABELS[c.compliance_level].toLowerCase()}</Pill>
+                      </div>
+                    ) : null}
                   </td>
                   <td className="r num">{formatMoney(c.goal_amount, c.currency)}</td>
                   <td className="r num">

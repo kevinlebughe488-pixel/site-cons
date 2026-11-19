@@ -8,7 +8,11 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { CampaignPill, coverUrl, Pill, ProgressBar } from "@/components/visuals";
 import { campaignTiming, formatDate, formatMoney, percent, plural, todayInKinshasa } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
-import type { BudgetLine, Campaign, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
+import { listPriceReferences } from "@/lib/campaigns";
+import type { ComplianceReport } from "@/lib/compliance";
+import type { BudgetLine, Campaign, CampaignDocument, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
+import { ComplianceReportView } from "@/components/ComplianceReport";
+import { CampaignDocuments } from "../CampaignDocuments";
 import { CampaignEditor } from "../CampaignEditor";
 import { CoverUpload } from "../CoverUpload";
 import { FeesNotice } from "../FeesNotice";
@@ -24,17 +28,22 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
   const supabase = await createClient();
-  const [{ data: c }, { data: fee }, settings] = await Promise.all([
+  const [{ data: c }, { data: fee }, settings, references, { data: documents }, { data: report }] = await Promise.all([
     supabase
       .from("campaigns")
       .select(
-        "*, budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at)",
+        "*, budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note), updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at)",
       )
       .eq("id", id)
       .maybeSingle<Detail>(),
     supabase.from("publication_fees").select("*").eq("campaign_id", id).maybeSingle<PublicationFee>(),
     getSettings(supabase),
+    listPriceReferences(supabase),
+    supabase.from("campaign_documents").select("*").eq("campaign_id", id).order("created_at"),
+    supabase.rpc("campaign_compliance", { p_campaign_id: id }),
   ]);
+  const docs = (documents ?? []) as CampaignDocument[];
+  const control = report as ComplianceReport | null;
   if (!c) notFound();
   if (viewer.club?.id !== c.club_id) redirect("/acces-refuse");
 
@@ -69,6 +78,7 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
           <CampaignEditor
             publicationFee={settings.publication_fee}
             today={todayInKinshasa()}
+            references={references}
             initial={{
               id: c.id,
               title: c.title,
@@ -79,21 +89,35 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
               duration_days: String(c.duration_days),
               min_contribution: String(Number(c.min_contribution)),
               max_contribution: c.max_contribution === null ? "" : String(Number(c.max_contribution)),
-              budget: budget.map((b) => ({ label: b.label, amount: String(Number(b.amount)) })),
+              budget: budget.map((b) => ({
+                label: b.label,
+                amount: String(Number(b.amount)),
+                quantity: String(Number(b.quantity)),
+                reference_id: b.reference_id ?? "",
+              })),
               milestones: milestones.map((m) => ({ label: m.label, target: m.target_label })),
             }}
           />
           <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
+            {control ? (
+              <div className="panel">
+                <h3>Contrôle avant envoi</h3>
+                <ComplianceReportView report={control} />
+                <p className="small muted" style={{ marginTop: 10 }}>
+                  Mis à jour à chaque enregistrement. Un point rouge empêche l&apos;envoi en revue.
+                </p>
+              </div>
+            ) : null}
             <div className="panel">
               <h3>Photo de couverture</h3>
               <CoverUpload campaignId={c.id} coverSrc={c.cover_path ? coverUrl(c.cover_path) : null} />
             </div>
             <div className="panel">
-              <h3>Ce que verront les supporters</h3>
-              <p className="small muted">
-                La fiche de la campagne montre le montant collecté, l&apos;objectif, le pourcentage atteint, le nombre de
-                supporters, la contribution minimum et la durée restante. La collecte commence le jour de la publication.
+              <h3>Devis des fournisseurs</h3>
+              <p className="small muted" style={{ marginBottom: 10 }}>
+                L&apos;équipe Tribune contacte le fournisseur pour vérifier que la campagne est réelle et les prix justes.
               </p>
+              <CampaignDocuments campaignId={c.id} documents={docs} editable />
             </div>
           </aside>
         </div>
@@ -191,6 +215,12 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                   Si la campagne est publiée : <b className="num">{formatMoney(settings.publication_fee)}</b> de frais
                   d&apos;instruction et de publication, puis 5 % des fonds collectés si l&apos;objectif est atteint.
                 </p>
+              </div>
+            ) : null}
+            {docs.length ? (
+              <div className="panel">
+                <h3>Devis des fournisseurs</h3>
+                <CampaignDocuments campaignId={c.id} documents={docs} editable={false} />
               </div>
             ) : null}
             {c.cover_path ? (

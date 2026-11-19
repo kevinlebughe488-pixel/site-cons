@@ -13,7 +13,7 @@ import { slugify, todayInKinshasa } from "@/lib/format";
 import { normalizeAnyPhone, normalizeDrcPhone } from "@/lib/phone";
 import { isKnownProvider } from "@/lib/payments/providers";
 import { cleanFileName, readUpload } from "@/lib/uploads";
-import { CAMPAIGN_CATEGORIES, CAMPAIGN_LIMITS, CLUB_DOCUMENT_KINDS, type Club } from "@/lib/types";
+import { CAMPAIGN_CATEGORIES, CAMPAIGN_DOCUMENT_KINDS, CAMPAIGN_LIMITS, CLUB_DOCUMENT_KINDS, type Club } from "@/lib/types";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const EDITABLE_DOSSIER: Club["status"][] = ["draft", "changes_requested"];
@@ -238,7 +238,17 @@ export async function uploadClubLogo(_: FormState, form: FormData): Promise<Form
 // Campagnes
 // ---------------------------------------------------------------------
 
-const lineSchema = z.object({ label: z.string().trim().min(2).max(160), amount: z.coerce.number().positive().max(1_000_000) });
+const lineSchema = z.object({
+  label: z.string().trim().min(2).max(160),
+  amount: z.coerce.number().positive().max(1_000_000),
+  quantity: z.coerce
+    .number()
+    .max(1_000_000)
+    .default(1)
+    .transform((v) => Math.round(v * 100) / 100)
+    .pipe(z.number().positive()),
+  reference_id: z.union([z.uuid(), z.literal(""), z.null()]).default(null).transform((v) => v || null),
+});
 const milestoneSchema = z.object({ label: z.string().trim().min(2).max(160), target: z.string().trim().max(40) });
 
 function parseJsonList<T>(raw: string, schema: z.ZodType<T>): T[] | null {
@@ -290,7 +300,7 @@ export async function saveCampaign(_: FormState, form: FormData): Promise<FormSt
     return fail("Le maximum par supporter doit être un montant entier, au moins égal au minimum et au plus égal à l'objectif.", "max_contribution");
   }
   const budget = parseJsonList(fields.budget, lineSchema);
-  if (!budget) return fail("Chaque ligne de budget doit avoir un libellé et un montant positif.", "budget");
+  if (!budget) return fail("Chaque poste du budget doit avoir un libellé, une quantité et un montant positifs.", "budget");
   const milestones = parseJsonList(fields.milestones, milestoneSchema);
   if (!milestones) return fail("Chaque jalon doit avoir un libellé.", "milestones");
 
@@ -374,6 +384,95 @@ export async function uploadCampaignCover(_: FormState, form: FormData): Promise
   revalidatePath(`/campagnes/${campaign.slug}`);
   revalidatePath("/");
   return { success: remove ? "Photo retirée." : "Photo de couverture enregistrée." };
+}
+
+const CAMPAIGN_DOC_MAX = 10;
+const EDITABLE_CAMPAIGN = ["draft", "changes_requested"];
+
+type CampaignRef = { id: string; club_id: string; slug: string; status: string };
+
+/** Campagne que la personne peut compléter : son club tant que le dossier est modifiable, ou l'équipe. */
+async function editableCampaign(campaignId: string): Promise<{ campaign: CampaignRef; actor: string } | { error: string }> {
+  const viewer = await getViewer();
+  if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
+  const { data: campaign } = await createAdminClient()
+    .from("campaigns")
+    .select("id, club_id, slug, status")
+    .eq("id", campaignId)
+    .maybeSingle<CampaignRef>();
+  if (!campaign) return { error: "Campagne introuvable." };
+  const staff = isStaff(viewer.profile.role);
+  const own = viewer.club?.id === campaign.club_id && can(viewer.profile.role, "club:manage");
+  if (!staff && !own) return { error: "Vous ne pouvez pas modifier cette campagne." };
+  if (!staff && !EDITABLE_CAMPAIGN.includes(campaign.status)) {
+    return { error: "Le dossier est en revue : les justificatifs ne se modifient plus. Écrivez à l'équipe Tribune si besoin." };
+  }
+  return { campaign, actor: viewer.profile.id };
+}
+
+function revalidateCampaign(c: CampaignRef) {
+  revalidatePath(`/club/campagnes/${c.id}`);
+  revalidatePath(`/admin/campagnes/${c.id}`);
+}
+
+/** Devis ou justificatif de prix : vérifié par l'équipe Tribune avant la publication. */
+export async function uploadCampaignDocument(_: FormState, form: FormData): Promise<FormState> {
+  const found = await editableCampaign(text(form, "campaign_id"));
+  if ("error" in found) return { error: found.error };
+  const { campaign, actor } = found;
+  const kind = text(form, "kind");
+  if (!CAMPAIGN_DOCUMENT_KINDS.some((k) => k.id === kind)) return { error: "Choisissez le type de justificatif." };
+  const supplier = text(form, "supplier").slice(0, 120);
+  if (kind !== "autre" && supplier.length < 2) return { error: "Indiquez le nom du fournisseur : l'équipe Tribune le contactera pour vérifier le devis." };
+
+  const file = await readUpload(form.get("file"), { maxBytes: DOCUMENT_MAX_BYTES, allowPdf: true, label: "un fichier (PDF ou photo)" });
+  if ("error" in file) return { error: file.error };
+
+  const admin = createAdminClient();
+  const { count } = await admin.from("campaign_documents").select("id", { count: "exact", head: true }).eq("campaign_id", campaign.id);
+  if ((count ?? 0) >= CAMPAIGN_DOC_MAX) return { error: `La campagne compte déjà ${CAMPAIGN_DOC_MAX} justificatifs. Retirez-en un avant d'en ajouter.` };
+
+  const path = `${campaign.id}/${randomUUID()}.${file.ext}`;
+  const { error: uploadError } = await admin.storage.from("campaign-documents").upload(path, file.bytes, { contentType: file.mime, upsert: false });
+  if (uploadError) return { error: "Envoi du justificatif impossible pour le moment. Réessayez." };
+  const { error } = await admin.from("campaign_documents").insert({
+    campaign_id: campaign.id,
+    kind,
+    supplier,
+    file_path: path,
+    file_name: cleanFileName(form.get("file"), `devis.${file.ext}`),
+    mime_type: file.mime,
+    size_bytes: file.bytes.length,
+    uploaded_by: actor,
+  });
+  if (error) {
+    await admin.storage.from("campaign-documents").remove([path]);
+    return { error: "Enregistrement du justificatif impossible. Réessayez." };
+  }
+  await admin.from("audit_log").insert({
+    actor_id: actor, action: "campagne.justificatif_ajoute", entity_type: "campaign", entity_id: campaign.id, details: { type: kind, fournisseur: supplier },
+  });
+  revalidateCampaign(campaign);
+  return { success: "Justificatif ajouté." };
+}
+
+export async function deleteCampaignDocument(_: FormState, form: FormData): Promise<FormState> {
+  const admin = createAdminClient();
+  const { data: doc } = await admin
+    .from("campaign_documents")
+    .select("id, campaign_id, file_path, kind")
+    .eq("id", text(form, "document_id"))
+    .maybeSingle<{ id: string; campaign_id: string; file_path: string; kind: string }>();
+  if (!doc) return { error: "Justificatif introuvable." };
+  const found = await editableCampaign(doc.campaign_id);
+  if ("error" in found) return { error: found.error };
+  await admin.from("campaign_documents").delete().eq("id", doc.id);
+  await admin.storage.from("campaign-documents").remove([doc.file_path]);
+  await admin.from("audit_log").insert({
+    actor_id: found.actor, action: "campagne.justificatif_retire", entity_type: "campaign", entity_id: doc.campaign_id, details: { type: doc.kind },
+  });
+  revalidateCampaign(found.campaign);
+  return { success: "Justificatif retiré." };
 }
 
 /** Nouvelle (page publique), actualité du club ou message réservé aux contributeurs : relue avant publication. */

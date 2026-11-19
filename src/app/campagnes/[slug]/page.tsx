@@ -25,7 +25,7 @@ const loadCampaign = cache(async (slug: string) => {
   const { data } = await supabase
     .from("campaigns")
     .select(
-      `${CAMPAIGN_WITH_CLUB}, budget:campaign_budget_lines(id, position, label, amount),
+      `${CAMPAIGN_WITH_CLUB}, budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id),
        milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note),
        updates:campaign_updates(id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at)`,
     )
@@ -152,7 +152,15 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
             <div className="alloc">
               {budget.map((b) => (
                 <div key={b.id} className="row num">
-                  <span>{b.label}</span>
+                  <span>
+                    {b.label}
+                    {Number(b.quantity) !== 1 ? (
+                      <span className="muted">
+                        {" "}
+                        · {Number(b.quantity).toLocaleString("fr-FR")} × {formatMoney(Number(b.amount) / Number(b.quantity), c.currency)}
+                      </span>
+                    ) : null}
+                  </span>
                   <b>{formatMoney(b.amount, c.currency)}</b>
                   <div className="bar">
                     <i style={{ width: `${Math.round((Number(b.amount) / Number(c.goal_amount)) * 100)}%` }} />
@@ -164,9 +172,17 @@ export default async function CampaignPage(props: PageProps<"/campagnes/[slug]">
                 <b>{formatMoney(c.goal_amount, c.currency)}</b>
               </div>
             </div>
-            <p className="small muted" style={{ marginTop: 12 }}>
-              Le budget a été vérifié par l&apos;équipe Tribune avant publication.
-            </p>
+            {c.published_at && c.compliance_level ? (
+              <ul className="verified">
+                <li>Club vérifié : existence, représentant légal, compte de versement</li>
+                <li>Devis des fournisseurs contrôlés par l&apos;équipe Tribune</li>
+                <li>Prix comparés au prix normal du marché, poste par poste</li>
+              </ul>
+            ) : (
+              <p className="small muted" style={{ marginTop: 12 }}>
+                Le budget a été vérifié par l&apos;équipe Tribune avant publication.
+              </p>
+            )}
           </div>
 
           <div className="block" id="jalons">

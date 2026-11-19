@@ -11,7 +11,19 @@ import { CoverUpload } from "@/app/club/campagnes/CoverUpload";
 import { CLUB_STATUS_LABELS, CONTRIBUTION_STATUS_LABELS } from "@/lib/labels";
 import { formatDate, formatMoney, percent, plural } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
-import { REVIEW_CRITERIA, type BudgetLine, type Campaign, type Club, type Contribution, type Milestone, type PublicationFee } from "@/lib/types";
+import type { ComplianceReport } from "@/lib/compliance";
+import { ComplianceReportView } from "@/components/ComplianceReport";
+import { CampaignDocuments } from "@/app/club/campagnes/CampaignDocuments";
+import {
+  REVIEW_CRITERIA,
+  type BudgetLine,
+  type Campaign,
+  type CampaignDocument,
+  type Club,
+  type Contribution,
+  type Milestone,
+  type PublicationFee,
+} from "@/lib/types";
 
 export const metadata: Metadata = { title: "Instruction · Back-office" };
 
@@ -24,17 +36,21 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
   const role = profile.role;
 
   const supabase = await createClient();
-  const [{ data: c }, { data: contribs }, { data: fee }, settings] = await Promise.all([
+  const [{ data: c }, { data: contribs }, { data: fee }, settings, { data: documents }, { data: report }] = await Promise.all([
     supabase
       .from("campaigns")
-      .select("*, club:clubs(*), budget:campaign_budget_lines(id, position, label, amount), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note)")
+      .select("*, club:clubs(*), budget:campaign_budget_lines(id, position, label, amount, quantity, reference_id), milestones:campaign_milestones(id, position, label, target_label, done_at, proof_note)")
       .eq("id", id)
       .maybeSingle<Detail>(),
     supabase.from("contributions").select("status, amount").eq("campaign_id", id),
     supabase.from("publication_fees").select("*").eq("campaign_id", id).maybeSingle<PublicationFee>(),
     getSettings(supabase),
+    supabase.from("campaign_documents").select("*").eq("campaign_id", id).order("created_at"),
+    supabase.rpc("campaign_compliance", { p_campaign_id: id }),
   ]);
   if (!c) notFound();
+  const control = report as ComplianceReport | null;
+  const blocked = control?.level === "block";
 
   const budget = [...c.budget].sort((a, b) => a.position - b.position);
   const milestones = [...c.milestones].sort((a, b) => a.position - b.position);
@@ -69,6 +85,33 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
             <Link className="btn btn-ghost btn-sm" href={`/campagnes/${c.slug}`}>
               Page de la campagne
             </Link>
+          </div>
+
+          {control ? (
+            <div className="panel">
+              <h3>Contrôle automatique</h3>
+              <p className="small muted" style={{ marginBottom: 12 }}>
+                Authenticité et prix, recalculés à l&apos;ouverture de cette page. Un point bloquant empêche la publication.
+              </p>
+              <ComplianceReportView report={control} showLines />
+              {can(role, "campaign:review") ? (
+                <p className="small" style={{ marginTop: 10 }}>
+                  <Link href="/admin/prix">Référentiel des prix →</Link>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="panel">
+            <h3>Devis des fournisseurs</h3>
+            <p className="small muted" style={{ marginBottom: 10 }}>
+              Recoupez chaque devis avec le budget et appelez le fournisseur avant de cocher « Authenticité ».
+            </p>
+            <CampaignDocuments
+              campaignId={c.id}
+              documents={(documents ?? []) as CampaignDocument[]}
+              editable={can(role, "campaign:review") && ["draft", "changes_requested", "in_review"].includes(c.status)}
+            />
           </div>
 
           <div className="panel">
@@ -127,7 +170,15 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
             <div className="alloc">
               {budget.map((b) => (
                 <div key={b.id} className="row num">
-                  <span>{b.label}</span>
+                  <span>
+                    {b.label}
+                    {Number(b.quantity) !== 1 ? (
+                      <span className="muted">
+                        {" "}
+                        · {Number(b.quantity).toLocaleString("fr-FR")} × {formatMoney(Number(b.amount) / Number(b.quantity), c.currency)}
+                      </span>
+                    ) : null}
+                  </span>
                   <b>{formatMoney(b.amount, c.currency)}</b>
                 </div>
               ))}
@@ -164,6 +215,12 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
               {large && !can(role, "campaign:approve_large") ? (
                 <p className="flash info">Objectif supérieur à 20 000 $ : la publication doit être validée par un administrateur.</p>
               ) : null}
+              {blocked ? (
+                <p className="flash error">
+                  Le contrôle automatique bloque la publication. Demandez des corrections au club (ou corrigez le référentiel des prix
+                  s&apos;il est faux).
+                </p>
+              ) : null}
               <ActionForm action={reviewCampaign}>
                 <input type="hidden" name="campaign_id" value={c.id} />
                 <fieldset style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 8 }}>
@@ -186,6 +243,7 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
                     className="btn btn-primary btn-sm"
                     name="decision"
                     value="approve"
+                    disabled={blocked}
                     confirm={
                       settings.publication_fee > 0
                         ? `Publier cette campagne ? Les frais d'instruction et de publication (${formatMoney(settings.publication_fee)}) seront facturés au club.`

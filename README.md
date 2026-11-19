@@ -19,8 +19,8 @@ son plan d'affaires (financement participatif), avant le crédit interentreprise
 | Rôle | Ce qu'il voit et fait |
 | --- | --- |
 | **Supporter** | Campagnes publiques, contribuer, son compte et ses reçus, commenter, suivre un club, son lien d'ambassadeur, ses notifications, inscrire un club (dossier) |
-| **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue) avec photo, nouvelles, actualités du club, messages aux contributeurs, réponses aux commentaires, preuves des jalons |
-| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur trois critères, vérifier les dossiers des clubs sur trois points de contrôle (ou demander des compléments), vérifier les identités, relire les nouvelles et les messages, modérer les commentaires, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
+| **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue) avec photo et devis des fournisseurs, nouvelles, actualités du club, messages aux contributeurs, réponses aux commentaires, preuves des jalons |
+| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur quatre critères avec le contrôle automatique (authenticité, prix), tenir le référentiel des prix, vérifier les dossiers des clubs sur trois points de contrôle (ou demander des compléments), vérifier les identités, relire les nouvelles et les messages, modérer les commentaires, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
 | **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, enregistrer le règlement des frais de publication, régler les tarifs, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs (Mobile Money ou banque) |
 
 Les rôles sont **séparés** : ils ne s'additionnent pas. Un gestionnaire, un chargé de conformité ou un
@@ -34,7 +34,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (67 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (79 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -48,7 +48,8 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
 - **Frais d'instruction et de publication** facturés au club pour chaque campagne publiée : 400 $ la
   première année, 500 $ ensuite. Le tarif en vigueur se règle dans **Back-office → Tableau de bord** (administrateur)
   et il est figé sur la campagne au moment de sa publication. Aucun frais si le dossier est refusé.
-- Pour publier, l'équipe confirme trois critères (clarté, faisabilité, cohérence), inscrits au journal d'audit.
+- Pour publier, l'équipe confirme quatre critères (clarté, faisabilité, cohérence, authenticité), inscrits au journal
+  d'audit, et la campagne doit passer le contrôle automatique (voir « Contrôle de conformité des campagnes »).
 - Le règlement des frais est enregistré par un administrateur, jamais par la personne qui a instruit le dossier.
 - Le tableau de bord compare l'activité aux objectifs du plan (campagnes publiées, taux de succès, montant moyen,
   montants collectés, chiffre d'affaires) pour l'année en cours, à partir de la date de lancement renseignée.
@@ -69,6 +70,7 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261101000200_inscription_clubs.sql` (type de compte, dossier du club, documents, procédure de vérification)
    - `supabase/migrations/20261101000300_parametres_campagnes.sql` (durée de collecte, montants minimum et maximum par supporter, photo)
    - `supabase/migrations/20261101000400_communication.sql` (notifications, commentaires, actualités et messages, ambassadeurs, classements)
+   - `supabase/migrations/20261120000100_controle_conformite.sql` (référentiel des prix, devis des fournisseurs, contrôle automatique des campagnes)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -173,6 +175,35 @@ restante. Les montants minimum et maximum sont vérifiés par l'application et p
 sur `contributions`). Les campagnes sont des **dons** : le site parle de « contribution », jamais
 d'investissement.
 
+## Contrôle de conformité des campagnes
+
+Avant l'envoi en revue et avant la publication, la base calcule un **contrôle automatique**
+(`compute_campaign_compliance`) : la campagne est-elle authentique, et son budget au prix du marché ?
+
+| Point de contrôle | Bloquant si… | Signalé si… |
+| --- | --- | --- |
+| Club vérifié | le club n'est pas (ou plus) vérifié | |
+| Photo de la situation actuelle | aucune photo | |
+| Devis de fournisseur | aucun devis ni facture pro forma joint | |
+| Prix | un poste coûte **3 fois le prix de référence ou plus** (article choisi, prix confirmé) | un poste dépasse 1,5 fois, ou n'a pas de prix de référence |
+| Description originale | le texte est identique à celui d'une campagne antérieure d'un autre club | |
+| Antécédents du club | | jalons d'une campagne financée toujours sans preuve après 3 mois, autre collecte en cours |
+
+- **Référentiel des prix** (Back-office → Référentiel des prix) : le prix normal de chaque article ou
+  service (maillot, ballon, m² de gazon, location de bus…), avec son unité et sa source. Les valeurs de
+  départ sont indicatives et marquées « à confirmer » : tant qu'un prix n'est pas confirmé par l'équipe,
+  il signale un écart sans bloquer. Chaque modification est inscrite au journal d'audit.
+- **Budget** : chaque poste indique l'article du référentiel, la quantité et le montant total ; le club voit
+  la comparaison en direct dans l'éditeur. Un poste laissé sur « Autre » est quand même rapproché du
+  référentiel par mots-clés (« Maillots » → maillot) : l'écart est alors signalé à l'équipe sans bloquer,
+  car un rapprochement automatique peut se tromper.
+- **Devis** (bucket privé `campaign-documents`) : au moins un devis ou une facture pro forma, avec le nom
+  du fournisseur, que l'équipe contacte avant de cocher le critère **authenticité**.
+- Un point bloquant empêche l'envoi en revue (`submit_campaign`) et la publication (`review_campaign`) :
+  c'est la base qui refuse. Si le référentiel est faux, l'équipe le corrige plutôt que de passer outre.
+- Le résultat du contrôle est inscrit au journal d'audit à l'envoi et à la décision ; la page publique
+  d'une campagne publiée indique ce que l'équipe a vérifié.
+
 ## Communication
 
 - **Notifications** dans le site (cloche dans l'en-tête, page `/notifications`), créées par la base :
@@ -214,7 +245,11 @@ numéro du compte.
 - **Inscription** : le compte est créé, puis le code confirme que le numéro appartient bien à la personne.
 - **Connexion** : e-mail ou numéro, mot de passe, puis code SMS. Sans le code, aucune session n'est
   ouverte ; une session obtenue avec le seul mot de passe (en appelant Supabase directement) est refusée par le site.
-- **Mot de passe oublié** : un code SMS permet de choisir un nouveau mot de passe.
+- **Mot de passe oublié** : un code SMS ouvre l'interface « Choisir un nouveau mot de passe »
+  (`/mot-de-passe-oublie/nouveau`), valable 15 minutes grâce à une autorisation signée par le serveur.
+- **Modifier mon mot de passe** (Mon compte) : interface distincte qui demande le mot de passe actuel, puis
+  le nouveau deux fois, et se termine par un écran de confirmation. Les autres appareils sont déconnectés et
+  le titulaire reçoit un SMS de sécurité.
 - Un code vaut 10 minutes, 5 essais au plus, 3 codes par quart d'heure et par compte.
 - Un numéro ne sert qu'à un seul compte. Une inscription jamais confirmée libère le numéro au bout de 30 minutes.
 - Le numéro ne se change pas depuis le profil (il reçoit les codes) : l'équipe Tribune s'en charge.
