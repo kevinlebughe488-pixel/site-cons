@@ -9,7 +9,7 @@ import { getViewer, safeReturnPath } from "@/lib/auth";
 import { checked, keepFields, text, type FormState } from "@/lib/forms";
 import { formatPhone, maskPhone, normalizeAnyPhone } from "@/lib/phone";
 import { emailDomainExists } from "@/lib/email-check";
-import { sendSms } from "@/lib/sms";
+import { sendSms, smsMode } from "@/lib/sms";
 import { env } from "@/lib/env";
 import {
   cancelChallenge,
@@ -180,6 +180,17 @@ async function sendLoginHelp(account: Account, byEmail: boolean, returnTo: strin
     return error ? { help: /rate|seconds|limit/i.test(error.message) ? "limit" : "failed" } : { help: "email", target: account.email };
   }
   if (!account.phone) return { help: "failed" };
+  // En simulation, aucun SMS ne part : le code s'afficherait à l'écran de celui qui
+  // tape le mauvais mot de passe, et il ouvrirait la session du compte. Pas de code
+  // de connexion par SMS sans vrai envoi (la configuration de production la refuse
+  // de toute façon, sauf en démo publique).
+  let simulated = true;
+  try {
+    simulated = smsMode() === "simulation";
+  } catch {
+    simulated = true;
+  }
+  if (simulated) return { help: "failed" };
   try {
     await startChallenge({ userId: account.id, phone: account.phone, purpose: "login", returnTo });
     return { help: "sms", target: formatPhone(account.phone) };
