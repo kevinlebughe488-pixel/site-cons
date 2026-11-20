@@ -7,13 +7,16 @@ import { env } from "@/lib/env";
 import { maskPhone } from "@/lib/phone";
 import { sendSms, smsMode } from "@/lib/sms";
 
-// Double authentification par SMS.
+// Codes de vérification par SMS.
 //
-// 1. Le mot de passe est vérifié (connexion) ou le compte est créé (inscription),
-//    mais aucune session n'est ouverte.
-// 2. Un code à 6 chiffres part par SMS ; un cookie garde la référence du défi.
-// 3. Quand le code est bon, le serveur ouvre la session (lien de connexion
-//    généré côté serveur, jamais envoyé par e-mail).
+// - Inscription : le numéro est confirmé une fois par un code SMS.
+// - Connexion : un bon mot de passe ouvre directement la session ; après un
+//   mot de passe incorrect, un code de connexion part par SMS au numéro saisi.
+// - Mot de passe oublié : un code SMS permet d'en choisir un nouveau.
+//
+// Le code (6 chiffres) est gardé haché ; un cookie garde la référence du défi.
+// Quand le code est bon, le serveur ouvre la session (lien de connexion généré
+// côté serveur, jamais envoyé par e-mail).
 
 export type ChallengePurpose = "signup" | "login" | "reset";
 
@@ -74,8 +77,12 @@ export async function startChallenge(input: { userId: string; phone: string; pur
   });
   if (error) throw new VerificationError("Impossible de préparer le code. Réessayez.");
 
+  const text =
+    input.purpose === "login"
+      ? `Tribune : mot de passe incorrect sur votre compte. Pour vous connecter, utilisez le code ${code} (valable ${CODE_TTL_MINUTES} minutes). Si ce n'est pas vous, ne le communiquez à personne.`
+      : `Tribune : votre code est ${code}. Il expire dans ${CODE_TTL_MINUTES} minutes. Ne le communiquez à personne.`;
   try {
-    await sendSms(input.phone, `Tribune : votre code est ${code}. Il expire dans ${CODE_TTL_MINUTES} minutes. Ne le communiquez à personne.`);
+    await sendSms(input.phone, text);
   } catch (err) {
     await admin.from("sms_challenges").delete().eq("id", id);
     console.error("Envoi du SMS impossible :", (err as Error).message);
@@ -147,8 +154,20 @@ export async function confirmChallenge(code: string): Promise<{ purpose: Challen
   if (!claimed?.length) throw new VerificationError("Ce code a déjà servi. Recommencez.");
 
   await admin.from("profiles").update({ phone_verified_at: new Date().toISOString() }).eq("id", c.user_id).is("phone_verified_at", null);
+  await openSessionFor(c.user_id);
 
-  const { data: user } = await admin.auth.admin.getUserById(c.user_id);
+  (await cookies()).delete(COOKIE);
+  return { purpose: c.purpose, returnTo: c.return_to, userId: c.user_id };
+}
+
+/**
+ * Ouvre la session du compte dans ce navigateur, une fois son identité prouvée
+ * (bon mot de passe d'un numéro déjà confirmé, ou code SMS) : lien de connexion
+ * généré et utilisé par le serveur, jamais envoyé.
+ */
+export async function openSessionFor(userId: string) {
+  const admin = createAdminClient();
+  const { data: user } = await admin.auth.admin.getUserById(userId);
   const email = user.user?.email;
   if (!email) throw new VerificationError("Compte introuvable.");
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email });
@@ -156,9 +175,6 @@ export async function confirmChallenge(code: string): Promise<{ purpose: Challen
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash: link.properties.hashed_token });
   if (error) throw new VerificationError("Connexion impossible pour le moment. Réessayez.");
-
-  (await cookies()).delete(COOKIE);
-  return { purpose: c.purpose, returnTo: c.return_to, userId: c.user_id };
 }
 
 /** Abandonne la vérification en cours. */

@@ -168,7 +168,10 @@ expect("gestionnaire : ne peut pas ajouter un devis sans passer par le serveur",
 expect("supporter : ne lit pas le contrôle automatique d'une campagne", !!(await supporter.rpc("campaign_compliance", { p_campaign_id: anyCampaign.id })).error);
 expect("gestionnaire : ne lit pas le contrôle d'une campagne d'un autre club", !!(await manager.rpc("campaign_compliance", { p_campaign_id: vita.id })).error);
 expect("gestionnaire : ne peut pas appeler le calcul interne du contrôle", !!(await manager.rpc("compute_campaign_compliance", { p_campaign_id: vita.id })).error);
-expect("conformité : lit le contrôle automatique", !(await compliance.rpc("campaign_compliance", { p_campaign_id: inReview.id })).error);
+const control = await compliance.rpc("campaign_compliance", { p_campaign_id: inReview.id });
+expect("conformité : lit le contrôle automatique", !control.error);
+const priceCheck = (control.data?.checks ?? []).find((c) => c.id === "prix");
+expect("contrôle : la location de bus à 3 fois le prix de référence est bloquante", priceCheck?.level === "block", priceCheck?.detail);
 const inflated = await compliance.rpc("review_campaign", {
   p_campaign_id: inReview.id, p_decision: "approve", p_criteria: ["clarte", "faisabilite", "coherence", "authenticite"],
 });

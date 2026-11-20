@@ -542,3 +542,26 @@ figure.camp-figure{margin:0 0 22px}
 figure.camp-figure .camp-photo{margin-bottom:0}
 figure.camp-figure figcaption{font-size:.9rem;color:var(--muted);margin-top:8px}
 figure.camp-figure figcaption b{color:var(--ink)}
+
+/* champ fichier : zone « Glisser-déposer un fichier ou parcourir » */
+.field .field-title{display:block;font-weight:600;margin-bottom:6px}
+.dropzone{display:grid;justify-items:center;gap:10px;padding:26px 18px;border:2px dashed var(--line);border-radius:var(--r-lg);background:var(--surface);color:var(--ink);text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.dropzone:hover,.dropzone.over{border-color:var(--pitch);background:color-mix(in srgb,var(--pitch) 6%,var(--surface))}
+.dropzone:focus-within{outline:3px solid var(--focus);outline-offset:2px}
+.dropzone.chosen{border-style:solid;border-color:var(--ok)}
+.dropzone.invalid{border-color:var(--bad)}
+.dropzone .dz-icon{color:var(--ink);opacity:.85}
+.dropzone .dz-text{display:grid;gap:4px;font-size:1.05rem;line-height:1.35;overflow-wrap:anywhere}
+.dropzone .dz-text u{text-underline-offset:3px}
+.dropzone.chosen .dz-text b{color:var(--ok);font-size:.95rem}
+.dropzone .dz-change{font-size:.88rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+/* bloc replié (« Modifier », « Supprimer mon compte ») */
+details.toggle{margin-top:12px}
+details.toggle > summary{list-style:none;cursor:pointer;display:inline-flex}
+details.toggle > summary::-webkit-details-marker{display:none}
+details.toggle > summary .when-open,details.toggle[open] > summary .when-closed{display:none}
+details.toggle[open] > summary .when-open{display:inline}
+details.toggle[open] > summary + *{margin-top:14px}
+details.toggle.danger > summary{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+details.toggle.danger[open] > summary{color:var(--bad)}

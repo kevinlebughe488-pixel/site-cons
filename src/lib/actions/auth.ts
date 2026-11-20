@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getViewer, safeReturnPath } from "@/lib/auth";
 import { checked, keepFields, text, type FormState } from "@/lib/forms";
-import { maskPhone, normalizeAnyPhone } from "@/lib/phone";
+import { formatPhone, maskPhone, normalizeAnyPhone } from "@/lib/phone";
+import { emailDomainExists } from "@/lib/email-check";
 import { sendSms } from "@/lib/sms";
 import { env } from "@/lib/env";
 import {
@@ -15,6 +16,7 @@ import {
   clearPasswordReset,
   confirmChallenge,
   grantPasswordReset,
+  openSessionFor,
   passwordResetGrant,
   resendChallenge,
   startChallenge,
@@ -87,6 +89,9 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
     return fail("Cochez la case : il faut avoir 18 ans et accepter les conditions d'utilisation et la politique de confidentialité.", "consent");
   }
   const email = parsed.data.email.toLowerCase();
+  if (!(await emailDomainExists(email))) {
+    return fail(`Cette adresse e-mail ne peut pas recevoir de messages : le domaine « ${email.split("@").pop()} » n'existe pas. Vérifiez l'orthographe.`, "email");
+  }
   const conflict = await findConflict(phone, email);
   if (conflict === "phone") return fail("Ce numéro de téléphone est déjà utilisé par un autre compte. Connectez-vous.", "phone");
   if (conflict === "email") return fail("Un compte existe déjà avec cette adresse e-mail. Connectez-vous.", "email");
@@ -142,48 +147,111 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
   redirect("/verification");
 }
 
+type Account = { id: string; email: string | null; phone: string | null; phone_verified_at: string | null };
+
 /** Retrouve le compte à partir d'un e-mail ou d'un numéro de téléphone. */
-async function findAccount(login: string): Promise<{ id: string; email: string | null; phone: string | null } | null> {
+async function findAccount(login: string): Promise<Account | null> {
   const admin = createAdminClient();
-  const query = admin.from("profiles").select("id, email, phone");
+  const query = admin.from("profiles").select("id, email, phone, phone_verified_at");
   if (login.includes("@")) {
-    const { data } = await query.eq("email", login.toLowerCase()).maybeSingle();
+    const { data } = await query.eq("email", login.toLowerCase()).maybeSingle<Account>();
     return data;
   }
   const phone = normalizeAnyPhone(login);
   if (!phone) return null;
-  const { data } = await query.eq("phone", phone).maybeSingle();
+  const { data } = await query.eq("phone", phone).maybeSingle<Account>();
   return data;
 }
 
-/** Connexion : identifiant (e-mail ou téléphone) et mot de passe, puis code SMS. */
+/**
+ * Mot de passe incorrect : un message de connexion part à l'identifiant saisi.
+ * Numéro : code SMS (3 au plus par quart d'heure). E-mail : lien de connexion
+ * envoyé par Supabase, à ouvrir dans ce navigateur. Renvoie ce que le
+ * formulaire doit annoncer.
+ */
+async function sendLoginHelp(account: Account, byEmail: boolean, returnTo: string): Promise<Record<string, string>> {
+  if (byEmail && account.email) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: account.email,
+      options: { shouldCreateUser: false, emailRedirectTo: `${env.siteUrl}/auth/callback?suite=${encodeURIComponent(returnTo)}` },
+    });
+    if (error) console.error("Lien de connexion non envoyé :", error.message);
+    return error ? { help: /rate|seconds|limit/i.test(error.message) ? "limit" : "failed" } : { help: "email", target: account.email };
+  }
+  if (!account.phone) return { help: "failed" };
+  try {
+    await startChallenge({ userId: account.id, phone: account.phone, purpose: "login", returnTo });
+    return { help: "sms", target: formatPhone(account.phone) };
+  } catch (err) {
+    return { help: err instanceof VerificationError && /Trop de codes/.test(err.message) ? "limit" : "failed" };
+  }
+}
+
+/**
+ * Connexion : e-mail ou numéro, puis mot de passe. Un bon mot de passe ouvre la
+ * session directement (le numéro a été confirmé par SMS une fois, à
+ * l'inscription). Un mot de passe incorrect déclenche l'envoi d'un message de
+ * connexion au numéro ou à l'adresse saisis.
+ */
 export async function signIn(_: FormState, form: FormData): Promise<FormState> {
   const login = text(form, "login");
   const password = form.get("password");
-  const fields = { login };
+  const fields: Record<string, string> = { login };
   if (!login) return { error: "Indiquez votre e-mail ou votre numéro de téléphone.", field: "login", fields };
+  const byEmail = login.includes("@");
+  if (byEmail ? !z.email().safeParse(login).success : !normalizeAnyPhone(login)) {
+    return {
+      error: byEmail ? "Cette adresse e-mail n'est pas valide." : "Ce numéro de téléphone n'est pas valide (exemple : 081 234 5678).",
+      field: "login",
+      fields,
+    };
+  }
   if (typeof password !== "string" || !password) return { error: "Indiquez votre mot de passe.", field: "password", fields };
 
-  // Même message dans tous les cas d'échec, pour ne pas révéler quels comptes existent.
-  const wrong: FormState = { error: "Identifiant ou mot de passe incorrect.", fields };
   const account = await findAccount(login);
-  if (!account?.email) return wrong;
+  if (!account?.email) {
+    return {
+      error: byEmail
+        ? "Aucun compte n'utilise cette adresse e-mail. Vérifiez-la, ou créez un compte."
+        : "Aucun compte n'utilise ce numéro. Vérifiez-le, ou créez un compte.",
+      field: "login",
+      fields,
+    };
+  }
+  const returnTo = safeReturnPath(text(form, "suite"), "/");
 
   // Vérifie le mot de passe sans ouvrir de session dans le navigateur.
   const probe = createSupabaseClient(env.supabaseUrl, env.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { error } = await probe.auth.signInWithPassword({ email: account.email, password });
-  if (error) return wrong;
+  if (error) {
+    if (error.code !== "invalid_credentials" && !/invalid login credentials/i.test(error.message)) {
+      console.error("Connexion refusée par Supabase :", error.message);
+      return { error: "Connexion impossible pour le moment. Réessayez dans un instant.", fields };
+    }
+    return { error: "Mot de passe incorrect.", field: "password", fields: { ...fields, ...(await sendLoginHelp(account, byEmail, returnTo)) } };
+  }
   await probe.auth.signOut({ scope: "local" });
 
-  if (!account.phone) {
-    return { error: "Aucun numéro de téléphone n'est enregistré sur ce compte. Contactez l'équipe Tribune.", fields };
+  // Numéro jamais confirmé (inscription pas terminée) : le code SMS, une seule fois.
+  if (!account.phone_verified_at) {
+    if (!account.phone) {
+      return { error: "Aucun numéro de téléphone n'est enregistré sur ce compte. Contactez l'équipe Tribune.", fields };
+    }
+    try {
+      await startChallenge({ userId: account.id, phone: account.phone, purpose: "signup", returnTo });
+    } catch (err) {
+      return { error: err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Réessayez.", fields };
+    }
+    redirect("/verification");
   }
+
   try {
-    await startChallenge({ userId: account.id, phone: account.phone, purpose: "login", returnTo: safeReturnPath(text(form, "suite"), "/") });
+    await openSessionFor(account.id);
   } catch (err) {
-    return { error: err instanceof VerificationError ? err.message : "Le SMS n'a pas pu être envoyé. Réessayez.", fields };
+    return { error: err instanceof VerificationError ? err.message : "Connexion impossible pour le moment. Réessayez.", fields };
   }
-  redirect("/verification");
+  redirect(returnTo);
 }
 
 /** Saisie du code reçu par SMS. */

@@ -29,7 +29,7 @@ export default function TermsPage() {
             <ul>
               <li>Tribune est réservée aux personnes de <b>18 ans ou plus</b>.</li>
               <li>Vos informations doivent être exactes. Un numéro de téléphone ne sert qu&apos;à un seul compte.</li>
-              <li>Chaque connexion est confirmée par un code SMS : ne communiquez jamais ce code ni votre mot de passe.</li>
+              <li>Votre numéro est confirmé par un code SMS à l&apos;inscription ; après un mot de passe incorrect, un code ou un lien de connexion vous est envoyé. Ne communiquez jamais ces codes ni votre mot de passe.</li>
               <li>Nous pouvons suspendre un compte en cas de fraude, d&apos;usurpation d&apos;identité ou de non-respect de ces règles.</li>
             </ul>
           ),

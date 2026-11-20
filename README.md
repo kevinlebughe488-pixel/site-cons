@@ -34,7 +34,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (82 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (83 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -242,14 +242,25 @@ Avant l'envoi en revue et avant la publication, la base calcule un **contrôle a
   nouvelles n'est plus cochée d'avance. « Mon compte » permet de demander la suppression du compte
   (inscrite au journal d'audit : `compte.suppression_demandee`).
 
-## Connexion en deux étapes (codes SMS)
+## Connexion et codes SMS
 
-Aucun e-mail n'est envoyé : le compte est vérifié par un **code à 6 chiffres envoyé par SMS** au
-numéro du compte.
+Le numéro de téléphone est confirmé **une fois**, à l'inscription, par un **code à 6 chiffres envoyé
+par SMS**. Ensuite, on se connecte avec son mot de passe, sans code.
 
 - **Inscription** : le compte est créé, puis le code confirme que le numéro appartient bien à la personne.
-- **Connexion** : e-mail ou numéro, mot de passe, puis code SMS. Sans le code, aucune session n'est
-  ouverte ; une session obtenue avec le seul mot de passe (en appelant Supabase directement) est refusée par le site.
+  Le domaine de l'adresse e-mail doit exister et accepter le courrier (vérification DNS) ; sinon,
+  l'inscription est refusée avec un message.
+- **Connexion** : e-mail ou numéro, puis mot de passe.
+  - Si aucun compte n'utilise cet e-mail ou ce numéro, le formulaire le dit.
+  - Un bon mot de passe ouvre la session directement (si le numéro n'a jamais été confirmé, le code SMS est
+    demandé cette fois-là).
+  - Après un **mot de passe incorrect**, un message part à l'identifiant saisi : un **code de connexion par
+    SMS** si c'est un numéro, un **lien de connexion par e-mail** si c'est une adresse (envoyé par Supabase,
+    à ouvrir dans le même navigateur). Pour que ces e-mails arrivent chez tout le monde, configurez un SMTP
+    dans Supabase (Authentication → Emails → SMTP Settings) : sans cela, Supabase n'envoie qu'à quelques
+    adresses autorisées.
+  - Une session ouverte avec le seul mot de passe en appelant Supabase directement (sans passer par le site)
+    reste refusée par le site.
 - **Mot de passe oublié** : un code SMS ouvre l'interface « Choisir un nouveau mot de passe »
   (`/mot-de-passe-oublie/nouveau`), valable 15 minutes grâce à une autorisation signée par le serveur.
 - **Modifier mon mot de passe** (Mon compte) : interface distincte qui demande le mot de passe actuel, puis
@@ -257,7 +268,7 @@ numéro du compte.
   le titulaire reçoit un SMS de sécurité.
 - Un code vaut 10 minutes, 5 essais au plus, 3 codes par quart d'heure et par compte.
 - Un numéro ne sert qu'à un seul compte. Une inscription jamais confirmée libère le numéro au bout de 30 minutes.
-- Le numéro ne se change pas depuis le profil (il reçoit les codes) : l'équipe Tribune s'en charge.
+- Le numéro et l'e-mail ne se changent pas depuis le profil : l'équipe Tribune s'en charge.
 
 Sans configuration, les SMS sont **simulés** : le code s'affiche à l'écran (démonstration). En
 production, la simulation n'est acceptée qu'avec `ALLOW_SIMULATED_SMS=true` ou `ALLOW_SIMULATED_PAYMENTS=true`.
