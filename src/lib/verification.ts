@@ -71,7 +71,8 @@ export async function startChallenge(input: { userId: string; phone: string; pur
     purpose: input.purpose,
     phone: input.phone,
     code_hash: hashCode(id, code),
-    demo_code: simulation ? code : null,
+    // Jamais affiché pour une connexion : un code de connexion ne doit pas être visible de celui qui le demande.
+    demo_code: simulation && input.purpose !== "login" ? code : null,
     return_to: input.returnTo ?? null,
     expires_at: new Date(Date.now() + CODE_TTL_MINUTES * 60_000).toISOString(),
   });
