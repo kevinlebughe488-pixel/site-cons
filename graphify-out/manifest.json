@@ -408,9 +408,9 @@
     "semantic_hash": ""
   },
   "src/components/CookieBanner.tsx": {
-    "mtime": 1795121005.9620554,
-    "seen": 1795121343.4897385,
-    "ast_hash": "8b3bc1a1e6a35f889f28f18bf83312a9",
+    "mtime": 1795135307.352677,
+    "seen": 1795135673.1690333,
+    "ast_hash": "3a09e1e0e9aa198da334248da0f822f8",
     "semantic_hash": ""
   },
   "src/components/DemoBanner.tsx": {
@@ -666,9 +666,9 @@
     "semantic_hash": ""
   },
   "src/proxy.ts": {
-    "mtime": 1795121005.9633498,
-    "seen": 1795121343.4897845,
-    "ast_hash": "0c50822842c80c1cf92d4aa9a1cc7dae",
+    "mtime": 1795135307.3319623,
+    "seen": 1795135673.1691322,
+    "ast_hash": "93b79021acb4c0665a7d34620d975a84",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795134142.8711681,
-    "seen": 1795134457.6498642,
-    "ast_hash": "a3aaca67a395fbc2aa853afc401084a9",
+    "mtime": 1795135662.6137998,
+    "seen": 1795135673.169152,
+    "ast_hash": "b1af4c759811fb4c23c0c38c50f94d20",
     "semantic_hash": ""
   },
   "maquette/index.html": {
@@ -873,6 +873,12 @@
     "mtime": 1795134355.3684342,
     "seen": 1795134457.6498072,
     "ast_hash": "06ed51a003b74d04a8dfdef97934f219",
+    "semantic_hash": ""
+  },
+  "src/lib/actions/cookies.ts": {
+    "mtime": 1795135307.3393815,
+    "seen": 1795135673.1690936,
+    "ast_hash": "4a38aa437d01d66eb69b90b849684e65",
     "semantic_hash": ""
   },
   "package-lock.json": {

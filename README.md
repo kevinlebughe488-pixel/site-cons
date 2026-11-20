@@ -261,6 +261,13 @@ par SMS**. Ensuite, on se connecte avec son mot de passe, sans code.
     adresses autorisées.
   - Une session ouverte avec le seul mot de passe en appelant Supabase directement (sans passer par le site)
     reste refusée par le site.
+- **Rester connecté** : la session est gardée dans un cookie de 400 jours et renouvelée automatiquement par
+  le proxy à chaque requête (préchargements de liens compris). En revenant sur le site, même des semaines
+  plus tard, la personne est toujours connectée, à condition d'utiliser le même navigateur et la même adresse
+  du site (les adresses d'aperçu de Vercel ont chacune leurs cookies). Les navigateurs intégrés aux
+  applications (WhatsApp, Facebook…) et la navigation privée ne gardent pas les cookies.
+- Le choix du bandeau cookies est posé par le serveur pour un an : Safari efface au bout de 7 jours les
+  cookies écrits par le JavaScript de la page.
 - **Mot de passe oublié** : un code SMS ouvre l'interface « Choisir un nouveau mot de passe »
   (`/mot-de-passe-oublie/nouveau`), valable 15 minutes grâce à une autorisation signée par le serveur.
 - **Modifier mon mot de passe** (Mon compte) : interface distincte qui demande le mot de passe actuel, puis

@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_CONSENT, REFERRAL_COOKIE, REFERRAL_MAX_AGE, REFERRAL_PATTERN } from "@/lib/referral";
 
-// Rafraîchit la session Supabase (cookies) à chaque navigation.
+// Rafraîchit la session Supabase (cookies) à chaque requête, préchargements compris :
+// c'est ce qui garde la personne connectée quand elle revient sur le site, même
+// des semaines plus tard (les cookies de session durent 400 jours).
 // Les contrôles d'accès eux-mêmes sont faits dans les pages et dans la base.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -27,10 +29,8 @@ export async function proxy(request: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  // Les préchargements de liens (prefetch) n'ont pas besoin de rafraîchir la session :
-  // on évite ainsi des dizaines d'appels à Supabase par page affichée.
   const prefetch = request.headers.get("next-router-prefetch") || request.headers.get("purpose") === "prefetch";
-  if (!url || !key || prefetch) return keepReferral(response);
+  if (!url || !key) return keepReferral(response);
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -47,10 +47,17 @@ export async function proxy(request: NextRequest) {
   });
 
   try {
-    // getClaims vérifie le jeton localement (clés publiques mises en cache) et ne
-    // contacte Supabase que pour renouveler une session expirée, contrairement à
-    // getUser qui fait un aller-retour réseau à chaque requête.
-    await supabase.auth.getClaims();
+    if (prefetch) {
+      // Préchargement de lien : getSession lit le cookie sans appel réseau, et ne
+      // contacte Supabase que si le jeton arrive à expiration, pour le renouveler
+      // ET l'enregistrer ici. Sans cela, la page préchargée pouvait renouveler le
+      // jeton sans pouvoir l'enregistrer : le navigateur gardait un jeton déjà
+      // consommé, et la session ne tenait qu'à la tolérance de Supabase.
+      await supabase.auth.getSession();
+    } else {
+      // getClaims vérifie le jeton (et le renouvelle s'il a expiré).
+      await supabase.auth.getClaims();
+    }
   } catch {
     // Supabase lent ou injoignable : on laisse la page s'afficher plutôt que de
     // renvoyer une erreur 500 ; la page gère elle-même l'absence de session.

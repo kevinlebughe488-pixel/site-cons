@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
-import { COOKIE_CONSENT, REFERRAL_COOKIE, REFERRAL_MAX_AGE, REFERRAL_PATTERN } from "@/lib/referral";
+import { saveCookieChoice } from "@/lib/actions/cookies";
+import { COOKIE_CONSENT, REFERRAL_COOKIE } from "@/lib/referral";
 
 const noop = () => () => {};
 const readConsent = () => document.cookie.split("; ").find((c) => c.startsWith(`${COOKIE_CONSENT}=`))?.split("=")[1] ?? "";
@@ -23,10 +24,11 @@ export function CookieBanner() {
   if (done || stored !== "") return null;
 
   function decide(accept: boolean) {
+    // Tout de suite dans le navigateur (le bandeau disparaît), puis par le serveur,
+    // qui pose le cookie pour un an, même sur Safari.
     setCookie(COOKIE_CONSENT, accept ? "oui" : "non", 365 * 86400);
-    const ref = new URLSearchParams(location.search).get("ref")?.toLowerCase();
-    if (accept && ref && REFERRAL_PATTERN.test(ref)) setCookie(REFERRAL_COOKIE, ref, REFERRAL_MAX_AGE);
     setDone(true);
+    saveCookieChoice(accept, new URLSearchParams(location.search).get("ref")).catch(() => {});
   }
 
   return (
