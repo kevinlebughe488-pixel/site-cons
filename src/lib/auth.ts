@@ -23,9 +23,10 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;
-  // Double authentification : le site n'ouvre de session qu'après le code SMS
-  // (méthode « otp »). Une session ouverte avec le seul mot de passe, en appelant
-  // Supabase directement, n'est pas acceptée.
+  // Le site ouvre lui-même les sessions (méthode « otp ») : après un bon mot de
+  // passe d'un numéro confirmé, un code SMS ou un lien de connexion. Une session
+  // ouverte avec le seul mot de passe, en appelant Supabase directement (sans la
+  // confirmation du numéro faite par le site), n'est pas acceptée.
   const methods = (claims.amr ?? []).map((m) => (typeof m === "string" ? m : m.method));
   if (!methods.length || methods.every((m) => m === "password")) return null;
   const user = { id: claims.sub };

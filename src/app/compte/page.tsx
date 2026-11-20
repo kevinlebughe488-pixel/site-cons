@@ -231,71 +231,93 @@ export default async function AccountPage(props: PageProps<"/compte">) {
             ) : null}
             <div className="panel">
               <h3>Mes informations</h3>
-              <ActionForm action={updateProfile}>
-                <div className="two">
-                  <div className="field">
-                    <label htmlFor="first_name">Prénom</label>
-                    <input type="text" id="first_name" name="first_name" defaultValue={me.first_name} />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="last_name">Nom</label>
-                    <input type="text" id="last_name" name="last_name" defaultValue={me.last_name} />
-                  </div>
+              <div className="recap small">
+                <div>
+                  <span className="muted">Nom</span>
+                  <span>
+                    {me.first_name} {me.last_name}
+                  </span>
                 </div>
-                <div className="field">
-                  <label htmlFor="phone">Téléphone</label>
-                  <input type="tel" id="phone" value={formatPhone(me.phone)} readOnly disabled />
-                  <div className="hint">
-                    Reçoit les codes de connexion par SMS. Pour changer de numéro, contactez l&apos;équipe Tribune.
-                  </div>
+                <div>
+                  <span className="muted">Téléphone</span>
+                  <span className="num">{formatPhone(me.phone)}</span>
                 </div>
-                <div className="two">
+                <div>
+                  <span className="muted">E-mail</span>
+                  <span style={{ overflowWrap: "anywhere" }}>{me.email ?? "—"}</span>
+                </div>
+                <div>
+                  <span className="muted">Lieu</span>
+                  <span>
+                    {[me.city, me.country].filter(Boolean).join(", ") || "—"}
+                    {me.residence === "diaspora" ? " · diaspora" : ""}
+                  </span>
+                </div>
+              </div>
+              <details className="toggle">
+                <summary className="btn btn-ghost btn-sm">
+                  <span className="when-closed">Modifier</span>
+                  <span className="when-open">Fermer</span>
+                </summary>
+                <ActionForm action={updateProfile}>
+                  <div className="two">
+                    <div className="field">
+                      <label htmlFor="first_name">Prénom</label>
+                      <input type="text" id="first_name" name="first_name" defaultValue={me.first_name} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="last_name">Nom</label>
+                      <input type="text" id="last_name" name="last_name" defaultValue={me.last_name} />
+                    </div>
+                  </div>
+                  <div className="two">
+                    <div className="field">
+                      <label htmlFor="city">Ville</label>
+                      <input type="text" id="city" name="city" defaultValue={me.city ?? ""} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="country">Pays</label>
+                      <input type="text" id="country" name="country" defaultValue={me.country ?? ""} />
+                    </div>
+                  </div>
                   <div className="field">
-                    <label htmlFor="city">Ville</label>
-                    <input type="text" id="city" name="city" defaultValue={me.city ?? ""} />
+                    <label htmlFor="residence">Vous vivez</label>
+                    <select id="residence" name="residence" defaultValue={me.residence}>
+                      <option value="rdc">En RDC</option>
+                      <option value="diaspora">Hors de RDC (diaspora)</option>
+                    </select>
                   </div>
-                  <div className="field">
-                    <label htmlFor="country">Pays</label>
-                    <input type="text" id="country" name="country" defaultValue={me.country ?? ""} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="residence">Vous vivez</label>
-                  <select id="residence" name="residence" defaultValue={me.residence}>
-                    <option value="rdc">En RDC</option>
-                    <option value="diaspora">Hors de RDC (diaspora)</option>
-                  </select>
-                </div>
-                <label className="check">
-                  <input type="checkbox" name="newsletter" defaultChecked={me.newsletter} />
-                  <span>Recevoir les nouvelles des campagnes</span>
-                </label>
-                <p className="small muted">
-                  E-mail : {me.email} · consentement du {formatDate(me.consent_at)}
-                </p>
-                <SubmitButton className="btn btn-ghost btn-sm">Enregistrer</SubmitButton>
-              </ActionForm>
+                  <label className="check">
+                    <input type="checkbox" name="newsletter" defaultChecked={me.newsletter} />
+                    <span>Recevoir les nouvelles des campagnes</span>
+                  </label>
+                  <p className="small muted">
+                    Le numéro et l&apos;e-mail se changent auprès de l&apos;équipe Tribune. Consentement du {formatDate(me.consent_at)}.
+                  </p>
+                  <SubmitButton className="btn btn-primary btn-sm">Enregistrer</SubmitButton>
+                </ActionForm>
+              </details>
             </div>
             <div className="panel">
               <h3>Sécurité</h3>
               <p className="small muted" style={{ marginBottom: 10 }}>
-                Connexion par mot de passe et code SMS au {formatPhone(me.phone)}.
+                Numéro confirmé par SMS. Après un mot de passe incorrect, un code de connexion vous est envoyé.
               </p>
               <Link className="btn btn-ghost btn-sm" href="/compte/mot-de-passe">
                 Modifier mon mot de passe
               </Link>
-            </div>
-            <div className="panel">
-              <h3>Supprimer mon compte</h3>
-              <p className="small muted" style={{ marginBottom: 10 }}>
-                Vos données personnelles sont effacées. Les contributions que la loi oblige à conserver sont gardées à part
-                pendant la durée légale. <Link href="/confidentialite">En savoir plus</Link>
-              </p>
-              <ActionForm action={requestAccountDeletion}>
-                <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…" confirm="Demander la suppression de votre compte Tribune ?">
-                  Demander la suppression
-                </SubmitButton>
-              </ActionForm>
+              <details className="toggle danger">
+                <summary className="small">Supprimer mon compte</summary>
+                <p className="small muted" style={{ margin: "8px 0 10px" }}>
+                  Vos données personnelles sont effacées. Les contributions que la loi oblige à conserver sont gardées à part
+                  pendant la durée légale. <Link href="/confidentialite">En savoir plus</Link>
+                </p>
+                <ActionForm action={requestAccountDeletion}>
+                  <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…" confirm="Demander la suppression de votre compte Tribune ?">
+                    Demander la suppression
+                  </SubmitButton>
+                </ActionForm>
+              </details>
             </div>
           </aside>
         </div>

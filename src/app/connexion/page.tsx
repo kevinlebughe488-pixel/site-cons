@@ -14,7 +14,7 @@ export default async function LoginPage(props: PageProps<"/connexion">) {
   return (
     <div className="wrap page" style={{ maxWidth: 980 }}>
       <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.8rem)", marginBottom: 20 }}>Connexion</h1>
-      {erreur ? <p className="flash error">Le lien a expiré ou a déjà servi. Connectez-vous : un code vous sera envoyé par SMS.</p> : null}
+      {erreur ? <p className="flash error">Le lien a expiré ou a déjà servi. Connectez-vous avec votre mot de passe.</p> : null}
       <div className="split half">
         <LoginForm returnTo={returnTo} />
         <div className="panel" style={{ display: "grid", gap: 14, alignContent: "start" }}>

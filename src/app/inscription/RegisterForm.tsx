@@ -52,7 +52,7 @@ export function RegisterForm({ kind, clubs, returnTo }: Props) {
           <label htmlFor="phone">{club ? "Votre téléphone" : "Téléphone (Mobile Money)"}</label>
           <input type="tel" id="phone" name="phone" {...invalid("phone")} placeholder="+243 81 000 0000" autoComplete="tel" defaultValue={f.phone} required />
           <FieldError state={state} name="phone" />
-          <div className="hint">{club ? "Reçoit les codes de connexion par SMS." : "Sert à payer, à recevoir les remboursements et à vous identifier."}</div>
+          <div className="hint">{club ? "Reçoit le code de confirmation par SMS." : "Sert à payer, à recevoir les remboursements et à vous identifier."}</div>
         </div>
         <div className="field">
           <label htmlFor="email">E-mail</label>

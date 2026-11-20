@@ -9,13 +9,13 @@ export const metadata: Metadata = { title: "Code de vérification" };
 
 const TITLES = {
   signup: "Confirmez votre numéro",
-  login: "Vérification en deux étapes",
+  login: "Connexion par code",
   reset: "Mot de passe oublié",
 };
 
 const INTROS = {
   signup: "Dernière étape de l'inscription : saisissez le code envoyé par SMS pour confirmer que ce numéro est bien le vôtre.",
-  login: "Votre mot de passe est correct. Pour finir la connexion, saisissez le code envoyé par SMS.",
+  login: "Mot de passe incorrect ? Saisissez le code envoyé par SMS pour vous connecter. Vous pourrez ensuite changer votre mot de passe dans « Mon compte ».",
   reset: "Saisissez le code envoyé par SMS : vous pourrez ensuite choisir un nouveau mot de passe.",
 };
 

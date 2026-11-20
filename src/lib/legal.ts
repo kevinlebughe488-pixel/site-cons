@@ -8,5 +8,5 @@ export const LEGAL = {
   address: "[adresse du siège à compléter], Kinshasa, République démocratique du Congo",
   publisher: "[nom du directeur de la publication à compléter]",
   email: "[adresse e-mail de contact à compléter]",
-  updated: "1er novembre 2026",
+  updated: "20 novembre 2026",
 } as const;

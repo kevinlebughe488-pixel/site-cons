@@ -8,7 +8,7 @@ import { formatMoney, KYC_THRESHOLD } from "@/lib/format";
 export const metadata: Metadata = { title: "Confidentialité et cookies" };
 
 const COOKIES: [string, string, string, string][] = [
-  ["Session de connexion (sb-…-auth-token)", "Vous garder connecté après le code SMS", "Nécessaire", "Durée de la session"],
+  ["Session de connexion (sb-…-auth-token)", "Vous garder connecté", "Nécessaire", "Durée de la session"],
   ["Vérification par SMS (tribune_verif)", "Retrouver le code en cours de validation", "Nécessaire", "30 minutes"],
   ["Choix des cookies (tribune_cookies)", "Retenir votre réponse au bandeau", "Nécessaire", "12 mois"],
   ["Ambassadeur (tribune_ref)", "Attribuer votre contribution à la personne qui vous a envoyé le lien", "Avec votre accord", "30 jours"],
