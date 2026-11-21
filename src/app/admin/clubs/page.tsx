@@ -5,7 +5,6 @@ import { can } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { addClubMember, reviewClub, setClubPayout } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { LogoUpload } from "@/components/LogoUpload";
 import { Crest, Pill } from "@/components/visuals";
 import { DocumentUpload } from "@/app/club/DocumentUpload";
 import { CLUB_STATUS_LABELS, CLUB_STATUS_TONE, PAYOUT_METHOD_LABELS } from "@/lib/labels";
@@ -76,6 +75,17 @@ export default async function AdminClubsPage(props: PageProps<"/admin/clubs">) {
           const priv = Array.isArray(c.private) ? (c.private[0] ?? null) : c.private;
           const docs = [...(c.documents ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
           const hasProof = docs.some((d) => PROOF.has(d.kind));
+          // Mêmes conditions que l'envoi du dossier par le club (la base les revérifie).
+          const infoOk = !!priv?.rep_phone && !!priv?.address;
+          const payoutOk = !!priv?.payout_holder;
+          const complete = hasProof && infoOk && payoutOk;
+          const missing = [
+            !hasProof && "un document attestant l'existence du club (statuts, enregistrement ou affiliation)",
+            !infoOk && "l'adresse du siège et le représentant légal",
+            !payoutOk && "le compte de versement",
+          ].filter(Boolean) as string[];
+          // Dossier envoyé, ou dossier en préparation déjà complet : il peut être vérifié.
+          const canVerify = c.status === "pending" || (c.status === "draft" && complete);
           return (
             <details key={c.id} className="box" open={c.status === "pending"}>
               <summary>
@@ -186,10 +196,29 @@ export default async function AdminClubsPage(props: PageProps<"/admin/clubs">) {
                   </div>
                 </div>
                 <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
-                  {(c.status === "pending" || c.status === "changes_requested") && can(role, "club:review") ? (
+                  {c.status === "draft" ? (
+                    <div className={`note ${complete ? "info" : "warn"}`}>
+                      <b className="ic">{complete ? "i" : "!"}</b>
+                      <span>
+                        {complete ? (
+                          <>
+                            <b>Dossier complet, pas encore envoyé par le club.</b> Vous pouvez le vérifier dès maintenant (mêmes
+                            contrôles qu&apos;un dossier envoyé), demander des compléments ou refuser la demande.
+                          </>
+                        ) : (
+                          <>
+                            <b>Dossier en préparation, incomplet :</b> il manque {missing.join(", ")}. Il pourra être vérifié
+                            une fois complet. Vous pouvez ajouter un document reçu du club, ou lui écrire en demandant des
+                            compléments.
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+                  {(c.status === "pending" || c.status === "changes_requested" || c.status === "draft") && can(role, "club:review") ? (
                     <ActionForm action={reviewClub}>
                       <input type="hidden" name="club_id" value={c.id} />
-                      {c.status === "pending" ? (
+                      {canVerify ? (
                         <fieldset style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 8 }}>
                           <legend style={{ fontWeight: 700, marginBottom: 6 }}>Points de contrôle (obligatoires pour vérifier)</legend>
                           {CLUB_REVIEW_CRITERIA.map((k) => (
@@ -201,25 +230,25 @@ export default async function AdminClubsPage(props: PageProps<"/admin/clubs">) {
                             </label>
                           ))}
                         </fieldset>
-                      ) : (
+                      ) : c.status === "changes_requested" ? (
                         <p className="small muted">
                           Le club complète son dossier. Il le renverra en vérification ; vous pouvez aussi refuser la demande.
                         </p>
-                      )}
+                      ) : null}
                       <div className="field">
                         <label htmlFor={`note-${c.id}`}>Note pour le club</label>
                         <textarea id={`note-${c.id}`} name="note" placeholder="Obligatoire pour demander des compléments ou refuser : pièces manquantes, incohérences…" />
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {c.status === "pending" ? (
-                          <>
-                            <SubmitButton className="btn btn-primary btn-sm" name="decision" value="verify" confirm={`Vérifier « ${c.name} » ? Ses gestionnaires pourront déposer des campagnes.`}>
-                              Vérifier le club
-                            </SubmitButton>
-                            <SubmitButton className="btn btn-ghost btn-sm" name="decision" value="request_changes">
-                              Demander des compléments
-                            </SubmitButton>
-                          </>
+                        {canVerify ? (
+                          <SubmitButton className="btn btn-primary btn-sm" name="decision" value="verify" confirm={`Vérifier « ${c.name} » ? Ses gestionnaires pourront déposer des campagnes.`}>
+                            Vérifier le club
+                          </SubmitButton>
+                        ) : null}
+                        {c.status === "pending" || c.status === "draft" ? (
+                          <SubmitButton className="btn btn-ghost btn-sm" name="decision" value="request_changes">
+                            Demander des compléments
+                          </SubmitButton>
                         ) : null}
                         <SubmitButton className="btn btn-ghost btn-sm" name="decision" value="reject" confirm="Refuser définitivement cette demande ?">
                           Refuser
@@ -313,7 +342,6 @@ export default async function AdminClubsPage(props: PageProps<"/admin/clubs">) {
                       <DocumentUpload clubId={c.id} />
                     </details>
                   ) : null}
-                  <LogoUpload club={c} />
                 </div>
               </div>
             </details>

@@ -20,8 +20,8 @@ son plan d'affaires (financement participatif), avant le crédit interentreprise
 | --- | --- |
 | **Supporter** | Campagnes publiques, contribuer, son compte et ses reçus, commenter, suivre un club, son lien d'ambassadeur, ses notifications, inscrire un club (dossier) |
 | **Gestionnaire de club** | Son profil et son espace club : présentation et logo, campagnes (brouillon → revue) avec photo et devis des fournisseurs, nouvelles, actualités du club, messages aux contributeurs, réponses aux commentaires, preuves des jalons |
-| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur quatre critères avec le contrôle automatique (authenticité, prix), tenir le référentiel des prix, vérifier les dossiers des clubs sur trois points de contrôle (ou demander des compléments), vérifier les identités, relire les nouvelles et les messages, modérer les commentaires, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
-| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, enregistrer le règlement des frais de publication, régler les tarifs, changer les rôles, gérer les gestionnaires et les comptes de versement des clubs (Mobile Money ou banque) |
+| **Conformité** | Son profil et le back-office : instruire les campagnes (≤ 20 000 $) sur quatre critères avec le contrôle automatique (authenticité, prix), tenir le référentiel des prix, vérifier les dossiers des clubs sur trois points de contrôle (ou demander des compléments), vérifier les identités, relire les nouvelles et les messages publiés par les clubs (et retirer ceux contraires aux règles), modérer les commentaires, voir et exporter les transactions, indicateurs du plan d'affaires, journal d'audit |
+| **Administrateur** | Tout ce que fait la conformité, plus : publier au-delà de 20 000 $, suspendre ou clôturer une campagne, suspendre un club, rembourser, enregistrer le règlement des frais de publication, régler les tarifs, nommer ou retirer un·e chargé·e de conformité, gérer les gestionnaires et les comptes de versement des clubs (Mobile Money ou banque) |
 
 Les rôles sont **séparés** : ils ne s'additionnent pas. Un gestionnaire, un chargé de conformité ou un
 administrateur ne contribue pas, ne déclare pas de pièce d'identité et n'inscrit pas de club ; un
@@ -34,7 +34,7 @@ Les droits sont appliqués **deux fois** :
 2. dans la base elle-même ([`supabase/migrations`](supabase/migrations)) : règles RLS pour les lectures,
    et fonctions SQL qui vérifient le rôle pour chaque action sensible. Un supporter qui contournerait
    l'interface avec la clé publique ne peut ni lire les données des autres, ni changer son rôle, ni
-   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (83 contrôles).
+   créer un paiement. Le script [`scripts/check-rls.mjs`](scripts/check-rls.mjs) le vérifie (86 contrôles).
 
 Les contributions et remboursements ne sont écrits que par le serveur (clé `service_role`), jamais
 depuis le navigateur.
@@ -72,6 +72,7 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261101000400_communication.sql` (notifications, commentaires, actualités et messages, ambassadeurs, classements)
    - `supabase/migrations/20261120000100_controle_conformite.sql` (référentiel des prix, devis des fournisseurs, contrôle automatique des campagnes)
    - `supabase/migrations/20261120000200_photos_situation.sql` (photos de la situation actuelle, photos copiées)
+   - `supabase/migrations/20261121000100_publication_directe_roles.sql` (nouvelles publiées directement par les clubs et retirées au besoin, dossier en préparation vérifiable, rôles)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -103,7 +104,10 @@ Inscrivez-vous sur le site, puis :
 npm run promote -- votre.email@exemple.com admin
 ```
 
-Ensuite, les rôles se gèrent depuis **Back-office → Supporters et rôles**.
+Ensuite, les rôles ne se changent pas à la main : un supporter qui inscrit son club devient gestionnaire
+quand le club est vérifié (ou quand un administrateur l'ajoute à un club vérifié). Depuis **Back-office →
+Comptes et rôles**, un administrateur peut seulement faire entrer un compte supporter dans l'équipe
+conformité, ou l'en faire sortir. Un autre administrateur se nomme avec le script `promote`.
 
 ### 4. Données de démonstration (facultatif, projet de test uniquement)
 
@@ -143,7 +147,8 @@ représentant crée son compte personnel (confirmé par SMS), puis ouvre le **do
 
 - nom officiel, sigle, discipline sportive, ville et adresse du siège, date de création ;
 - identifiant juridique ou administratif (enregistrement, arrêté, affiliation, RCCM…), s'il existe ;
-- représentant légal : nom, fonction, téléphone, e-mail ;
+- représentant légal : par défaut, la personne qui remplit le dossier (ses nom, téléphone et e-mail sont repris
+  de son compte, sans les ressaisir) ; sinon nom, fonction, téléphone, e-mail ;
 - compte de versement **au nom du club** : Mobile Money (numéro et opérateur) ou banque ;
 - documents (PDF ou photos, 4 Mo au plus, photos allégées dans le navigateur avant l'envoi) : au moins
   un document qui atteste l'existence du club (statuts, enregistrement ou affiliation), plus la pièce
@@ -152,7 +157,10 @@ représentant crée son compte personnel (confirmé par SMS), puis ouvre le **do
 L'inscription **ne donne aucun droit** : le dossier passe de « en préparation » à « en cours de
 vérification » quand le club l'envoie. L'équipe Tribune confirme trois points de contrôle (existence du
 club, représentant légal, compte de versement) pour le vérifier, ou demande des compléments (le club
-corrige et renvoie), ou refuse. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
+corrige et renvoie), ou refuse. Un dossier encore « en préparation » (jamais envoyé) peut aussi être vérifié
+par l'équipe s'il est complet (mêmes conditions que l'envoi) ; incomplet, le back-office indique ce qui
+manque et l'équipe peut demander des compléments ou refuser. Le logo du club n'est envoyé que par ses
+gestionnaires. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
 club et inscrite au journal d'audit.
 
 Les données sensibles (adresse, coordonnées du représentant, compte de versement) sont dans la table
@@ -218,8 +226,10 @@ Avant l'envoi en revue et avant la publication, la base calcule un **contrôle a
 - **Commentaires** sur les campagnes publiques : supporters et réponses du club (un niveau de
   réponses), mention « contributeur », signalements, modération par l'équipe (`/admin/commentaires`).
 - **Actualités** : nouvelles d'une campagne ou actualités du club sans campagne (page `/clubs/<club>`
-  et fil `/actualites`), et **messages réservés aux contributeurs** d'une campagne. Tout est relu par
-  l'équipe avant publication ; un refus est motivé.
+  et fil `/actualites`), et **messages réservés aux contributeurs** d'une campagne. Un club vérifié
+  publie directement (10 publications au plus par 24 h) ; l'équipe relit après coup (`/admin/nouvelles`)
+  et peut retirer une publication avec un motif communiqué au club : elle disparaît alors des pages
+  publiques et des notifications des supporters.
 - **Partage** : WhatsApp, Facebook, X, Telegram, copie du lien, partage du téléphone. L'aperçu
   (image du lien) est la photo du projet, allégée à l'envoi pour rester léger sur WhatsApp, ou à
   défaut une image aux couleurs du club générée par `/campagnes/<slug>/image-partage`.
@@ -261,6 +271,10 @@ par SMS**. Ensuite, on se connecte avec son mot de passe, sans code.
     adresses autorisées.
   - Une session ouverte avec le seul mot de passe en appelant Supabase directement (sans passer par le site)
     reste refusée par le site.
+  - Après un bon mot de passe ou un bon code, la session est ouverte par `/auth/ouvrir`, et la déconnexion
+    passe par `/auth/deconnexion` : deux chargements complets de page. Ainsi le bouton « retour » du
+    navigateur ne réaffiche pas les pages vues avec un autre compte (par exemple l'espace d'un club après
+    une connexion en administrateur).
 - **Rester connecté** : la session est gardée dans un cookie de 400 jours et renouvelée automatiquement par
   le proxy à chaque requête (préchargements de liens compris). En revenant sur le site, même des semaines
   plus tard, la personne est toujours connectée, à condition d'utiliser le même navigateur et la même adresse

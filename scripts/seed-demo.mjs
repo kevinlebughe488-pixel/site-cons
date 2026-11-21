@@ -435,7 +435,13 @@ async function main() {
         body: "Les huit éducateurs ont suivi les deux jours de formation aux premiers secours. Le défibrillateur est installé au stade. Merci à chacun de vous !",
         status: "published", reviewed_by: complianceId, published_at: daysAgo(8) },
       { club_id: clubIds["as-vita-club"], campaign_id: vita.id, author_id: managerIds["as-vita-club"], title: "Les devis sont en ligne",
-        body: "Nous avons reçu trois devis pour la plomberie. Celui retenu sera publié avec la preuve du premier jalon.", status: "pending" },
+        body: "Nous avons reçu trois devis pour la plomberie. Celui retenu sera publié avec la preuve du premier jalon.",
+        status: "published", published_at: daysAgo(1) },
+      // Publication retirée par l'équipe Tribune (les clubs publient directement, l'équipe retire après coup).
+      { club_id: clubIds["as-vita-club"], campaign_id: null, author_id: managerIds["as-vita-club"], title: "Contactez notre trésorier",
+        body: "Pour soutenir le club en dehors de Tribune, appelez directement notre trésorier au 081 000 0000.",
+        status: "rejected", reviewed_by: complianceId, published_at: daysAgo(2),
+        review_note: "Les contributions passent par Tribune, et le numéro personnel d'un dirigeant ne doit pas être publié." },
     ], { defaultToNull: false }),
     "actualités",
   );

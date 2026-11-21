@@ -205,15 +205,13 @@ export async function updateClubInfo(_: FormState, form: FormData): Promise<Form
 
 const LOGO_MAX_BYTES = 1024 * 1024;
 
-/** Envoie le logo d'un club. Réservé aux gestionnaires du club et à l'équipe Tribune. */
+/** Envoie le logo d'un club. Réservé aux gestionnaires du club : l'équipe Tribune ne le choisit pas à sa place. */
 export async function uploadClubLogo(_: FormState, form: FormData): Promise<FormState> {
   const viewer = await getViewer();
   if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
   const clubId = text(form, "club_id");
   const ownClub = viewer.club?.id === clubId && canUseClubSpace(viewer.profile.role);
-  if (!ownClub && !isStaff(viewer.profile.role)) {
-    return { error: "Vous ne pouvez pas modifier le logo de ce club." };
-  }
+  if (!ownClub) return { error: "Seuls les gestionnaires du club peuvent changer son logo." };
   const file = await readUpload(form.get("logo"), { maxBytes: LOGO_MAX_BYTES, allowPdf: false, label: "une image" });
   if ("error" in file) return { error: file.error.replace("La photo", "Le logo") };
 
@@ -534,7 +532,10 @@ export async function deleteCampaignPhoto(_: FormState, form: FormData): Promise
   return { success: "Photo retirée." };
 }
 
-/** Nouvelle (page publique), actualité du club ou message réservé aux contributeurs : relue avant publication. */
+/**
+ * Nouvelle (page publique), actualité du club ou message réservé aux contributeurs :
+ * publiée tout de suite, destinataires prévenus. L'équipe Tribune peut la retirer ensuite.
+ */
 export async function postNews(_: FormState, form: FormData): Promise<FormState> {
   const viewer = await viewerWith("club:manage");
   if ("error" in viewer) return { error: viewer.error };
@@ -554,11 +555,15 @@ export async function postNews(_: FormState, form: FormData): Promise<FormState>
   });
   if (error) return { error: dbErrorMessage(error) };
   revalidatePath(campaignId ? `/club/campagnes/${campaignId}` : "/club");
+  revalidatePath("/actualites");
+  revalidatePath(`/clubs/${viewer.club.slug}`);
   return {
     success:
       audience === "contributors"
-        ? "Message envoyé. Après relecture par l'équipe Tribune, chaque contributeur de la campagne sera prévenu."
-        : "Nouvelle envoyée. Elle sera publiée après relecture par l'équipe Tribune.",
+        ? "Message envoyé : chaque contributeur de la campagne est prévenu."
+        : campaignId
+          ? "Nouvelle publiée sur la page de la campagne : les contributeurs sont prévenus."
+          : "Actualité publiée sur la page du club : ses supporters sont prévenus.",
   };
 }
 

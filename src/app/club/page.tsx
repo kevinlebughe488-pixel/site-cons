@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
-import { can, canUseClubSpace } from "@/lib/rbac";
+import { can, canUseClubSpace, isStaff } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { deleteClubDocument, postNews, submitClubDossier, updateClubInfo } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { LogoUpload } from "@/components/LogoUpload";
 import { CampaignPill, Crest, FieldSvg, Pill } from "@/components/visuals";
-import { CLUB_STATUS_LABELS, CLUB_STATUS_TONE, PAYOUT_METHOD_LABELS } from "@/lib/labels";
+import { CLUB_STATUS_LABELS, CLUB_STATUS_TONE, PAYOUT_METHOD_LABELS, updateStatusLabel } from "@/lib/labels";
 import { formatDate, formatMoney, todayInKinshasa } from "@/lib/format";
 import { formatBytes } from "@/lib/images";
 import { formatPhone, maskPhone } from "@/lib/phone";
@@ -137,6 +137,8 @@ function Check({ ok, label, optional }: { ok: boolean; label: string; optional?:
 
 export default async function ClubPage(props: PageProps<"/club">) {
   const viewer = await requireViewer("/club");
+  // L'équipe Tribune n'a pas d'espace club : ses clubs sont dans le back-office.
+  if (isStaff(viewer.profile.role)) redirect("/admin/clubs");
   if (!canUseClubSpace(viewer.profile.role)) redirect("/acces-refuse");
   const { ok } = await props.searchParams;
   const okMessage = typeof ok === "string" ? OK_MESSAGES[ok] : undefined;
@@ -431,9 +433,13 @@ export default async function ClubPage(props: PageProps<"/club">) {
           <div className="panel">
             <h3>Publier une actualité du club</h3>
             <p className="small muted" style={{ marginBottom: 12 }}>
-              Résultats, vie du club, remerciements : publiée sur la page du club et envoyée à ses supporters (ceux qui
-              le suivent et les contributeurs de ses campagnes), après relecture par l&apos;équipe Tribune. Pour une
-              nouvelle liée à un projet, ou un message aux seuls contributeurs, passez par la page de la campagne.
+              Résultats, vie du club, remerciements : publiée tout de suite sur la page du club et envoyée à ses supporters
+              (ceux qui le suivent et les contributeurs de ses campagnes). Pour une nouvelle liée à un projet, ou un message
+              aux seuls contributeurs, passez par la page de la campagne.
+            </p>
+            <p className="small muted" style={{ marginBottom: 12 }}>
+              L&apos;équipe Tribune relit les publications et retire celles qui ne respectent pas les règles (promesse non
+              tenue, données personnelles, propos injurieux) : vous recevez alors le motif.
             </p>
             {club.status === "verified" ? (
               <ActionForm action={postNews}>
@@ -446,7 +452,9 @@ export default async function ClubPage(props: PageProps<"/club">) {
                   <label htmlFor="news-body">Texte</label>
                   <textarea id="news-body" name="body" />
                 </div>
-                <SubmitButton className="btn btn-ghost btn-sm">Envoyer pour relecture</SubmitButton>
+                <SubmitButton className="btn btn-primary btn-sm" pendingLabel="Publication…">
+                  Publier
+                </SubmitButton>
               </ActionForm>
             ) : (
               <p className="small muted">Indisponible tant que le club est suspendu.</p>
@@ -462,10 +470,7 @@ export default async function ClubPage(props: PageProps<"/club">) {
                     {u.audience === "contributors" ? " · contributeurs seulement" : ""}
                   </span>
                   <h4>
-                    {u.title}{" "}
-                    <Pill tone={u.status === "published" ? "ok" : u.status === "pending" ? "info" : "bad"}>
-                      {u.status === "published" ? "Publiée" : u.status === "pending" ? "En relecture" : "Refusée"}
-                    </Pill>
+                    {u.title} <Pill tone={updateStatusLabel(u).tone}>{updateStatusLabel(u).label}</Pill>
                   </h4>
                   {u.status === "rejected" && u.review_note ? <p className="small muted">Motif : {u.review_note}</p> : null}
                 </div>

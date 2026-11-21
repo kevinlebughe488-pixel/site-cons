@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatBytes, replaceInputFile, shrinkImage } from "@/lib/images";
 
 /** Le fichier correspond-il au filtre `accept` du champ (types MIME, « image/* » ou extensions) ? */
@@ -20,10 +20,15 @@ function FolderIcon() {
   );
 }
 
+const REQUIRED_MESSAGE = "Ce champ est obligatoire : ajoutez un fichier.";
+
 /**
  * Champ fichier en zone « Glisser-déposer un fichier ou parcourir ». Il allège les
  * photos avant l'envoi (voir lib/images.ts) et affiche le fichier retenu.
  * `onBusy` signale au formulaire de patienter pendant la préparation.
+ *
+ * Le champ est obligatoire par défaut (astérisque rouge) : sans fichier, le
+ * formulaire n'est pas envoyé et la zone passe en rouge avec le message.
  */
 export function FileField({
   id,
@@ -34,6 +39,7 @@ export function FileField({
   maxSide = 1600,
   maxBytes,
   onBusy,
+  required = true,
 }: {
   id: string;
   name: string;
@@ -44,25 +50,49 @@ export function FileField({
   /** Taille maximale acceptée par le serveur : un fichier plus lourd n'est pas envoyé. */
   maxBytes: number;
   onBusy?: (busy: boolean) => void;
+  /** Obligatoire par défaut : le formulaire ne part pas sans fichier. */
+  required?: boolean;
 }) {
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [chosen, setChosen] = useState(false);
   const [over, setOver] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+  const zone = useRef<HTMLLabelElement>(null);
 
-  // Après un envoi réussi, React vide le formulaire : on efface aussi le fichier affiché.
+  // Champ obligatoire resté vide : zone en rouge, message, et la zone est amenée à l'écran.
+  const flagMissing = useCallback(() => {
+    setChosen(false);
+    setError(true);
+    setInfo(REQUIRED_MESSAGE);
+    zone.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    ref.current?.focus({ preventScroll: true });
+  }, []);
+
   useEffect(() => {
     const form = ref.current?.form;
     if (!form) return;
+    // Après un envoi réussi, React vide le formulaire : on efface aussi le fichier affiché.
     const clear = () => {
       setInfo(null);
       setError(false);
       setChosen(false);
     };
+    // Formulaires « noValidate » : le navigateur ne vérifie pas le champ, on le fait ici
+    // (avant React, qui n'envoie pas un formulaire dont l'envoi a été annulé).
+    const check = (event: SubmitEvent) => {
+      if (required && form.noValidate && !ref.current?.files?.length) {
+        event.preventDefault();
+        flagMissing();
+      }
+    };
     form.addEventListener("reset", clear);
-    return () => form.removeEventListener("reset", clear);
-  }, []);
+    form.addEventListener("submit", check);
+    return () => {
+      form.removeEventListener("reset", clear);
+      form.removeEventListener("submit", check);
+    };
+  }, [required, flagMissing]);
 
   const reject = (input: HTMLInputElement, message: string) => {
     input.value = "";
@@ -116,8 +146,19 @@ export function FileField({
     <div className="field">
       <span className="field-title" id={`${id}-title`}>
         {label}
+        {required ? (
+          <>
+            <span className="req" aria-hidden="true">
+              {" "}*
+            </span>
+            <span className="sr-only"> (obligatoire)</span>
+          </>
+        ) : (
+          <span className="muted"> (facultatif)</span>
+        )}
       </span>
       <label
+        ref={zone}
         htmlFor={id}
         className={`dropzone${over ? " over" : ""}${chosen ? " chosen" : ""}${error ? " invalid" : ""}`}
         onDragOver={(e) => {
@@ -145,8 +186,16 @@ export function FileField({
           id={id}
           name={name}
           accept={accept}
+          required={required}
+          aria-required={required || undefined}
+          aria-invalid={error || undefined}
           aria-labelledby={`${id}-title`}
           aria-describedby={`${id}-hint`}
+          onInvalid={(e) => {
+            // Pas de bulle du navigateur sur un champ masqué : notre propre message.
+            e.preventDefault();
+            flagMissing();
+          }}
           onChange={(e) => void prepare(e.currentTarget, e.currentTarget.files?.[0])}
         />
       </label>

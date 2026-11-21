@@ -18,6 +18,7 @@ export const OK_MESSAGES = {
   campaign_close: "Campagne clôturée.",
   update_publish: "Nouvelle publiée.",
   update_reject: "Nouvelle refusée : le club est prévenu du motif.",
+  update_withdraw: "Publication retirée : elle n'est plus visible et le club est prévenu du motif.",
   comment_hide: "Commentaire masqué.",
   comment_keep: "Commentaire conservé, signalements effacés.",
   kyc_approve: "Identité vérifiée.",

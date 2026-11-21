@@ -21,8 +21,10 @@ export async function updateProfile(_: FormState, form: FormData): Promise<FormS
       last_name: last.slice(0, 80),
       city: text(form, "city").slice(0, 80) || null,
       country: text(form, "country").slice(0, 80) || null,
-      residence: text(form, "residence") === "diaspora" ? "diaspora" : "rdc",
-      newsletter: form.get("newsletter") === "on",
+      // Lieu de vie et nouvelles des campagnes : questions posées aux seuls supporters.
+      ...(form.has("residence")
+        ? { residence: text(form, "residence") === "diaspora" ? "diaspora" : "rdc", newsletter: form.get("newsletter") === "on" }
+        : {}),
     })
     .eq("id", viewer.profile.id);
   if (error) return { error: dbErrorMessage(error) };

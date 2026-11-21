@@ -76,7 +76,8 @@ export default function TermsPage() {
             <p>
               Sont interdits : insultes, propos haineux, menaces, publicité, fausses informations, données personnelles
               d&apos;autrui (numéros, adresses). Les commentaires peuvent être signalés ; l&apos;équipe Tribune masque ceux
-              qui ne respectent pas ces règles. Les nouvelles des clubs sont relues avant publication.
+              qui ne respectent pas ces règles. Les clubs vérifiés publient eux-mêmes leurs nouvelles ; l&apos;équipe Tribune
+              les relit et retire celles qui ne respectent pas ces règles.
             </p>
           ),
         },

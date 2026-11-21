@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/lib/auth";
 import { can, ROLE_LABELS, ROLES } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
-import { reviewIdentity, setRole } from "@/lib/actions/admin";
+import { reviewIdentity, setComplianceMember } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Pill } from "@/components/visuals";
 import { DOC_TYPES, KYC_LABELS } from "@/lib/labels";
@@ -34,7 +34,10 @@ export default async function AdminUsersPage(props: PageProps<"/admin/utilisateu
     <>
       <h2>Comptes et rôles</h2>
       <p className="muted" style={{ marginBottom: 16 }}>
-        Chaque compte, son rôle et son niveau de vérification. Seuls les administrateurs changent les rôles.
+        Chaque compte, son rôle et son niveau de vérification. Les rôles ne se changent pas à la main : un supporter qui
+        inscrit son club devient gestionnaire quand le club est vérifié (ou quand vous l&apos;ajoutez comme gestionnaire
+        d&apos;un club vérifié). Le seul geste possible ici est de faire entrer un compte supporter dans l&apos;équipe
+        conformité, ou de l&apos;en faire sortir.
       </p>
       <form className="filters" method="get">
         <input type="text" name="q" defaultValue={q} placeholder="Nom, e-mail ou téléphone" aria-label="Rechercher" />
@@ -104,21 +107,27 @@ export default async function AdminUsersPage(props: PageProps<"/admin/utilisateu
                   ) : null}
                 </td>
                 <td>
-                  {can(me.role, "user:set_role") && u.id !== me.id ? (
-                    <ActionForm action={setRole} className="inline-form">
-                      <input type="hidden" name="user_id" value={u.id} />
-                      <select name="role" defaultValue={u.role} aria-label={`Rôle de ${u.first_name}`}>
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {ROLE_LABELS[r]}
-                          </option>
-                        ))}
-                      </select>
-                      <SubmitButton className="btn btn-ghost btn-sm">OK</SubmitButton>
-                    </ActionForm>
-                  ) : (
-                    <span className="small">{ROLE_LABELS[u.role]}</span>
-                  )}
+                  <span className="small">{ROLE_LABELS[u.role]}</span>
+                  {can(me.role, "user:set_role") && u.id !== me.id && (u.role === "supporter" || u.role === "compliance") ? (
+                    <details className="role-change">
+                      <summary className="small muted">{u.role === "supporter" ? "Équipe conformité…" : "Retirer de l'équipe…"}</summary>
+                      <ActionForm action={setComplianceMember} className="inline-form">
+                        <input type="hidden" name="user_id" value={u.id} />
+                        <input type="hidden" name="join" value={u.role === "supporter" ? "true" : "false"} />
+                        <SubmitButton
+                          className="btn btn-ghost btn-sm"
+                          pendingLabel="…"
+                          confirm={
+                            u.role === "supporter"
+                              ? `Faire entrer ${u.first_name} ${u.last_name} dans l'équipe conformité ? Ce compte aura accès au back-office et ne pourra plus contribuer.`
+                              : `Retirer ${u.first_name} ${u.last_name} de l'équipe conformité ? Le compte redevient supporter.`
+                          }
+                        >
+                          {u.role === "supporter" ? "Nommer chargé·e de conformité" : "Redevient supporter"}
+                        </SubmitButton>
+                      </ActionForm>
+                    </details>
+                  ) : null}
                 </td>
               </tr>
             ))}

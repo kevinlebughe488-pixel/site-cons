@@ -250,7 +250,7 @@ export default async function AccountPage(props: PageProps<"/compte">) {
                   <span className="muted">Lieu</span>
                   <span>
                     {[me.city, me.country].filter(Boolean).join(", ") || "—"}
-                    {me.residence === "diaspora" ? " · diaspora" : ""}
+                    {contributes && me.residence === "diaspora" ? " · diaspora" : ""}
                   </span>
                 </div>
               </div>
@@ -280,17 +280,21 @@ export default async function AccountPage(props: PageProps<"/compte">) {
                       <input type="text" id="country" name="country" defaultValue={me.country ?? ""} />
                     </div>
                   </div>
-                  <div className="field">
-                    <label htmlFor="residence">Vous vivez</label>
-                    <select id="residence" name="residence" defaultValue={me.residence}>
-                      <option value="rdc">En RDC</option>
-                      <option value="diaspora">Hors de RDC (diaspora)</option>
-                    </select>
-                  </div>
-                  <label className="check">
-                    <input type="checkbox" name="newsletter" defaultChecked={me.newsletter} />
-                    <span>Recevoir les nouvelles des campagnes</span>
-                  </label>
+                  {contributes ? (
+                    <>
+                      <div className="field">
+                        <label htmlFor="residence">Vous vivez</label>
+                        <select id="residence" name="residence" defaultValue={me.residence}>
+                          <option value="rdc">En RDC</option>
+                          <option value="diaspora">Hors de RDC (diaspora)</option>
+                        </select>
+                      </div>
+                      <label className="check">
+                        <input type="checkbox" name="newsletter" defaultChecked={me.newsletter} />
+                        <span>Recevoir les nouvelles des campagnes</span>
+                      </label>
+                    </>
+                  ) : null}
                   <p className="small muted">
                     Le numéro et l&apos;e-mail se changent auprès de l&apos;équipe Tribune. Consentement du {formatDate(me.consent_at)}.
                   </p>

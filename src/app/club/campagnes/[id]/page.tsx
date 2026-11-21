@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { completeMilestone, postNews } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { CampaignPill, Pill, ProgressBar } from "@/components/visuals";
+import { updateStatusLabel } from "@/lib/labels";
 import { campaignTiming, formatDate, formatMoney, percent, plural, todayInKinshasa } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { listPriceReferences } from "@/lib/campaigns";
@@ -235,7 +236,7 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                 <p className="small muted" style={{ marginTop: 8 }}>Pour les changer, écrivez à l&apos;équipe Tribune.</p>
               </div>
             ) : null}
-            {["published", "suspended", "funded", "failed"].includes(c.status) ? (
+            {["published", "suspended", "funded", "failed"].includes(c.status) && viewer.club?.status === "verified" ? (
               <div className="panel">
                 <h3>Publier une nouvelle</h3>
                 <ActionForm action={postNews}>
@@ -266,8 +267,13 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                     <label htmlFor="body">Texte</label>
                     <textarea id="body" name="body" placeholder="Où en est le projet ? Un merci, une échéance, une photo publiée…" />
                   </div>
-                  <SubmitButton className="btn btn-ghost btn-sm">Envoyer pour relecture</SubmitButton>
-                  <p className="small muted">Chaque nouvelle et chaque message sont relus par Tribune avant publication.</p>
+                  <SubmitButton className="btn btn-primary btn-sm" pendingLabel="Publication…">
+                    Publier
+                  </SubmitButton>
+                  <p className="small muted">
+                    Publiée tout de suite, destinataires prévenus. L&apos;équipe Tribune peut retirer une publication contraire
+                    aux règles (promesse non tenue, données personnelles, propos injurieux) : vous recevez alors le motif.
+                  </p>
                 </ActionForm>
               </div>
             ) : null}
@@ -278,9 +284,7 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                   <div className="update" key={u.id}>
                     <span className="small muted">
                       {formatDate(u.created_at)} · {u.audience === "contributors" ? "contributeurs seulement · " : ""}
-                      <Pill tone={u.status === "published" ? "ok" : u.status === "pending" ? "info" : "bad"}>
-                        {u.status === "published" ? "Publiée" : u.status === "pending" ? "En relecture" : "Refusée"}
-                      </Pill>
+                      <Pill tone={updateStatusLabel(u).tone}>{updateStatusLabel(u).label}</Pill>
                     </span>
                     <h4>{u.title}</h4>
                     {u.status === "rejected" && u.review_note ? <p className="small muted">Motif : {u.review_note}</p> : null}

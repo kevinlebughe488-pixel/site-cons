@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import { saveClubDossier } from "@/lib/actions/club";
 import { FieldError, Flash, SubmitButton } from "@/components/forms";
 import { DRC_PROVIDERS } from "@/lib/payments/providers";
@@ -42,7 +42,7 @@ type Props = {
   initial: DossierValues;
   /** « create » : premier enregistrement ; « edit » : dossier en préparation ou à compléter. */
   mode: "create" | "edit";
-  /** Le compte connecté, pour remplir le représentant légal en un geste. */
+  /** Le compte connecté : par défaut, c'est lui le représentant légal (rien à ressaisir). */
   me: { name: string; phone: string; email: string };
   maxDate: string;
 };
@@ -51,16 +51,13 @@ export function ClubDossierForm({ initial, mode, me, maxDate }: Props) {
   const [state, action] = useActionState(saveClubDossier, {});
   const v: DossierValues = { ...initial, ...(state.fields as Partial<DossierValues> | undefined) };
   const [method, setMethod] = useState<DossierValues["payout_method"]>(v.payout_method);
-  const repName = useRef<HTMLInputElement>(null);
-  const repPhone = useRef<HTMLInputElement>(null);
-  const repEmail = useRef<HTMLInputElement>(null);
+  // Le représentant de compte qui inscrit le club est souvent le représentant légal :
+  // ses coordonnées sont reprises du compte, sans les saisir une deuxième fois.
+  const digits = (p: string) => p.replace(/\D/g, "").slice(-9);
+  const [isMe, setIsMe] = useState(
+    !initial.rep_name || (initial.rep_name === me.name && digits(initial.rep_phone) === digits(me.phone)),
+  );
   const invalid = (name: string) => (state.field === name ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {});
-
-  function fillWithMe() {
-    if (repName.current) repName.current.value = me.name;
-    if (repPhone.current) repPhone.current.value = me.phone;
-    if (repEmail.current) repEmail.current.value = me.email;
-  }
 
   return (
     <form className="panel form dossier" action={action} noValidate>
@@ -141,19 +138,49 @@ export function ClubDossierForm({ initial, mode, me, maxDate }: Props) {
       <fieldset>
         <legend>Représentant légal</legend>
         <p className="small muted" style={{ marginTop: -4 }}>
-          La personne qui engage le club (souvent le président).{" "}
-          <button type="button" className="link-btn" onClick={fillWithMe}>
-            C&apos;est moi : reprendre mes coordonnées
-          </button>
+          La personne qui engage le club (souvent le président).
         </p>
-        <div className="two">
-          <div className="field">
-            <label htmlFor="rep_name">Nom et prénom</label>
-            <input type="text" id="rep_name" name="rep_name" ref={repName} defaultValue={v.rep_name} {...invalid("rep_name")} />
+        <label className="check">
+          <input type="checkbox" checked={isMe} onChange={(e) => setIsMe(e.target.checked)} />
+          <span>Je suis le représentant légal du club</span>
+        </label>
+        {isMe ? (
+          <>
+            <input type="hidden" name="rep_name" value={me.name} />
+            <input type="hidden" name="rep_phone" value={me.phone} />
+            <input type="hidden" name="rep_email" value={me.email} />
+            <div className="recap small">
+              <div>
+                <span className="muted">Nom</span>
+                <span>{me.name}</span>
+              </div>
+              <div>
+                <span className="muted">Téléphone</span>
+                <span className="num">{me.phone}</span>
+              </div>
+              <div>
+                <span className="muted">E-mail</span>
+                <span style={{ overflowWrap: "anywhere" }}>{me.email || "—"}</span>
+              </div>
+            </div>
             <FieldError state={state} name="rep_name" />
-          </div>
+            <FieldError state={state} name="rep_phone" />
+            <FieldError state={state} name="rep_email" />
+            <p className="small muted" style={{ marginTop: -6 }}>
+              Repris de votre compte : rien à saisir une deuxième fois.
+            </p>
+          </>
+        ) : null}
+        <div className={isMe ? undefined : "two"}>
+          {isMe ? null : (
+            <div className="field">
+              <label htmlFor="rep_name">Nom et prénom</label>
+              <input type="text" id="rep_name" name="rep_name" defaultValue={v.rep_name === me.name ? "" : v.rep_name} {...invalid("rep_name")} />
+              <FieldError state={state} name="rep_name" />
+            </div>
+          )}
           <div className="field">
-            <label htmlFor="rep_title">Fonction</label>
+            <label htmlFor="rep_title">{isMe ? "Votre fonction au club" : "Fonction"}</label>
             <input type="text" id="rep_title" name="rep_title" list="titles" placeholder="Président" defaultValue={v.rep_title} {...invalid("rep_title")} />
             <datalist id="titles">
               {["Président", "Vice-président", "Secrétaire général", "Trésorier", "Directeur général", "Manager général"].map((t) => (
@@ -163,20 +190,22 @@ export function ClubDossierForm({ initial, mode, me, maxDate }: Props) {
             <FieldError state={state} name="rep_title" />
           </div>
         </div>
-        <div className="two">
-          <div className="field">
-            <label htmlFor="rep_phone">Téléphone</label>
-            <input type="tel" id="rep_phone" name="rep_phone" ref={repPhone} placeholder="+243 81 000 0000" defaultValue={v.rep_phone} {...invalid("rep_phone")} />
-            <FieldError state={state} name="rep_phone" />
+        {isMe ? null : (
+          <div className="two">
+            <div className="field">
+              <label htmlFor="rep_phone">Téléphone</label>
+              <input type="tel" id="rep_phone" name="rep_phone" placeholder="+243 81 000 0000" defaultValue={v.rep_name === me.name ? "" : v.rep_phone} {...invalid("rep_phone")} />
+              <FieldError state={state} name="rep_phone" />
+            </div>
+            <div className="field">
+              <label htmlFor="rep_email">
+                E-mail <span className="muted">(facultatif)</span>
+              </label>
+              <input type="email" id="rep_email" name="rep_email" defaultValue={v.rep_name === me.name ? "" : v.rep_email} {...invalid("rep_email")} />
+              <FieldError state={state} name="rep_email" />
+            </div>
           </div>
-          <div className="field">
-            <label htmlFor="rep_email">
-              E-mail <span className="muted">(facultatif)</span>
-            </label>
-            <input type="email" id="rep_email" name="rep_email" ref={repEmail} defaultValue={v.rep_email} {...invalid("rep_email")} />
-            <FieldError state={state} name="rep_email" />
-          </div>
-        </div>
+        )}
         <div className="field">
           <label htmlFor="contact_phone">
             Téléphone du club <span className="muted">(si différent)</span>

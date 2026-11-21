@@ -62,6 +62,22 @@ export function Flash({ state }: { state: FormState }) {
   return null;
 }
 
+/**
+ * Identité prouvée : chargement complet de la page qui ouvre la session (pas une
+ * navigation interne), en remplaçant la page de connexion dans l'historique. Le
+ * navigateur oublie ainsi les pages affichées avant, avec un autre compte ou sans compte.
+ */
+export function SessionRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+  return (
+    <p className="flash success" role="status">
+      Connexion en cours… <a href={to}>Continuer</a>
+    </p>
+  );
+}
+
 /** Message d'erreur affiché sous le champ concerné. */
 export function FieldError({ state, name }: { state: FormState; name: string }) {
   if (state.field !== name || !state.error) return null;
