@@ -73,6 +73,7 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261120000100_controle_conformite.sql` (référentiel des prix, devis des fournisseurs, contrôle automatique des campagnes)
    - `supabase/migrations/20261120000200_photos_situation.sql` (photos de la situation actuelle, photos copiées)
    - `supabase/migrations/20261121000100_publication_directe_roles.sql` (nouvelles publiées directement par les clubs et retirées au besoin, dossier en préparation vérifiable, rôles)
+   - `supabase/migrations/20261122000200_back_office_clubs.sql` (vérification des clubs : dossier « compléments demandés » complet vérifiable, ajout de gestionnaires contrôlé, réactivation des campagnes d'un club vérifié seulement)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -157,7 +158,7 @@ représentant crée son compte personnel (confirmé par SMS), puis ouvre le **do
 L'inscription **ne donne aucun droit** : le dossier passe de « en préparation » à « en cours de
 vérification » quand le club l'envoie. L'équipe Tribune confirme trois points de contrôle (existence du
 club, représentant légal, compte de versement) pour le vérifier, ou demande des compléments (le club
-corrige et renvoie), ou refuse. Un dossier encore « en préparation » (jamais envoyé) peut aussi être vérifié
+corrige et renvoie, ou l'équipe le vérifie directement s'il est complet), ou refuse. Un dossier encore « en préparation » (jamais envoyé) peut aussi être vérifié
 par l'équipe s'il est complet (mêmes conditions que l'envoi) ; incomplet, le back-office indique ce qui
 manque et l'équipe peut demander des compléments ou refuser. Le logo du club n'est envoyé que par ses
 gestionnaires. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au

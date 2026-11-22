@@ -6,14 +6,13 @@ import { ActionForm, FieldError, Flash, SubmitButton } from "@/components/forms"
 import type { FormState } from "@/lib/forms";
 import { LogoUpload } from "@/components/LogoUpload";
 import { DRC_PROVIDERS, providerLabel } from "@/lib/payments/providers";
-import { checkDossier, STEP_FIELDS, stepOfField, WIZARD_STEPS, type DossierValues } from "@/lib/club-dossier";
+import { checkDossier, PROOF_KINDS, STEP_FIELDS, stepOfField, WIZARD_STEPS, type DossierValues } from "@/lib/club-dossier";
 import { formatBytes } from "@/lib/images";
 import { formatDate } from "@/lib/format";
 import { CLUB_DOCUMENT_KINDS, SPORTS, type Club, type ClubDocument, type ClubDocumentKind } from "@/lib/types";
 import { DocumentUpload } from "./DocumentUpload";
 
 const KIND_LABEL = Object.fromEntries(CLUB_DOCUMENT_KINDS.map((k) => [k.id, k.label]));
-const PROOF_KINDS: ClubDocumentKind[] = ["statuts", "enregistrement", "affiliation"];
 
 type WizardClub = Pick<Club, "id" | "name" | "short_name" | "color_primary" | "color_secondary" | "logo_path" | "status" | "review_note">;
 

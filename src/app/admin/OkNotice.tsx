@@ -5,11 +5,11 @@ import { useSearchParams } from "next/navigation";
 // Messages de confirmation après une décision qui fait disparaître son formulaire.
 // Seules des clés connues sont acceptées dans l'adresse, jamais du texte libre.
 export const OK_MESSAGES = {
-  club_verify: "Club vérifié. Ses gestionnaires peuvent maintenant créer des campagnes.",
+  club_verify: "Club vérifié : il est prévenu, et ses gestionnaires peuvent maintenant déposer des campagnes.",
   club_request_changes: "Compléments demandés au club : il est prévenu et peut compléter son dossier.",
-  club_reject: "Demande d'inscription refusée.",
-  club_suspend: "Club suspendu, ainsi que ses campagnes en cours.",
-  club_reactivate: "Club réactivé.",
+  club_reject: "Demande d'inscription refusée : le demandeur est prévenu du motif.",
+  club_suspend: "Club suspendu, ainsi que ses campagnes en cours : ses gestionnaires sont prévenus du motif.",
+  club_reactivate: "Club réactivé. Ses campagnes suspendues avec lui restent suspendues : réactivez-les une par une depuis Campagnes.",
   campaign_approve: "Campagne publiée.",
   campaign_request_changes: "Corrections demandées au club.",
   campaign_reject: "Dossier refusé.",

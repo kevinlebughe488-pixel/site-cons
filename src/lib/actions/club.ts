@@ -13,7 +13,7 @@ import { slugify, todayInKinshasa } from "@/lib/format";
 import { normalizeAnyPhone, normalizeDrcPhone } from "@/lib/phone";
 import { cleanFileName, readUpload } from "@/lib/uploads";
 import { CAMPAIGN_CATEGORIES, CAMPAIGN_DOCUMENT_KINDS, CAMPAIGN_LIMITS, CLUB_DOCUMENT_KINDS, type Club } from "@/lib/types";
-import { checkDossier, DOSSIER_FIELDS } from "@/lib/club-dossier";
+import { CLUB_DOCUMENT_MAX_BYTES, CLUB_DOCUMENT_MAX_COUNT, checkDossier, DOSSIER_FIELDS } from "@/lib/club-dossier";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const EDITABLE_DOSSIER: Club["status"][] = ["draft", "changes_requested"];
@@ -71,18 +71,21 @@ export async function submitClubDossier(): Promise<FormState> {
   redirect("/club?ok=dossier_envoye");
 }
 
-const DOCUMENT_MAX_BYTES = 4 * 1024 * 1024;
-const MAX_DOCUMENTS = 20;
+const DOCUMENT_MAX_BYTES = CLUB_DOCUMENT_MAX_BYTES;
+const MAX_DOCUMENTS = CLUB_DOCUMENT_MAX_COUNT;
 
-/** Ajoute une pièce au dossier : membres du club (dossier modifiable) ou équipe Tribune. */
+/**
+ * Ajoute une pièce au dossier, par un gestionnaire du club tant que le dossier est
+ * modifiable. (L'équipe Tribune ajoute un document reçu du club par sa propre
+ * action du back-office : addClubDocument.)
+ */
 export async function uploadClubDocument(_: FormState, form: FormData): Promise<FormState> {
   const viewer = await getViewer();
   if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
   const clubId = text(form, "club_id");
-  const staff = isStaff(viewer.profile.role);
   const own = viewer.club?.id === clubId && canUseClubSpace(viewer.profile.role);
-  if (!own && !staff) return { error: "Vous ne pouvez pas ajouter de document à ce club." };
-  if (own && !staff && !EDITABLE_DOSSIER.includes(viewer.club!.status)) {
+  if (!own) return { error: "Vous ne pouvez pas ajouter de document à ce club." };
+  if (!EDITABLE_DOSSIER.includes(viewer.club!.status)) {
     return { error: "Le dossier est en cours de vérification : les documents ne peuvent plus être modifiés." };
   }
   const kind = text(form, "kind");

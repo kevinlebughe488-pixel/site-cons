@@ -26,7 +26,7 @@ export function DocumentUpload({
   clubId: string;
   suggested?: ClubDocumentKind;
   kind?: ClubDocumentKind;
-  kinds?: ClubDocumentKind[];
+  kinds?: readonly ClubDocumentKind[];
   label?: string;
   hint?: string;
   required?: boolean;
