@@ -320,7 +320,15 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
                     <textarea id="snote" name="note" />
                   </div>
                 ) : null}
-                <SubmitButton className="btn btn-ghost btn-sm">{c.status === "published" ? "Suspendre la campagne" : "Réactiver la campagne"}</SubmitButton>
+                {c.status === "suspended" && c.club.status !== "verified" ? (
+                  // Même règle que la base : la campagne d'un club suspendu ne collecte pas.
+                  <p className="small muted">
+                    Le club est « {CLUB_STATUS_LABELS[c.club.status]} » : réactivez d&apos;abord le club depuis la page{" "}
+                    <Link href={`/admin/clubs?statut=${c.club.status}`}>Clubs</Link>.
+                  </p>
+                ) : (
+                  <SubmitButton className="btn btn-ghost btn-sm">{c.status === "published" ? "Suspendre la campagne" : "Réactiver la campagne"}</SubmitButton>
+                )}
               </ActionForm>
             </div>
           ) : null}

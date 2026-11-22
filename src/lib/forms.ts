@@ -7,6 +7,8 @@ export type FormState = {
   fields?: Record<string, string>;
   /** Champ concerné par l'erreur : le formulaire l'affiche à côté et y place le curseur. */
   field?: string;
+  /** Parcours en plusieurs étapes : étape à afficher après une action réussie. */
+  step?: number;
 };
 
 export const initialFormState: FormState = {};

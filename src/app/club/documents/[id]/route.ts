@@ -10,7 +10,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function GET(_request: Request, ctx: RouteContext<"/club/documents/[id]">) {
   const { id } = await ctx.params;
   const viewer = await getViewer();
-  if (!viewer) return NextResponse.redirect(new URL(`/connexion?suite=${encodeURIComponent("/club")}`, _request.url));
+  // Après la connexion, on revient sur ce document (lien ouvert depuis le back-office ou l'espace club).
+  if (!viewer) return NextResponse.redirect(new URL(`/connexion?suite=${encodeURIComponent(`/club/documents/${id}`)}`, _request.url));
   if (!/^[0-9a-f-]{36}$/.test(id)) return new NextResponse("Document introuvable.", { status: 404 });
 
   const supabase = await createClient();

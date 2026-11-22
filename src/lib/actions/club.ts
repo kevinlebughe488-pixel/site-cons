@@ -11,9 +11,9 @@ import { can, canUseClubSpace, isStaff } from "@/lib/rbac";
 import { dbErrorMessage, keepFields, text, type FormState } from "@/lib/forms";
 import { slugify, todayInKinshasa } from "@/lib/format";
 import { normalizeAnyPhone, normalizeDrcPhone } from "@/lib/phone";
-import { isKnownProvider } from "@/lib/payments/providers";
 import { cleanFileName, readUpload } from "@/lib/uploads";
 import { CAMPAIGN_CATEGORIES, CAMPAIGN_DOCUMENT_KINDS, CAMPAIGN_LIMITS, CLUB_DOCUMENT_KINDS, type Club } from "@/lib/types";
+import { CLUB_DOCUMENT_MAX_BYTES, CLUB_DOCUMENT_MAX_COUNT, checkDossier, DOSSIER_FIELDS } from "@/lib/club-dossier";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const EDITABLE_DOSSIER: Club["status"][] = ["draft", "changes_requested"];
@@ -22,42 +22,11 @@ const EDITABLE_DOSSIER: Club["status"][] = ["draft", "changes_requested"];
 // Dossier d'inscription du club
 // ---------------------------------------------------------------------
 
-const DOSSIER_FIELDS = [
-  "name", "short_name", "sport", "city", "commune", "address", "founded_on", "legal_id",
-  "rep_name", "rep_title", "rep_phone", "rep_email", "contact_phone", "description",
-  "color_primary", "color_secondary", "payout_method", "payout_holder", "payout_phone",
-  "payout_provider", "bank_name", "bank_account",
-];
-
-/** Mêmes règles que la base (normalize_club_dossier), avec le champ concerné pour l'afficher au bon endroit. */
-function checkDossier(f: Record<string, string>): { message: string; field: string } | null {
-  if (f.name.length < 3) return { field: "name", message: "Indiquez le nom officiel du club." };
-  if (!/^[A-Z0-9]{2,4}$/.test(f.short_name.toUpperCase())) return { field: "short_name", message: "Le sigle doit faire 2 à 4 lettres ou chiffres (ex. TPM)." };
-  if (f.sport.length < 2 || f.sport.length > 60) return { field: "sport", message: "Indiquez la discipline sportive du club." };
-  if (f.city.length < 2) return { field: "city", message: "Indiquez la ville du siège du club." };
-  if (f.address.length < 5) return { field: "address", message: "Indiquez l'adresse du siège (avenue, numéro, quartier)." };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(f.founded_on) || f.founded_on < "1850-01-01" || f.founded_on > todayInKinshasa()) {
-    return { field: "founded_on", message: "Indiquez la date de création du club (celle des statuts ou de la fondation)." };
-  }
-  if (f.legal_id.length > 80) return { field: "legal_id", message: "L'identifiant juridique est trop long (80 caractères au plus)." };
-  if (f.rep_name.length < 3) return { field: "rep_name", message: "Indiquez le nom du représentant légal du club." };
-  if (f.rep_title.length < 2) return { field: "rep_title", message: "Indiquez la fonction du représentant légal (président, secrétaire général…)." };
-  if (!normalizeAnyPhone(f.rep_phone)) return { field: "rep_phone", message: "Le téléphone du représentant légal n'est pas valide." };
-  if (f.rep_email && !z.email().safeParse(f.rep_email).success) return { field: "rep_email", message: "L'e-mail du représentant légal n'est pas valide." };
-  if (f.contact_phone && !normalizeAnyPhone(f.contact_phone)) return { field: "contact_phone", message: "Le téléphone du club n'est pas valide." };
-  if (f.payout_holder.length < 3) return { field: "payout_holder", message: "Indiquez le titulaire du compte de versement : le compte doit être au nom du club." };
-  if (f.payout_method === "bank") {
-    if (f.bank_name.length < 2) return { field: "bank_name", message: "Indiquez le nom de la banque." };
-    if (!/^[A-Za-z0-9 .-]{5,60}$/.test(f.bank_account)) return { field: "bank_account", message: "Le numéro de compte bancaire n'est pas valide." };
-  } else {
-    if (!normalizeDrcPhone(f.payout_phone)) return { field: "payout_phone", message: "Le numéro Mobile Money de versement doit être un numéro congolais valide." };
-    if (!isKnownProvider(f.payout_provider)) return { field: "payout_provider", message: "Choisissez l'opérateur du compte Mobile Money." };
-  }
-  if (f.description.length > 4000) return { field: "description", message: "La présentation est trop longue (4 000 caractères au plus)." };
-  return null;
-}
-
-/** Crée le dossier du club (brouillon) ou le met à jour tant qu'il n'est pas envoyé. */
+/**
+ * Crée le dossier du club (brouillon) ou le met à jour tant qu'il n'est pas envoyé.
+ * Appelée par le bouton « Suivant » du parcours d'inscription : en cas de succès,
+ * on passe à l'étape demandée (`next_step`), sinon on revient au champ fautif.
+ */
 export async function saveClubDossier(_: FormState, form: FormData): Promise<FormState> {
   const fields = keepFields(form, DOSSIER_FIELDS);
   fields.payout_method = fields.payout_method === "bank" ? "bank" : "mobile_money";
@@ -85,8 +54,10 @@ export async function saveClubDossier(_: FormState, form: FormData): Promise<For
     : await supabase.rpc("register_club", { p_data: data });
   if (error) return { error: dbErrorMessage(error), fields };
   revalidatePath("/", "layout");
-  if (!club) redirect("/club?ok=dossier_ouvert");
-  return { success: "Dossier enregistré.", fields };
+  const next = Math.min(5, Math.max(1, Number(text(form, "next_step")) || 4));
+  // Premier enregistrement : le club existe désormais, on passe aux documents.
+  if (!club) redirect(`/club?etape=${next}&ok=dossier_ouvert`);
+  return { success: "Informations enregistrées.", fields, step: next };
 }
 
 /** Envoie le dossier à l'équipe Tribune pour vérification. */
@@ -100,18 +71,21 @@ export async function submitClubDossier(): Promise<FormState> {
   redirect("/club?ok=dossier_envoye");
 }
 
-const DOCUMENT_MAX_BYTES = 4 * 1024 * 1024;
-const MAX_DOCUMENTS = 20;
+const DOCUMENT_MAX_BYTES = CLUB_DOCUMENT_MAX_BYTES;
+const MAX_DOCUMENTS = CLUB_DOCUMENT_MAX_COUNT;
 
-/** Ajoute une pièce au dossier : membres du club (dossier modifiable) ou équipe Tribune. */
+/**
+ * Ajoute une pièce au dossier, par un gestionnaire du club tant que le dossier est
+ * modifiable. (L'équipe Tribune ajoute un document reçu du club par sa propre
+ * action du back-office : addClubDocument.)
+ */
 export async function uploadClubDocument(_: FormState, form: FormData): Promise<FormState> {
   const viewer = await getViewer();
   if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
   const clubId = text(form, "club_id");
-  const staff = isStaff(viewer.profile.role);
   const own = viewer.club?.id === clubId && canUseClubSpace(viewer.profile.role);
-  if (!own && !staff) return { error: "Vous ne pouvez pas ajouter de document à ce club." };
-  if (own && !staff && !EDITABLE_DOSSIER.includes(viewer.club!.status)) {
+  if (!own) return { error: "Vous ne pouvez pas ajouter de document à ce club." };
+  if (!EDITABLE_DOSSIER.includes(viewer.club!.status)) {
     return { error: "Le dossier est en cours de vérification : les documents ne peuvent plus être modifiés." };
   }
   const kind = text(form, "kind");

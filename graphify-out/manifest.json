@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1795121006.482896,
-    "seen": 1795289244.0125258,
-    "ast_hash": "60a6771a302fe0b339fdf0e336e4cb7b",
+    "mtime": 1795354038.952975,
+    "seen": 1795354063.9593227,
+    "ast_hash": "f1e6af7809cdd042cf9a93f955b878cd",
     "semantic_hash": ""
   },
   "scripts/check-rls.mjs": {
@@ -66,15 +66,15 @@
     "semantic_hash": ""
   },
   "src/app/admin/OkNotice.tsx": {
-    "mtime": 1795289790.073288,
-    "seen": 1795290625.803376,
-    "ast_hash": "483b21b7dbe23731469a4cc87c21dd08",
+    "mtime": 1795354806.2090025,
+    "seen": 1795354899.663501,
+    "ast_hash": "8f556a12dab1761a1e4906186f511c35",
     "semantic_hash": ""
   },
   "src/app/admin/campagnes/[id]/page.tsx": {
-    "mtime": 1795289220.7624133,
-    "seen": 1795289244.0125368,
-    "ast_hash": "e653c8f2a5bdbf2819602065a8b13ca5",
+    "mtime": 1795354806.2090025,
+    "seen": 1795354899.6635027,
+    "ast_hash": "1ceda27fb695d3f38d8ddfdf18c33e0f",
     "semantic_hash": ""
   },
   "src/app/admin/campagnes/page.tsx": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "src/app/admin/clubs/page.tsx": {
-    "mtime": 1795289886.16778,
-    "seen": 1795290625.80338,
-    "ast_hash": "6deaf4bc25cb79c7ed44b3f5c75ebaf0",
+    "mtime": 1795354806.2130024,
+    "seen": 1795354899.6635075,
+    "ast_hash": "1546752b90f47d185ce98a5c1373d71c",
     "semantic_hash": ""
   },
   "src/app/admin/commentaires/page.tsx": {
@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "src/app/admin/page.tsx": {
-    "mtime": 1795289832.54096,
-    "seen": 1795290625.8033864,
-    "ast_hash": "8650495c4dfbcbc58b3f54f34b3925d9",
+    "mtime": 1795354806.2130024,
+    "seen": 1795354899.663513,
+    "ast_hash": "7d296c6636d49d25237a8c32513c597f",
     "semantic_hash": ""
   },
   "src/app/admin/transactions/export/route.ts": {
@@ -209,16 +209,10 @@
     "ast_hash": "7fc93382554d853f1850b9946b21650a",
     "semantic_hash": ""
   },
-  "src/app/club/ClubDossierForm.tsx": {
-    "mtime": 1795290553.9322689,
-    "seen": 1795290625.803412,
-    "ast_hash": "e8edc0b15458be3c1458fb661cf6bdd5",
-    "semantic_hash": ""
-  },
   "src/app/club/DocumentUpload.tsx": {
-    "mtime": 1795121006.4906867,
-    "seen": 1795289244.012569,
-    "ast_hash": "f879ea319087eea6926a74dbea2b95d4",
+    "mtime": 1795354832.2070127,
+    "seen": 1795354899.6635387,
+    "ast_hash": "e6d42db46a19873bdc45c80cd6e0064a",
     "semantic_hash": ""
   },
   "src/app/club/campagnes/CampaignEditor.tsx": {
@@ -246,15 +240,15 @@
     "semantic_hash": ""
   },
   "src/app/club/documents/[id]/route.ts": {
-    "mtime": 1795121006.4910853,
-    "seen": 1795289244.0125797,
-    "ast_hash": "98a2603dd77c437f5f4c8455de6360d2",
+    "mtime": 1795354832.2061303,
+    "seen": 1795354899.663548,
+    "ast_hash": "2c31f0669be2ff48eff61909dcd4596c",
     "semantic_hash": ""
   },
   "src/app/club/page.tsx": {
-    "mtime": 1795290128.2376773,
-    "seen": 1795290625.8034258,
-    "ast_hash": "310a0db375e0ead484e42b211dbfea46",
+    "mtime": 1795353726.040868,
+    "seen": 1795354038.6455812,
+    "ast_hash": "17afdb2120cfef7167e0e7d4523fa18d",
     "semantic_hash": ""
   },
   "src/app/clubs/[slug]/page.tsx": {
@@ -420,9 +414,9 @@
     "semantic_hash": ""
   },
   "src/components/FileField.tsx": {
-    "mtime": 1795289632.9169776,
-    "seen": 1795290625.8034658,
-    "ast_hash": "c7c6e878ce25cddd9e8e8143d7b5d31d",
+    "mtime": 1795353487.3685286,
+    "seen": 1795354038.6456156,
+    "ast_hash": "28ce6272815d9b8032ef8f3a8a92794a",
     "semantic_hash": ""
   },
   "src/components/Footer.tsx": {
@@ -444,9 +438,9 @@
     "semantic_hash": ""
   },
   "src/components/LogoUpload.tsx": {
-    "mtime": 1795289220.7690809,
-    "seen": 1795289244.0126302,
-    "ast_hash": "25c572a1f995cd3a173f088232e10d8d",
+    "mtime": 1795353506.5104365,
+    "seen": 1795354038.645622,
+    "ast_hash": "2531fe9347f7c81f5dc4ca50b44c1720",
     "semantic_hash": ""
   },
   "src/components/NavLinks.tsx": {
@@ -456,9 +450,9 @@
     "semantic_hash": ""
   },
   "src/components/ShareButtons.tsx": {
-    "mtime": 1795121006.4929347,
-    "seen": 1795289244.0126338,
-    "ast_hash": "908b8af64fa4e8a6035e0b30cd0ea3ae",
+    "mtime": 1795354038.956975,
+    "seen": 1795354063.9594135,
+    "ast_hash": "17e089afa4809da5f047e99ade43cd19",
     "semantic_hash": ""
   },
   "src/components/forms.tsx": {
@@ -480,9 +474,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/admin.ts": {
-    "mtime": 1795289790.0728514,
-    "seen": 1795290625.8034828,
-    "ast_hash": "bf58c7d714ceb4703ad6d41cfc63e5b8",
+    "mtime": 1795354806.2130024,
+    "seen": 1795354899.663593,
+    "ast_hash": "359894db08bbe36486c902aebef3aa52",
     "semantic_hash": ""
   },
   "src/lib/actions/auth.ts": {
@@ -492,9 +486,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/club.ts": {
-    "mtime": 1795289790.0739634,
-    "seen": 1795290625.803485,
-    "ast_hash": "9e0af406687e09c591f4a30828087047",
+    "mtime": 1795354832.2065449,
+    "seen": 1795354899.6635947,
+    "ast_hash": "cadf9fb813ea77b51da3c1aa55dfed2b",
     "semantic_hash": ""
   },
   "src/lib/actions/community.ts": {
@@ -534,9 +528,9 @@
     "semantic_hash": ""
   },
   "src/lib/forms.ts": {
-    "mtime": 1795290114.943577,
-    "seen": 1795290625.8034983,
-    "ast_hash": "d5e6c4e4e7caa42c749ab1ebae29424e",
+    "mtime": 1795353559.0900245,
+    "seen": 1795354038.6456423,
+    "ast_hash": "adac83294eb1d606052a6f29bc19435e",
     "semantic_hash": ""
   },
   "src/lib/images.ts": {
@@ -684,9 +678,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795290613.892562,
-    "seen": 1795290625.803559,
-    "ast_hash": "36f0e4d9a8abe50f4652a6d272e44e13",
+    "mtime": 1795354890.7134962,
+    "seen": 1795354899.6636448,
+    "ast_hash": "32911310d43e5939f8c0a5ff1dc034fe",
     "semantic_hash": ""
   },
   "maquette/index.html": {
@@ -768,9 +762,9 @@
     "semantic_hash": ""
   },
   "supabase/mise-a-jour-production.sql": {
-    "mtime": 1795290321.5459268,
-    "seen": 1795290625.8035495,
-    "ast_hash": "fbf97d6d81e56cc61cbd33428353d990",
+    "mtime": 1795354844.7624245,
+    "seen": 1795354899.6636395,
+    "ast_hash": "9037e1396f6c516a452b3b8cfc506f6a",
     "semantic_hash": ""
   },
   ".claude/settings.json": {
@@ -905,10 +899,40 @@
     "ast_hash": "4aefd6b405bf42019616ca7d557f14c5",
     "semantic_hash": ""
   },
+  "src/app/club/ClubWizard.tsx": {
+    "mtime": 1795354832.2068508,
+    "seen": 1795354899.6635375,
+    "ast_hash": "ce6234509be7af1c045b290620b10748",
+    "semantic_hash": ""
+  },
+  "src/lib/club-dossier.ts": {
+    "mtime": 1795354815.3380394,
+    "seen": 1795354899.6636004,
+    "ast_hash": "64747ba850a2350726a8ea846865c777",
+    "semantic_hash": ""
+  },
+  "src/app/admin/clubs/ClubDossier.tsx": {
+    "mtime": 1795354806.2130024,
+    "seen": 1795354899.6635046,
+    "ast_hash": "d4ef455c966fc2c843f15d5321f1ec24",
+    "semantic_hash": ""
+  },
+  "src/app/admin/clubs/StaffDocumentUpload.tsx": {
+    "mtime": 1795354806.2130024,
+    "seen": 1795354899.6635065,
+    "ast_hash": "88c678d3f1dd421668a6efd2bd522463",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/20261122000200_back_office_clubs.sql": {
+    "mtime": 1795354806.2130024,
+    "seen": 1795354899.6636386,
+    "ast_hash": "0261ed71674588143387df2e1135f71a",
+    "semantic_hash": ""
+  },
   "package-lock.json": {
-    "mtime": 1795121006.482896,
-    "seen": 1795289244.012704,
-    "ast_hash": "af506e9f5fefc0f9ed42aa98ad27c031",
+    "mtime": 1795354038.952975,
+    "seen": 1795354063.9594665,
+    "ast_hash": "01c3e9adfeeb86f8a48d7fb78c29b8c1",
     "semantic_hash": ""
   }
 }
