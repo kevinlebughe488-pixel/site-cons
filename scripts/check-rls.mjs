@@ -145,6 +145,12 @@ const outsider = await as("representant@tribune.test");
 expect("supporter non contributeur : ne lit pas les messages réservés", denied(await outsider.from("campaign_updates").select("id").eq("audience", "contributors")));
 expect("contributeur : lit le message qui lui est réservé", ((await supporter.from("campaign_updates").select("id").eq("audience", "contributors")).data ?? []).length >= 1);
 expect("visiteur : ne lit pas une nouvelle en attente de relecture", denied(await anon.from("campaign_updates").select("id").eq("status", "pending")));
+expect("visiteur : ne lit pas une publication retirée par l'équipe", denied(await anon.from("campaign_updates").select("id").eq("status", "rejected")));
+const anyNews = (await anon.from("campaign_updates").select("id").eq("status", "published").limit(1)).data?.[0];
+if (anyNews) {
+  expect("supporter : ne peut pas retirer une publication", !!(await supporter.rpc("withdraw_campaign_update", { p_update_id: anyNews.id, p_note: "test" })).error);
+  expect("gestionnaire : ne peut pas retirer une publication", !!(await manager.rpc("withdraw_campaign_update", { p_update_id: anyNews.id, p_note: "test" })).error);
+}
 expect("supporter : ne peut pas changer son code d'ambassadeur", !!(await supporter.from("profiles").update({ referral_code: "pirate1" }).eq("id", me.user.id)).error);
 expect("supporter : ne peut pas s'attribuer une contribution", !!(await supporter.from("contributions").update({ referred_by: me.user.id }).eq("campaign_id", anyCampaign.id)).error);
 const ranking = (await anon.rpc("ambassador_ranking", { p_limit: 5 })).data ?? [];

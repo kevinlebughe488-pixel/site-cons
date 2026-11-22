@@ -56,6 +56,9 @@ export default async function ClubsPage() {
           ? { href: "/club", label: viewer.club && viewer.club.status !== "rejected" ? "Suivre mon dossier" : "Inscrire mon club" }
           : null;
 
+  // L'équipe Tribune et les clubs déjà inscrits ne sont pas invités à « inscrire leur club ».
+  const registered = isStaff(role) || can(role, "club:manage");
+
   return (
     <>
       <div className="page-head on-pitch">
@@ -64,11 +67,19 @@ export default async function ClubsPage() {
           <div className="eyebrow" style={{ color: "var(--gold)" }}>
             Clubs
           </div>
-          <h1 style={{ marginTop: 8, fontSize: "clamp(2.2rem,5vw,3.2rem)" }}>Inscrire votre club sur Tribune</h1>
-          <p>
-            Vos supporters financent vos projets (terrain, équipements, déplacements) et paient par Mobile Money.
-            L&apos;inscription est gratuite. L&apos;équipe Tribune vérifie chaque club avant sa première campagne.
-          </p>
+          <h1 style={{ marginTop: 8, fontSize: "clamp(2.2rem,5vw,3.2rem)" }}>
+            {registered ? "Les clubs sur Tribune" : "Inscrire votre club sur Tribune"}
+          </h1>
+          {isStaff(role) ? (
+            <p>Page publique des clubs, telle que la voient les visiteurs : parcours d&apos;inscription et annuaire des clubs vérifiés.</p>
+          ) : registered ? (
+            <p>Le parcours d&apos;un club sur Tribune et l&apos;annuaire des clubs vérifiés.</p>
+          ) : (
+            <p>
+              Vos supporters financent vos projets (terrain, équipements, déplacements) et paient par Mobile Money.
+              L&apos;inscription est gratuite. L&apos;équipe Tribune vérifie chaque club avant sa première campagne.
+            </p>
+          )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
             {cta ? (
               <Link className="btn btn-gold" href={cta.href}>

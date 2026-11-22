@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { OkKey } from "@/app/admin/OkNotice";
 import { createClient } from "@/lib/supabase/server";
 import { viewerWith } from "@/lib/auth";
-import { ROLES, type Permission, type Role } from "@/lib/rbac";
+import { type Permission, type Role } from "@/lib/rbac";
 import { dbErrorMessage, text, type FormState } from "@/lib/forms";
 import { normalizeDrcPhone } from "@/lib/phone";
 import { isKnownProvider } from "@/lib/payments/providers";
@@ -130,6 +130,20 @@ export async function reviewUpdate(_: FormState, form: FormData): Promise<FormSt
   );
 }
 
+/** Retire une nouvelle déjà publiée par un club (contenu contraire aux règles). Le club reçoit le motif. */
+export async function withdrawUpdate(_: FormState, form: FormData): Promise<FormState> {
+  const note = text(form, "note");
+  if (note.length < 3) return { error: "Indiquez au club pourquoi la publication est retirée." };
+  return rpc(
+    "update:review",
+    "withdraw_campaign_update",
+    { p_update_id: text(form, "update_id"), p_note: note.slice(0, 500) },
+    "Publication retirée.",
+    ["/admin/nouvelles", "/actualites", "/"],
+    { path: "/admin/nouvelles", ok: "update_withdraw" },
+  );
+}
+
 export async function reviewClub(_: FormState, form: FormData): Promise<FormState> {
   const decision = text(form, "decision");
   const permission: Permission = decision === "suspend" || decision === "reactivate" ? "club:suspend" : "club:review";
@@ -211,10 +225,21 @@ export async function moderateComment(_: FormState, form: FormData): Promise<For
   );
 }
 
-export async function setRole(_: FormState, form: FormData): Promise<FormState> {
-  const role = text(form, "role") as Role;
-  if (!ROLES.includes(role)) return { error: "Rôle inconnu." };
-  return rpc("user:set_role", "admin_set_role", { p_user_id: text(form, "user_id"), p_role: role }, "Rôle modifié.", ["/admin/utilisateurs"]);
+/**
+ * Équipe conformité : un compte supporter la rejoint, ou la quitte. Les autres rôles
+ * ne se changent pas à la main (gestionnaire : à la vérification du club ;
+ * administrateur : script promote). La base applique la même règle.
+ */
+export async function setComplianceMember(_: FormState, form: FormData): Promise<FormState> {
+  const join = text(form, "join") === "true";
+  const role: Role = join ? "compliance" : "supporter";
+  return rpc(
+    "user:set_role",
+    "admin_set_role",
+    { p_user_id: text(form, "user_id"), p_role: role },
+    join ? "Compte ajouté à l'équipe conformité." : "Compte retiré de l'équipe conformité.",
+    ["/admin/utilisateurs"],
+  );
 }
 
 export async function reviewIdentity(_: FormState, form: FormData): Promise<FormState> {

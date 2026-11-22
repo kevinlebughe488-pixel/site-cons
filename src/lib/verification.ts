@@ -15,13 +15,18 @@ import { sendSms, smsMode } from "@/lib/sms";
 // - Mot de passe oublié : un code SMS permet d'en choisir un nouveau.
 //
 // Le code (6 chiffres) est gardé haché ; un cookie garde la référence du défi.
-// Quand le code est bon, le serveur ouvre la session (lien de connexion généré
-// côté serveur, jamais envoyé par e-mail).
+// Quand le code (ou le mot de passe) est bon, le serveur prépare l'ouverture de la
+// session (lien de connexion généré côté serveur, jamais envoyé par e-mail) et le
+// navigateur la termine en chargeant /auth/ouvrir : un chargement complet, qui
+// efface de la mémoire du navigateur les pages vues avec un autre compte.
 
 export type ChallengePurpose = "signup" | "login" | "reset";
 
 const COOKIE = "tribune_verif";
 const RESET_COOKIE = "tribune_reinit";
+/** Ouverture de session préparée, en attente du chargement de /auth/ouvrir (2 minutes). */
+const OPEN_COOKIE = "tribune_ouverture";
+const OPEN_TTL_SECONDS = 120;
 const RESET_TTL_MINUTES = 15;
 const CODE_TTL_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
@@ -125,7 +130,7 @@ export async function resendChallenge() {
   await startChallenge({ userId: c.user_id, phone: c.phone, purpose: c.purpose, returnTo: c.return_to ?? undefined });
 }
 
-/** Vérifie le code ; s'il est bon, ouvre la session et renvoie le défi validé. */
+/** Vérifie le code ; s'il est bon, le marque comme utilisé et renvoie le défi validé (la session reste à ouvrir). */
 export async function confirmChallenge(code: string): Promise<{ purpose: ChallengePurpose; returnTo: string | null; userId: string }> {
   const c = await currentChallenge();
   if (!c) throw new VerificationError("La vérification a expiré. Recommencez.");
@@ -155,27 +160,54 @@ export async function confirmChallenge(code: string): Promise<{ purpose: Challen
   if (!claimed?.length) throw new VerificationError("Ce code a déjà servi. Recommencez.");
 
   await admin.from("profiles").update({ phone_verified_at: new Date().toISOString() }).eq("id", c.user_id).is("phone_verified_at", null);
-  await openSessionFor(c.user_id);
 
   (await cookies()).delete(COOKIE);
   return { purpose: c.purpose, returnTo: c.return_to, userId: c.user_id };
 }
 
 /**
- * Ouvre la session du compte dans ce navigateur, une fois son identité prouvée
- * (bon mot de passe d'un numéro déjà confirmé, ou code SMS) : lien de connexion
- * généré et utilisé par le serveur, jamais envoyé.
+ * Prépare l'ouverture de la session du compte dans ce navigateur, une fois son
+ * identité prouvée (bon mot de passe d'un numéro déjà confirmé, ou code SMS) :
+ * lien de connexion généré par le serveur, jamais envoyé, gardé 2 minutes dans
+ * un cookie que seul le serveur lit. Le navigateur charge ensuite /auth/ouvrir.
  */
-export async function openSessionFor(userId: string) {
+export async function prepareSessionFor(userId: string, returnTo: string) {
   const admin = createAdminClient();
   const { data: user } = await admin.auth.admin.getUserById(userId);
   const email = user.user?.email;
   if (!email) throw new VerificationError("Compte introuvable.");
-  const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-  if (linkError || !link.properties?.hashed_token) throw new VerificationError("Connexion impossible pour le moment. Réessayez.");
+  const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  if (error || !link.properties?.hashed_token) throw new VerificationError("Connexion impossible pour le moment. Réessayez.");
+  (await cookies()).set(OPEN_COOKIE, JSON.stringify({ t: link.properties.hashed_token, to: returnTo }), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: OPEN_TTL_SECONDS,
+  });
+}
+
+/** Une ouverture de session attend-elle le chargement de /auth/ouvrir ? */
+export async function sessionOpeningPending(): Promise<boolean> {
+  return !!(await cookies()).get(OPEN_COOKIE)?.value;
+}
+
+/** Termine l'ouverture préparée (route /auth/ouvrir) ; renvoie la page où aller, ou null. */
+export async function completeSessionOpening(): Promise<string | null> {
+  const store = await cookies();
+  const raw = store.get(OPEN_COOKIE)?.value;
+  store.delete(OPEN_COOKIE);
+  let pending: { t?: unknown; to?: unknown } = {};
+  try {
+    pending = raw ? JSON.parse(raw) : {};
+  } catch {
+    return null;
+  }
+  if (typeof pending.t !== "string" || !pending.t) return null;
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash: link.properties.hashed_token });
-  if (error) throw new VerificationError("Connexion impossible pour le moment. Réessayez.");
+  const { error } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash: pending.t });
+  if (error) return null;
+  return typeof pending.to === "string" ? pending.to : "/";
 }
 
 /** Abandonne la vérification en cours. */

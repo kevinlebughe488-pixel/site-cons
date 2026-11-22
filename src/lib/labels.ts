@@ -56,3 +56,13 @@ export const DOC_TYPES: Record<string, string> = {
   passeport: "Passeport",
   permis: "Permis de conduire",
 };
+
+/** État d'une nouvelle vue par le club : une publication retirée par l'équipe garde sa date de publication. */
+export function updateStatusLabel(u: { status: "pending" | "published" | "rejected"; published_at: string | null }): {
+  label: string;
+  tone: "ok" | "info" | "bad";
+} {
+  if (u.status === "published") return { label: "Publiée", tone: "ok" };
+  if (u.status === "pending") return { label: "En relecture", tone: "info" };
+  return { label: u.published_at ? "Retirée par Tribune" : "Refusée", tone: "bad" };
+}

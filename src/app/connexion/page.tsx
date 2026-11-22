@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getViewer, safeReturnPath } from "@/lib/auth";
+import { sessionOpeningPending } from "@/lib/verification";
+import { SessionRedirect } from "@/components/forms";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Connexion" };
@@ -10,11 +12,14 @@ export default async function LoginPage(props: PageProps<"/connexion">) {
   const { suite, erreur } = await props.searchParams;
   const returnTo = safeReturnPath(suite, "/");
   if (await getViewer()) redirect(returnTo);
+  // Bon mot de passe : la session est prête, le navigateur la termine par un chargement complet.
+  const opening = await sessionOpeningPending();
 
   return (
     <div className="wrap page" style={{ maxWidth: 980 }}>
       <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.8rem)", marginBottom: 20 }}>Connexion</h1>
-      {erreur ? <p className="flash error">Le lien a expiré ou a déjà servi. Connectez-vous avec votre mot de passe.</p> : null}
+      {erreur && !opening ? <p className="flash error">Le lien a expiré ou a déjà servi. Connectez-vous avec votre mot de passe.</p> : null}
+      {opening ? <SessionRedirect to="/auth/ouvrir" /> : null}
       <div className="split half">
         <LoginForm returnTo={returnTo} />
         <div className="panel" style={{ display: "grid", gap: 14, alignContent: "start" }}>

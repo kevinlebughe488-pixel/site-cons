@@ -16,8 +16,8 @@ import {
   clearPasswordReset,
   confirmChallenge,
   grantPasswordReset,
-  openSessionFor,
   passwordResetGrant,
+  prepareSessionFor,
   resendChallenge,
   startChallenge,
   VerificationError,
@@ -258,11 +258,14 @@ export async function signIn(_: FormState, form: FormData): Promise<FormState> {
   }
 
   try {
-    await openSessionFor(account.id);
+    await prepareSessionFor(account.id, returnTo);
   } catch (err) {
     return { error: err instanceof VerificationError ? err.message : "Connexion impossible pour le moment. Réessayez.", fields };
   }
-  redirect(returnTo);
+  // Le cookie posé fait redessiner la page de connexion, qui envoie le navigateur sur
+  // /auth/ouvrir : un chargement complet, et le bouton « retour » ne réaffichera pas les
+  // pages d'un compte précédent.
+  return {};
 }
 
 /** Saisie du code reçu par SMS. */
@@ -274,11 +277,15 @@ export async function verifyCode(_: FormState, form: FormData): Promise<FormStat
   } catch (err) {
     return { error: err instanceof VerificationError ? err.message : "Vérification impossible. Réessayez.", field: "code" };
   }
-  if (result.purpose === "reset") {
-    await grantPasswordReset(result.userId);
-    redirect("/mot-de-passe-oublie/nouveau");
+  const to = result.purpose === "reset" ? "/mot-de-passe-oublie/nouveau" : safeReturnPath(result.returnTo, "/");
+  try {
+    if (result.purpose === "reset") await grantPasswordReset(result.userId);
+    await prepareSessionFor(result.userId, to);
+  } catch (err) {
+    return { error: err instanceof VerificationError ? err.message : "Connexion impossible pour le moment. Reconnectez-vous." };
   }
-  redirect(safeReturnPath(result.returnTo, "/"));
+  // La page de vérification, redessinée, termine la connexion par /auth/ouvrir.
+  return {};
 }
 
 export async function resendCode(): Promise<FormState> {
@@ -293,12 +300,6 @@ export async function resendCode(): Promise<FormState> {
 export async function cancelVerification() {
   await cancelChallenge();
   redirect("/connexion");
-}
-
-export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/");
 }
 
 /** Mot de passe oublié : un code SMS ouvre une session pour choisir un nouveau mot de passe. */

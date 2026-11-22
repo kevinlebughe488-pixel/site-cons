@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DemoBanner } from "@/components/DemoBanner";
 import { CookieBanner } from "@/components/CookieBanner";
+import { FreshOnBack } from "@/components/FreshOnBack";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="app">{children}</main>
         <Footer />
         <CookieBanner />
+        <FreshOnBack />
       </body>
     </html>
   );

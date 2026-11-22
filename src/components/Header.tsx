@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { navigationFor } from "@/lib/navigation";
-import { signOut } from "@/lib/actions/auth";
 import { NavLinks } from "@/components/NavLinks";
 
 export async function Header() {
@@ -43,7 +42,8 @@ export async function Header() {
                 </span>
                 <span className="small">{viewer.profile.first_name}</span>
               </Link>
-              <form action={signOut}>
+              {/* Vrai formulaire (rechargement complet) : voir app/auth/deconnexion/route.ts. */}
+              <form action="/auth/deconnexion" method="post">
                 <button className="link-btn" type="submit">
                   Déconnexion
                 </button>

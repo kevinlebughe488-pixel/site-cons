@@ -42,7 +42,7 @@ function clubSteps(fee: number) {
         ? `Les frais d'instruction et de publication (${formatMoney(fee)}) sont facturés au club, puis la collecte s'ouvre pour la durée choisie. Les supporters qui suivent le club sont prévenus.`
         : "La collecte s'ouvre pour la durée choisie. Les supporters qui suivent le club sont prévenus.",
     ],
-    ["Le club rend compte", "Nouvelles et messages aux contributeurs relus avant publication, réponses aux commentaires, preuves de chaque jalon, rapport final."],
+    ["Le club rend compte", "Nouvelles et messages aux contributeurs publiés directement (l'équipe retire ceux contraires aux règles), réponses aux commentaires, preuves de chaque jalon, rapport final."],
   ];
 }
 

@@ -545,6 +545,7 @@ figure.camp-figure figcaption b{color:var(--ink)}
 
 /* champ fichier : zone « Glisser-déposer un fichier ou parcourir » */
 .field .field-title{display:block;font-weight:600;margin-bottom:6px}
+.req{color:var(--bad);font-weight:700}
 .dropzone{display:grid;justify-items:center;gap:10px;padding:26px 18px;border:2px dashed var(--line);border-radius:var(--r-lg);background:var(--surface);color:var(--ink);text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
 .dropzone:hover,.dropzone.over{border-color:var(--pitch);background:color-mix(in srgb,var(--pitch) 6%,var(--surface))}
 .dropzone:focus-within{outline:3px solid var(--focus);outline-offset:2px}
@@ -557,6 +558,9 @@ figure.camp-figure figcaption b{color:var(--ink)}
 .dropzone .dz-change{font-size:.88rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
 
 /* bloc replié (« Modifier », « Supprimer mon compte ») */
+details.role-change{margin-top:4px}
+details.role-change summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+details.role-change .inline-form{margin-top:6px}
 details.toggle{margin-top:12px}
 details.toggle > summary{list-style:none;cursor:pointer;display:inline-flex}
 details.toggle > summary::-webkit-details-marker{display:none}

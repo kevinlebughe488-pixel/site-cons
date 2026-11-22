@@ -170,7 +170,7 @@ export default async function ClubPublicPage(props: PageProps<"/clubs/[slug]">) 
               <h3>Un club vérifié</h3>
               <p className="small muted">
                 Avant toute campagne, l&apos;équipe Tribune a vérifié l&apos;existence du club, son représentant légal et le
-                compte qui reçoit les fonds. Chaque actualité est relue avant publication.
+                compte qui reçoit les fonds. Ses actualités sont relues par l&apos;équipe, qui retire celles contraires aux règles.
               </p>
             </div>
           </aside>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { pendingChallenge } from "@/lib/verification";
+import { pendingChallenge, sessionOpeningPending } from "@/lib/verification";
 import { cancelVerification, resendCode } from "@/lib/actions/auth";
-import { ActionForm, SubmitButton } from "@/components/forms";
+import { ActionForm, SessionRedirect, SubmitButton } from "@/components/forms";
 import { CodeForm } from "./CodeForm";
 
 export const metadata: Metadata = { title: "Code de vérification" };
@@ -21,6 +21,17 @@ const INTROS = {
 
 export default async function VerificationPage() {
   const challenge = await pendingChallenge();
+
+  // Code accepté : la page est redessinée sans défi en cours, il reste à ouvrir la session.
+  if (!challenge && (await sessionOpeningPending())) {
+    return (
+      <div className="wrap page" style={{ maxWidth: 560 }}>
+        <div className="panel">
+          <SessionRedirect to="/auth/ouvrir" />
+        </div>
+      </div>
+    );
+  }
 
   if (!challenge) {
     return (

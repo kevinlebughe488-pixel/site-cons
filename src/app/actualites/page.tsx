@@ -8,7 +8,7 @@ import type { Club } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Actualités des clubs",
-  description: "Les nouvelles publiées par les clubs : avancement des projets, remerciements, vie du club. Chaque actualité est relue par l'équipe Tribune.",
+  description: "Les nouvelles publiées par les clubs : avancement des projets, remerciements, vie du club. L'équipe Tribune relit chaque actualité et retire celles contraires aux règles.",
 };
 
 type NewsRow = {
@@ -50,7 +50,7 @@ export default async function NewsPage(props: PageProps<"/actualites">) {
             Actualités
           </div>
           <h1 style={{ marginTop: 8, fontSize: "clamp(2.2rem,5vw,3.2rem)" }}>{filtered ? `Actualités · ${filtered}` : "Les nouvelles des clubs"}</h1>
-          <p>Avancement des projets, remerciements, vie des clubs : chaque actualité est relue par l&apos;équipe Tribune avant publication.</p>
+          <p>Avancement des projets, remerciements, vie des clubs : publiées par les clubs vérifiés, relues par l&apos;équipe Tribune qui retire celles contraires aux règles.</p>
         </div>
       </div>
       <div className="wrap page" style={{ maxWidth: 900 }}>
