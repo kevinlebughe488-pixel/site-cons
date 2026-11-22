@@ -8,7 +8,8 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { currentPlanPeriod } from "@/lib/plan";
 import { getSettings } from "@/lib/settings";
-import type { PublicationFee } from "@/lib/types";
+import { isDossierComplete, unwrapPrivate } from "@/lib/club-dossier";
+import type { ClubPrivate, PublicationFee } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Back-office" };
 
@@ -25,10 +26,12 @@ async function loadDashboard() {
   const settings = await getSettings(supabase);
   const period = currentPlanPeriod(settings.launch_date);
 
-  const [stats, inReview, pendingClubs, kycPending, pendingUpdates, recentNews, failed7d, recent, indicators, unpaidFees, reported] = await Promise.all([
+  const [stats, inReview, pendingClubs, draftClubs, kycPending, pendingUpdates, recentNews, failed7d, recent, indicators, unpaidFees, reported] = await Promise.all([
     supabase.rpc("platform_stats").single<{ total_raised: number; supporters: number; funded_campaigns: number; active_campaigns: number }>(),
     count("campaigns", "status", ["in_review"]),
     count("clubs", "status", ["pending"]),
+    // Dossiers que le club n'a pas envoyés : ceux qui sont déjà complets peuvent être vérifiés.
+    supabase.from("clubs").select("documents:club_documents(kind), private:club_private(address, rep_phone, payout_holder)").eq("status", "draft"),
     count("profiles", "kyc_status", ["pending"]),
     count("campaign_updates", "status", ["pending"]),
     // Publication directe : l'équipe relit après coup ce que les clubs ont publié cette semaine.
@@ -64,8 +67,11 @@ async function loadDashboard() {
   type Unpaid = Pick<PublicationFee, "campaign_id" | "amount" | "currency" | "invoiced_at"> & {
     campaign: { title: string; club: { name: string } | null } | null;
   };
+  const completeDrafts = ((draftClubs.data ?? []) as unknown as { documents: { kind: string }[]; private: ClubPrivate | ClubPrivate[] | null }[]).filter(
+    (c) => isDossierComplete(unwrapPrivate(c.private), c.documents.map((d) => d.kind)),
+  ).length;
   return {
-    stats, inReview, pendingClubs, kycPending, pendingUpdates, recentNews, failed7d, buckets, reported,
+    stats, inReview, pendingClubs, completeDrafts, kycPending, pendingUpdates, recentNews, failed7d, buckets, reported,
     settings, period, indicators: indicators.data, unpaid: (unpaidFees.data ?? []) as unknown as Unpaid[],
   };
 }
@@ -89,7 +95,7 @@ function PlanRow({ label, actual, target, format }: { label: string; actual: num
 
 export default async function AdminDashboard() {
   const { profile } = await requirePermission("backoffice:access", "/admin");
-  const { stats, inReview, pendingClubs, kycPending, pendingUpdates, recentNews, failed7d, buckets, reported, settings, period, indicators, unpaid } =
+  const { stats, inReview, pendingClubs, completeDrafts, kycPending, pendingUpdates, recentNews, failed7d, buckets, reported, settings, period, indicators, unpaid } =
     await loadDashboard();
   const max = Math.max(100, ...buckets);
   const W = 560;
@@ -98,7 +104,8 @@ export default async function AdminDashboard() {
 
   const todo = [
     { n: inReview.count ?? 0, label: "campagne(s) à instruire", href: "/admin/campagnes?statut=in_review" },
-    { n: pendingClubs.count ?? 0, label: "club(s) à vérifier", href: "/admin/clubs" },
+    { n: pendingClubs.count ?? 0, label: "club(s) à vérifier (dossiers envoyés)", href: "/admin/clubs?statut=pending" },
+    { n: completeDrafts, label: "dossier(s) de club complet(s), pas encore envoyé(s)", href: "/admin/clubs?statut=draft" },
     { n: kycPending.count ?? 0, label: "identité(s) à vérifier", href: "/admin/utilisateurs?kyc=pending" },
     // Les clubs publient directement : nouvelles de la semaine (et anciennes encore en attente) à relire.
     { n: (recentNews.count ?? 0) + (pendingUpdates.count ?? 0), label: "nouvelle(s) des clubs à relire (7 derniers jours)", href: "/admin/nouvelles" },
