@@ -142,7 +142,7 @@ export default async function RegisterPage(props: PageProps<"/inscription">) {
                     {[
                       ["Votre compte", "Nom, téléphone et e-mail du représentant, confirmés par un code SMS."],
                       ["Le dossier du club", "Nom officiel, sigle, discipline, siège, date de création, représentant légal, compte de versement."],
-                      ["Les documents", "Statuts, enregistrement ou affiliation, et les justificatifs utiles."],
+                      ["Les documents", "Statuts (ou enregistrement, affiliation) et pièce d'identité du représentant légal, envoyés dès qu'ils sont choisis."],
                       ["La vérification", "L'équipe Tribune contrôle le dossier et peut demander des compléments."],
                       ["Votre première campagne", "Une fois le club vérifié : objectif, budget, durée, jalons."],
                     ].map(([title, text], i) => (

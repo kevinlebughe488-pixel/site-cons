@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { deleteCampaignPhoto, setCampaignCover, uploadCampaignPhoto } from "@/lib/actions/club";
-import { ActionForm, FieldError, Flash, SubmitButton } from "@/components/forms";
+import { ActionForm, FieldError, Flash, SubmitButton, useFormAction } from "@/components/forms";
 import { FileField } from "@/components/FileField";
 import { coverUrl } from "@/components/visuals";
 import { formatDate } from "@/lib/format";
@@ -18,16 +18,19 @@ export function CampaignPhotos({
   photos,
   coverPath,
   editable,
+  removable = false,
   today,
 }: {
   campaignId: string;
   photos: CampaignPhoto[];
   coverPath: string | null;
   editable: boolean;
+  /** Équipe Tribune : peut retirer une photo (modération), sans en ajouter ni changer la couverture. */
+  removable?: boolean;
   /** Date du jour à Kinshasa (AAAA-MM-JJ) : date proposée et date maximale. */
   today: string;
 }) {
-  const [state, action] = useActionState(uploadCampaignPhoto, {});
+  const { state, formProps } = useFormAction(uploadCampaignPhoto, { resetOnSuccess: true });
   const [busy, setBusy] = useState(false);
   const full = photos.length >= 6;
   return (
@@ -43,9 +46,9 @@ export function CampaignPhotos({
                 <span className="small muted">{p.taken_on ? `Photo du ${formatDate(p.taken_on)}` : "Date inconnue"}</span>
               </figcaption>
               {p.file_path === coverPath ? <span className="badge cover-badge">Couverture</span> : null}
-              {editable ? (
+              {editable || removable ? (
                 <div className="photo-actions">
-                  {p.file_path !== coverPath ? (
+                  {editable && p.file_path !== coverPath ? (
                     <ActionForm action={setCampaignCover} className="inline-form">
                       <input type="hidden" name="photo_id" value={p.id} />
                       <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…">
@@ -71,9 +74,34 @@ export function CampaignPhotos({
         </p>
       )}
       {editable && !full ? (
-        <form action={action} className="form" style={{ gap: 12 }} noValidate>
+        <form {...formProps} className="form" style={{ gap: 12 }}>
           <Flash state={state.field ? {} : state} />
           <input type="hidden" name="campaign_id" value={campaignId} />
+          <p className="small muted" style={{ margin: 0 }}>
+            Écrivez d&apos;abord ce que montre la photo et sa date, puis choisissez-la : elle est envoyée aussitôt.
+          </p>
+          <div className="two">
+            <div className="field">
+              <label htmlFor={`caption-${campaignId}`}>
+                Ce que montre la photo <span className="req">*</span>
+              </label>
+              <input
+                type="text"
+                id={`caption-${campaignId}`}
+                name="caption"
+                maxLength={200}
+                required
+                placeholder="Ex. : la pelouse du stade aujourd'hui, pelée devant les buts"
+                aria-invalid={state.field === "caption" || undefined}
+              />
+              <FieldError state={state} name="caption" />
+            </div>
+            <div className="field">
+              <label htmlFor={`taken-${campaignId}`}>Date de la photo</label>
+              <input type="date" id={`taken-${campaignId}`} name="taken_on" defaultValue={today} max={today} aria-invalid={state.field === "taken_on" || undefined} />
+              <FieldError state={state} name="taken_on" />
+            </div>
+          </div>
           <FileField
             id={`photo-${campaignId}`}
             name="photo"
@@ -83,27 +111,12 @@ export function CampaignPhotos({
             maxSide={1600}
             maxBytes={2 * 1024 * 1024}
             onBusy={setBusy}
+            autoSubmit
           />
           <FieldError state={state} name="photo" />
-          <div className="field">
-            <label htmlFor={`caption-${campaignId}`}>Ce que montre la photo</label>
-            <input
-              type="text"
-              id={`caption-${campaignId}`}
-              name="caption"
-              maxLength={200}
-              placeholder="Ex. : la pelouse du stade aujourd'hui, pelée devant les buts"
-              aria-invalid={state.field === "caption" || undefined}
-            />
-            <FieldError state={state} name="caption" />
-          </div>
-          <div className="field">
-            <label htmlFor={`taken-${campaignId}`}>Date de la photo</label>
-            <input type="date" id={`taken-${campaignId}`} name="taken_on" defaultValue={today} max={today} aria-invalid={state.field === "taken_on" || undefined} />
-            <FieldError state={state} name="taken_on" />
-          </div>
+          {/* Le fichier part dès qu'il est choisi ; ce bouton sert si l'envoi a dû attendre (légende manquante, erreur). */}
           <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="Envoi…" disabled={busy}>
-            Ajouter la photo
+            Envoyer la photo
           </SubmitButton>
         </form>
       ) : null}

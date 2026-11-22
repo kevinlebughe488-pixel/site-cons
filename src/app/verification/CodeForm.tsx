@@ -1,13 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
 import { verifyCode } from "@/lib/actions/auth";
-import { FieldError, Flash, SubmitButton } from "@/components/forms";
+import { FieldError, Flash, SubmitButton, useFormAction } from "@/components/forms";
 
 export function CodeForm() {
-  const [state, action] = useActionState(verifyCode, {});
+  const { state, formProps } = useFormAction(verifyCode);
   return (
-    <form className="form" action={action} noValidate>
+    <form className="form" {...formProps} noValidate>
       <Flash state={state} />
       <div className="field">
         <label htmlFor="code">Code reçu par SMS</label>

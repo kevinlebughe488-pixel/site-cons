@@ -7,8 +7,7 @@ import { todayInKinshasa } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { listPriceReferences } from "@/lib/campaigns";
 import { CAMPAIGN_LIMITS } from "@/lib/types";
-import { CampaignEditor } from "../CampaignEditor";
-import { FeesNotice } from "../FeesNotice";
+import { CampaignWizard } from "../CampaignWizard";
 
 export const metadata: Metadata = { title: "Nouvelle campagne" };
 
@@ -21,14 +20,16 @@ export default async function NewCampaignPage() {
   return (
     <div className="wrap page" style={{ maxWidth: 900 }}>
       <div className="crumbs muted">
-        <Link href="/club">← Espace club</Link>
+        <Link href="/club/campagnes">← Campagnes du club</Link>
       </div>
       <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.8rem)", margin: "10px 0 20px" }}>Nouvelle campagne · {viewer.club.name}</h1>
-      <FeesNotice publicationFee={settings.publication_fee} />
-      <p className="flash info">
-        Après le premier enregistrement, vous ajouterez une photo de la situation actuelle et les devis de vos fournisseurs.
-      </p>
-      <CampaignEditor
+      <CampaignWizard
+        key="nouvelle"
+        step={1}
+        campaign={null}
+        photos={[]}
+        docs={[]}
+        report={null}
         publicationFee={settings.publication_fee}
         today={todayInKinshasa()}
         references={references}

@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { changePassword } from "@/lib/actions/auth";
-import { Flash, SubmitButton } from "@/components/forms";
+import { Flash, SubmitButton, useFormAction } from "@/components/forms";
 import { NewPasswordFields, PasswordInput } from "@/components/PasswordFields";
 
 /**
@@ -11,7 +11,7 @@ import { NewPasswordFields, PasswordInput } from "@/components/PasswordFields";
  * le formulaire laisse la place à un écran de confirmation.
  */
 export function ChangePasswordForm() {
-  const [state, action] = useActionState(changePassword, {});
+  const { state, formProps } = useFormAction(changePassword);
   const [current, setCurrent] = useState("");
 
   if (state.success) {
@@ -30,7 +30,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <form className="panel form" action={action} noValidate>
+    <form className="panel form" {...formProps} noValidate>
       <Flash state={state.field ? {} : state} />
       <PasswordInput id="current_password" label="Mot de passe actuel" autoComplete="current-password" state={state} value={current} onChange={setCurrent} />
       <hr className="sep" />

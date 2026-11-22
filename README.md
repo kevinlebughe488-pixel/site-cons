@@ -74,6 +74,7 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261120000200_photos_situation.sql` (photos de la situation actuelle, photos copiées)
    - `supabase/migrations/20261121000100_publication_directe_roles.sql` (nouvelles publiées directement par les clubs et retirées au besoin, dossier en préparation vérifiable, rôles)
    - `supabase/migrations/20261122000200_back_office_clubs.sql` (vérification des clubs : dossier « compléments demandés » complet vérifiable, ajout de gestionnaires contrôlé, réactivation des campagnes d'un club vérifié seulement)
+   - `supabase/migrations/20261123000100_inscription_campagnes.sql` (pièce d'identité du représentant exigée, l'équipe prévenue des dossiers et campagnes à traiter)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -144,24 +145,28 @@ La rubrique **Clubs** du menu (`/clubs`) présente l'inscription d'un club (éta
 frais) et l'annuaire des clubs vérifiés ; chaque club a sa page publique (`/clubs/<club>`).
 
 À l'inscription, la personne choisit **« Je représente un club »** ou **« Je suis supporter »**. Le
-représentant crée son compte personnel (confirmé par SMS), puis ouvre le **dossier du club** :
+représentant crée son compte personnel (confirmé par SMS), puis remplit le **dossier du club** en cinq
+étapes avec « Suivant » (le club, le représentant légal, le compte de versement, les documents et le logo,
+la vérification puis « Envoyer ma demande ») ; chaque étape est contrôlée avant de passer à la suivante :
 
 - nom officiel, sigle, discipline sportive, ville et adresse du siège, date de création ;
 - identifiant juridique ou administratif (enregistrement, arrêté, affiliation, RCCM…), s'il existe ;
 - représentant légal : par défaut, la personne qui remplit le dossier (ses nom, téléphone et e-mail sont repris
   de son compte, sans les ressaisir) ; sinon nom, fonction, téléphone, e-mail ;
 - compte de versement **au nom du club** : Mobile Money (numéro et opérateur) ou banque ;
-- documents (PDF ou photos, 4 Mo au plus, photos allégées dans le navigateur avant l'envoi) : au moins
-  un document qui atteste l'existence du club (statuts, enregistrement ou affiliation), plus la pièce
-  d'identité du représentant et le justificatif du compte, conseillés.
+- documents (PDF ou photos, 4 Mo au plus, photos allégées dans le navigateur, envoyés dès qu'ils sont
+  choisis) : un document qui atteste l'existence du club (statuts, enregistrement ou affiliation) et la
+  pièce d'identité du représentant légal, exigés ; le justificatif du compte et, si besoin, le mandat,
+  conseillés. Après l'envoi, le club voit « Merci d'avoir envoyé votre demande » et l'équipe est
+  notifiée.
 
 L'inscription **ne donne aucun droit** : le dossier passe de « en préparation » à « en cours de
 vérification » quand le club l'envoie. L'équipe Tribune confirme trois points de contrôle (existence du
 club, représentant légal, compte de versement) pour le vérifier, ou demande des compléments (le club
 corrige et renvoie, ou l'équipe le vérifie directement s'il est complet), ou refuse. Un dossier encore « en préparation » (jamais envoyé) peut aussi être vérifié
 par l'équipe s'il est complet (mêmes conditions que l'envoi) ; incomplet, le back-office indique ce qui
-manque et l'équipe peut demander des compléments ou refuser. Le logo du club n'est envoyé que par ses
-gestionnaires. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
+manque et l'équipe peut demander des compléments ou refuser. L'équipe n'envoie aucun fichier à la place
+du club (logo, documents, devis, photos) : elle peut seulement retirer une photo ou un devis inapproprié. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
 club et inscrite au journal d'audit.
 
 Les données sensibles (adresse, coordonnées du représentant, compte de versement) sont dans la table
@@ -171,6 +176,15 @@ droits, jamais par un lien public.
 
 ## Paramètres d'une campagne
 
+Une fois vérifié, le club dispose d'un espace avec un **tableau de bord** (chiffres, « À faire », campagnes,
+dernières actualités) et des rubriques **Campagnes**, **Actualités** et **Profil du club**.
+
+Une campagne se crée en six étapes avec « Suivant » : le projet, l'objectif et la collecte (le brouillon
+est enregistré ici), le budget (égal à l'objectif, prix comparés au référentiel), les jalons (expliqués,
+avec des étapes proposées selon le thème), les photos et les devis (envoyés dès qu'ils sont choisis), puis
+la vérification avec le contrôle automatique et « Envoyer en revue ». Chaque étape applique les règles de
+l'envoi : pas de refus surprise à la fin.
+
 Le club fixe, et l'équipe vérifie à l'instruction :
 
 - la **durée de la collecte** (14 à 70 jours), qui démarre le jour de la publication : la date de fin
@@ -179,8 +193,8 @@ Le club fixe, et l'équipe vérifie à l'instruction :
   cumul de ses contributions à la campagne, pour une collecte partagée par le plus grand nombre) ;
 - des **photos de la situation actuelle** (jusqu'à 6, au moins une) : ce que les supporters verront avant
   de contribuer, par exemple l'état de la pelouse pour une rénovation. Chaque photo a une légende et la date
-  de prise de vue ; l'une d'elles sert de couverture. Le club les gère tant que le dossier n'est pas envoyé,
-  puis l'équipe. La page publique montre la couverture avec sa légende (« Aujourd'hui : … ») et les autres
+  de prise de vue ; l'une d'elles sert de couverture. Le club les gère tant que le dossier n'est pas envoyé ;
+  ensuite l'équipe peut seulement en retirer une. La page publique montre la couverture avec sa légende (« Aujourd'hui : … ») et les autres
   photos dans « La situation aujourd'hui ».
 
 La fiche d'une campagne affiche le club et l'état de la collecte, la photo, le montant collecté,

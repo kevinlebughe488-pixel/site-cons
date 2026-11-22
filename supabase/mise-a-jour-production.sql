@@ -1,9 +1,8 @@
 -- =====================================================================
 -- MISE À JOUR DE LA BASE EN PRODUCTION : à exécuter UNE SEULE FOIS dans
 -- Supabase > SQL Editor (projet « tribune-supporters »), AVANT de fusionner
--- la pull request de ces changements.
--- Reprend la migration :
---   - 20261122000200_back_office_clubs.sql
+-- la pull request de ces changements. Reprend la migration :
+--   - 20261123000100_inscription_campagnes.sql
 -- (les migrations précédentes sont déjà appliquées). Tout passe ou rien
 -- ne passe. Résultat attendu : « Success. No rows returned ».
 -- =====================================================================
@@ -11,30 +10,70 @@
 begin;
 
 -- =====================================================================
--- Back-office : vérification des clubs, règles rendues cohérentes.
+-- Inscription des clubs et campagnes : règles alignées sur le parcours.
 --
--- 1. Un dossier « compléments demandés » complet peut être vérifié par
---    l'équipe sans attendre que le club le renvoie (par exemple quand la
---    pièce manquante a été reçue autrement et ajoutée par l'équipe), aux
---    mêmes conditions qu'un dossier en préparation : complet et trois
---    points de contrôle confirmés. Les gestionnaires sont prévenus.
--- 2. Ajout d'un gestionnaire à un club vérifié : refusé si le compte gère
---    déjà un club (ou a une demande en cours), comme pour l'inscription ;
---    refusé s'il est déjà gestionnaire de ce club. La personne ajoutée est
---    prévenue.
--- 3. Une campagne suspendue n'est réactivée que si son club est vérifié :
---    la suspension d'un club suspend ses campagnes en cours, elles ne
---    doivent pas pouvoir collecter tant que le club reste suspendu (même
---    règle que la publication d'une campagne).
---
--- Les droits de lecture de l'équipe (club_private, club_documents,
--- club_members, profiles, audit_log) sont inchangés : ils permettent déjà
--- à la conformité et aux administrateurs de lire tout le dossier.
+-- 1. La pièce d'identité du représentant légal devient obligatoire pour
+--    envoyer un dossier de club et pour qu'un dossier non (re)envoyé soit
+--    vérifié par l'équipe (elle était seulement conseillée). Les dossiers déjà
+--    envoyés restent vérifiables tels quels.
+-- 2. L'équipe Tribune n'envoie plus de fichiers à la place des clubs
+--    (logo, documents, devis, photos) : les règles d'accès aux fichiers ne
+--    changent pas (envois faits par le serveur), seules les actions de
+--    l'application le refusent désormais.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- 1. Vérification d'un dossier « compléments demandés » complet
+-- 1. Pièce d'identité du représentant légal exigée
 -- ---------------------------------------------------------------------
+create or replace function public.club_dossier_complete(p_club_id uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (
+           select 1 from public.club_documents
+            where club_id = p_club_id and kind in ('statuts', 'enregistrement', 'affiliation'))
+     and exists (
+           select 1 from public.club_documents
+            where club_id = p_club_id and kind = 'identite_representant')
+     and exists (
+           select 1 from public.club_private
+            where club_id = p_club_id and payout_holder <> '' and rep_phone is not null and address <> '');
+$$;
+
+create or replace function public.submit_club_registration(p_club_id uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_status text;
+begin
+  perform public.require_user();
+  if not public.is_club_member(p_club_id) then
+    raise exception 'Vous ne gérez pas ce club.' using errcode = '42501';
+  end if;
+  select status::text into v_status from public.clubs where id = p_club_id for update;
+  if v_status not in ('draft', 'changes_requested') then
+    raise exception 'Ce dossier a déjà été envoyé.';
+  end if;
+  if not exists (
+    select 1 from public.club_documents
+     where club_id = p_club_id and kind in ('statuts', 'enregistrement', 'affiliation')
+  ) then
+    raise exception 'Ajoutez au moins un document attestant l''existence du club : statuts, enregistrement officiel ou attestation d''affiliation.';
+  end if;
+  if not exists (
+    select 1 from public.club_documents where club_id = p_club_id and kind = 'identite_representant'
+  ) then
+    raise exception 'Ajoutez la pièce d''identité du représentant légal (carte d''électeur, passeport ou permis de conduire).';
+  end if;
+  if not exists (
+    select 1 from public.club_private where club_id = p_club_id and payout_holder <> '' and rep_phone is not null and address <> ''
+  ) then
+    raise exception 'Complétez l''adresse du siège, le représentant légal et le compte de versement avant d''envoyer le dossier.';
+  end if;
+
+  update public.clubs set status = 'pending', submitted_at = now() where id = p_club_id;
+  perform public.write_audit('club.dossier_envoye', 'club', p_club_id::text,
+    jsonb_build_object('documents', (select count(*) from public.club_documents where club_id = p_club_id)));
+end $$;
+
+-- Même fonction de décision, avec la liste à jour de ce qui manque à un dossier incomplet.
 -- Décisions : verify | request_changes | reject (équipe), suspend | reactivate (administrateur).
 create or replace function public.review_club(p_club_id uuid, p_decision text, p_note text default null, p_criteria text[] default null)
 returns void
@@ -75,7 +114,7 @@ begin
   end if;
   -- Un dossier que le club n'a pas (re)envoyé n'est vérifié que s'il est complet, comme s'il avait été envoyé.
   if p_decision = 'verify' and v_status in ('draft', 'changes_requested') and not public.club_dossier_complete(p_club_id) then
-    raise exception 'Ce dossier est incomplet : il faut un document attestant l''existence du club, l''adresse du siège, le représentant légal et le compte de versement.';
+    raise exception 'Ce dossier est incomplet : il faut un document attestant l''existence du club, la pièce d''identité du représentant légal, l''adresse du siège, le représentant légal et le compte de versement.';
   end if;
 
   update public.clubs
@@ -98,105 +137,55 @@ begin
       then jsonb_build_object('controles', to_jsonb(p_criteria)) else '{}'::jsonb end);
 end $$;
 
--- Club vérifié (dossier envoyé, en préparation ou en attente de compléments) : ses gestionnaires sont prévenus.
-create or replace function public.clubs_status_notify() returns trigger
+-- ---------------------------------------------------------------------
+-- 3. L'équipe Tribune est prévenue de ce qu'elle doit traiter
+-- ---------------------------------------------------------------------
+-- Avant, un dossier de club envoyé ou une campagne envoyée en revue n'apparaissait
+-- que dans les compteurs du tableau de bord : la conformité et les administrateurs
+-- reçoivent maintenant une notification, avec le lien vers la page à traiter.
+create or replace function public.staff_ids() returns uuid[]
+language sql stable security definer set search_path = '' as $$
+  select coalesce(array_agg(id), '{}') from public.profiles where role in ('compliance', 'admin');
+$$;
+
+create or replace function public.clubs_notify_staff() returns trigger
 language plpgsql security definer set search_path = '' as $$
-declare
-  v_members uuid[] := public.club_member_ids(new.id);
-  v_new text := new.status::text;
-  v_old text := old.status::text;
 begin
-  if v_new = 'verified' and v_old in ('pending', 'draft', 'changes_requested') then
-    perform public.notify(v_members, 'club_verifie', 'Votre club est vérifié',
-      new.name || ' est vérifié par l''équipe Tribune. Vous pouvez déposer votre première campagne.', '/club', null, new.id);
-  elsif v_new = 'verified' and v_old = 'suspended' then
-    perform public.notify(v_members, 'club_reactive', 'Votre club est réactivé',
-      new.name || ' peut de nouveau collecter.', '/club', null, new.id);
-  elsif v_new = 'changes_requested' then
-    perform public.notify(v_members, 'club_complements', 'Compléments demandés pour votre dossier',
-      coalesce(new.review_note, 'L''équipe Tribune a besoin d''informations ou de documents supplémentaires.'), '/club', null, new.id);
-  elsif v_new = 'rejected' then
-    perform public.notify(v_members, 'club_refuse', 'Demande d''inscription refusée', coalesce(new.review_note, ''), '/club', null, new.id);
-  elsif v_new = 'suspended' then
-    perform public.notify(v_members, 'club_suspendu', 'Votre club est suspendu', coalesce(new.review_note, ''), '/club', null, new.id);
-  end if;
+  perform public.notify(public.staff_ids(), 'club_a_verifier',
+    case when old.status = 'changes_requested' then 'Dossier de club renvoyé : ' else 'Nouveau dossier de club : ' end || new.name,
+    'Le club a envoyé son dossier pour vérification.', '/admin/clubs?statut=pending', null, new.id);
   return null;
 end $$;
 
--- ---------------------------------------------------------------------
--- 2. Ajout d'un gestionnaire à un club vérifié
--- ---------------------------------------------------------------------
-create or replace function public.admin_add_club_member(p_club_id uuid, p_user_id uuid) returns void
+drop trigger if exists clubs_notify_staff on public.clubs;
+create trigger clubs_notify_staff
+  after update of status on public.clubs
+  for each row when (new.status = 'pending' and old.status is distinct from 'pending')
+  execute function public.clubs_notify_staff();
+
+create or replace function public.campaigns_notify_staff() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_club public.clubs;
-  v_email text;
+  v_club text;
 begin
-  perform public.require_admin();
-  select * into v_club from public.clubs where id = p_club_id;
-  if v_club.id is null or v_club.status <> 'verified' then
-    raise exception 'Le club doit être vérifié.';
-  end if;
-  select email into v_email from public.profiles where id = p_user_id;
-  if not found then
-    raise exception 'Utilisateur introuvable.';
-  end if;
-  if exists (select 1 from public.club_members where club_id = p_club_id and user_id = p_user_id) then
-    raise exception 'Ce compte est déjà gestionnaire de ce club.';
-  end if;
-  -- Même règle qu'à l'inscription : un compte ne gère qu'un club (une demande refusée ne compte pas).
-  if exists (
-    select 1 from public.club_members m join public.clubs c on c.id = m.club_id
-     where m.user_id = p_user_id and c.status::text <> 'rejected'
-  ) then
-    raise exception 'Ce compte gère déjà un autre club (ou une demande d''inscription est en cours) : il ne peut pas gérer ce club aussi.';
-  end if;
-
-  -- Un compte de l'équipe Tribune est refusé par le déclencheur club_members_check_role.
-  insert into public.club_members (club_id, user_id, member_role) values (p_club_id, p_user_id, 'manager');
-  update public.profiles set role = 'club_manager' where id = p_user_id and role = 'supporter';
-  perform public.notify(array[p_user_id], 'club_gestionnaire', 'Vous gérez maintenant ' || v_club.name,
-    'L''équipe Tribune vous a ajouté comme gestionnaire du club. Vous pouvez déposer ses campagnes et publier ses nouvelles.',
-    '/club', null, p_club_id);
-  perform public.write_audit('club.membre_ajoute', 'club', p_club_id::text,
-    jsonb_build_object('utilisateur', p_user_id, 'email', v_email));
+  select name into v_club from public.clubs where id = new.club_id;
+  perform public.notify(public.staff_ids(), 'campagne_a_instruire',
+    case when old.status = 'changes_requested' then 'Campagne corrigée à instruire : ' else 'Campagne à instruire : ' end || new.title,
+    coalesce(v_club, 'Un club') || ' demande la publication (objectif ' || public.fmt_money(new.goal_amount, new.currency) || ').',
+    '/admin/campagnes/' || new.id, new.id, new.club_id);
+  return null;
 end $$;
 
--- ---------------------------------------------------------------------
--- 3. Réactivation d'une campagne : seulement si le club est vérifié
--- ---------------------------------------------------------------------
-create or replace function public.set_campaign_suspension(p_campaign_id uuid, p_suspend boolean, p_note text default null) returns void
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_status public.campaign_status;
-  v_club_status public.club_status;
-begin
-  perform public.require_admin();
-  select c.status, k.status into v_status, v_club_status
-    from public.campaigns c join public.clubs k on k.id = c.club_id
-   where c.id = p_campaign_id
-     for update of c;
-  if v_status is null then
-    raise exception 'Campagne introuvable.';
-  end if;
-  if p_suspend and v_status <> 'published' then
-    raise exception 'Seule une campagne en cours peut être suspendue.';
-  end if;
-  if not p_suspend and v_status <> 'suspended' then
-    raise exception 'Cette campagne n''est pas suspendue.';
-  end if;
-  if not p_suspend and v_club_status <> 'verified' then
-    raise exception 'Le club de cette campagne n''est pas vérifié (suspendu ?) : réactivez d''abord le club depuis la page Clubs.';
-  end if;
-  if p_suspend and coalesce(trim(p_note), '') = '' then
-    raise exception 'Indiquez le motif de la suspension.';
-  end if;
-  update public.campaigns
-     set status = case when p_suspend then 'suspended'::public.campaign_status else 'published'::public.campaign_status end,
-         review_note = case when p_suspend then trim(p_note) else review_note end
-   where id = p_campaign_id;
-  perform public.write_audit(case when p_suspend then 'campagne.suspendue' else 'campagne.reactivee' end,
-    'campaign', p_campaign_id::text, jsonb_build_object('note', p_note));
-end $$;
+drop trigger if exists campaigns_notify_staff on public.campaigns;
+create trigger campaigns_notify_staff
+  after update of status on public.campaigns
+  for each row when (new.status = 'in_review' and old.status is distinct from 'in_review')
+  execute function public.campaigns_notify_staff();
+
+revoke execute on function
+  public.staff_ids(),
+  public.clubs_notify_staff(),
+  public.campaigns_notify_staff()
+from public, anon, authenticated;
 
 commit;

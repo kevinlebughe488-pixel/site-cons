@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { startTransition, useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import type { FormState } from "@/lib/forms";
 
@@ -88,22 +88,58 @@ export function FieldError({ state, name }: { state: FormState; name: string }) 
   );
 }
 
+type ServerAction = (state: FormState, form: FormData) => Promise<FormState>;
+
+/**
+ * Branche un formulaire sur une action serveur SANS l'effacer quand elle échoue.
+ *
+ * Laissé à lui-même, React vide les champs d'un formulaire après chaque envoi,
+ * même refusé : une case oubliée faisait retaper le mot de passe. Ici l'envoi
+ * passe par onSubmit : les champs gardent ce qui a été saisi, l'état « envoi
+ * en cours » (useFormStatus) fonctionne toujours, et le formulaire n'est vidé
+ * qu'après un succès quand `resetOnSuccess` est demandé (commentaire publié,
+ * fichier envoyé…).
+ */
+export function useFormAction(action: ServerAction, { resetOnSuccess = false }: { resetOnSuccess?: boolean } = {}) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [state, dispatch, pending] = useActionState(async (previous: FormState, data: FormData) => {
+    const result = await action(previous, data);
+    if (resetOnSuccess && result.success && !result.error) formRef.current?.reset();
+    return result;
+  }, {});
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    // Envoi déjà bloqué (par exemple un fichier obligatoire manquant) : rien à faire.
+    if (event.nativeEvent.defaultPrevented) return;
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const data = new FormData(form, submitter);
+    // Navigateurs qui ignorent le bouton d'envoi dans FormData : on l'ajoute (ex. « decision »).
+    if (submitter?.name && !data.has(submitter.name)) data.append(submitter.name, submitter.value);
+    startTransition(() => dispatch(data));
+  }
+
+  return { state, pending, formProps: { ref: formRef, action: dispatch, onSubmit } };
+}
+
 /**
  * Formulaire branché sur une action serveur, avec message de retour.
- * Pour les formulaires simples (décisions, boutons d'action).
+ * Pour les formulaires simples (décisions, boutons d'action). Les champs restent
+ * remplis après une erreur ; ils sont vidés après un succès.
  */
 export function ActionForm({
   action,
   children,
   className = "form",
 }: {
-  action: (state: FormState, form: FormData) => Promise<FormState>;
+  action: ServerAction;
   children: React.ReactNode;
   className?: string;
 }) {
-  const [state, formAction] = useActionState(action, {});
+  const { state, formProps } = useFormAction(action, { resetOnSuccess: true });
   return (
-    <form action={formAction} className={className}>
+    <form {...formProps} className={className}>
       <Flash state={state} />
       {children}
     </form>

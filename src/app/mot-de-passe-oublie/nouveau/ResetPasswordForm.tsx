@@ -1,14 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
 import { resetPassword } from "@/lib/actions/auth";
-import { Flash, SubmitButton } from "@/components/forms";
+import { Flash, SubmitButton, useFormAction } from "@/components/forms";
 import { NewPasswordFields } from "@/components/PasswordFields";
 
 export function ResetPasswordForm() {
-  const [state, action] = useActionState(resetPassword, {});
+  const { state, formProps } = useFormAction(resetPassword);
   return (
-    <form className="panel form" action={action} noValidate>
+    <form className="panel form" {...formProps} noValidate>
       <Flash state={state.field ? {} : state} />
       <NewPasswordFields state={state} />
       <SubmitButton>Enregistrer le nouveau mot de passe</SubmitButton>

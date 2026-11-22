@@ -76,8 +76,7 @@ const MAX_DOCUMENTS = CLUB_DOCUMENT_MAX_COUNT;
 
 /**
  * Ajoute une pièce au dossier, par un gestionnaire du club tant que le dossier est
- * modifiable. (L'équipe Tribune ajoute un document reçu du club par sa propre
- * action du back-office : addClubDocument.)
+ * modifiable. L'équipe Tribune n'envoie pas de fichier à la place du club.
  */
 export async function uploadClubDocument(_: FormState, form: FormData): Promise<FormState> {
   const viewer = await getViewer();
@@ -173,6 +172,7 @@ export async function updateClubInfo(_: FormState, form: FormData): Promise<Form
     .eq("id", viewer.club.id);
   if (error) return { error: dbErrorMessage(error) };
   revalidatePath("/club");
+  revalidatePath("/club/profil");
   revalidatePath(`/clubs/${viewer.club.slug}`);
   return { success: "Présentation du club enregistrée." };
 }
@@ -243,6 +243,12 @@ const CAMPAIGN_FIELDS = [
   "title", "category", "summary", "description", "goal", "duration_days", "min_contribution", "max_contribution", "budget", "milestones",
 ];
 
+/**
+ * Enregistre le brouillon d'une campagne. Appelée par « Suivant » dans le parcours
+ * de campagne : la campagne est créée à la fin de l'étape 2 (objectif et collecte),
+ * puis mise à jour à chaque étape ; en cas d'erreur, on revient au champ fautif.
+ * L'envoi en revue est une action séparée (submitCampaignForReview), à l'étape 6.
+ */
 export async function saveCampaign(_: FormState, form: FormData): Promise<FormState> {
   const fields = keepFields(form, CAMPAIGN_FIELDS);
   const viewer = await viewerWith("club:manage");
@@ -295,18 +301,26 @@ export async function saveCampaign(_: FormState, form: FormData): Promise<FormSt
   });
   if (error) return { error: dbErrorMessage(error), fields };
 
-  if (form.get("intent") === "submit") {
-    const { error: submitError } = await supabase.rpc("submit_campaign", { p_campaign_id: id });
-    if (submitError) {
-      revalidatePath(`/club/campagnes/${id}`);
-      if (!campaignId) redirect(`/club/campagnes/${id}?erreur=${encodeURIComponent(dbErrorMessage(submitError))}`);
-      return { error: `Brouillon enregistré, mais pas encore envoyé : ${dbErrorMessage(submitError)}`, fields };
-    }
-  }
   revalidatePath("/club");
   revalidatePath(`/club/campagnes/${id}`);
-  if (!campaignId || form.get("intent") === "submit") redirect(`/club/campagnes/${id}`);
-  return { success: "Brouillon enregistré.", fields };
+  const next = Math.min(6, Math.max(1, Number(text(form, "next_step")) || 3));
+  // Première sauvegarde : la campagne existe désormais, la suite se fait sur sa page.
+  if (!campaignId) redirect(`/club/campagnes/${id}?etape=${next}`);
+  return { success: "Brouillon enregistré.", fields, step: next };
+}
+
+/** Envoie la campagne à l'équipe Tribune (dernière étape du parcours). */
+export async function submitCampaignForReview(_: FormState, form: FormData): Promise<FormState> {
+  const viewer = await viewerWith("club:manage");
+  if ("error" in viewer) return { error: viewer.error };
+  const id = text(form, "campaign_id");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_campaign", { p_campaign_id: id });
+  if (error) return { error: dbErrorMessage(error) };
+  revalidatePath("/club");
+  revalidatePath(`/club/campagnes/${id}`);
+  revalidatePath("/admin/campagnes");
+  redirect(`/club/campagnes/${id}?ok=envoyee`);
 }
 
 const CAMPAIGN_DOC_MAX = 10;
@@ -314,8 +328,15 @@ const EDITABLE_CAMPAIGN = ["draft", "changes_requested"];
 
 type CampaignRef = { id: string; club_id: string; slug: string; status: string; cover_path: string | null };
 
-/** Campagne que la personne peut compléter : son club tant que le dossier est modifiable, ou l'équipe. */
-async function editableCampaign(campaignId: string): Promise<{ campaign: CampaignRef; actor: string } | { error: string }> {
+/**
+ * Campagne que la personne peut compléter : son club tant que le dossier est modifiable.
+ * L'équipe Tribune n'ajoute rien à la place du club ; elle peut seulement retirer une
+ * photo ou un devis (`purpose: "remove"`), par exemple une photo avec des données personnelles.
+ */
+async function editableCampaign(
+  campaignId: string,
+  purpose: "add" | "remove" = "add",
+): Promise<{ campaign: CampaignRef; actor: string } | { error: string }> {
   const viewer = await getViewer();
   if (!viewer) return { error: "Votre session a expiré. Reconnectez-vous." };
   const { data: campaign } = await createAdminClient()
@@ -324,9 +345,9 @@ async function editableCampaign(campaignId: string): Promise<{ campaign: Campaig
     .eq("id", campaignId)
     .maybeSingle<CampaignRef>();
   if (!campaign) return { error: "Campagne introuvable." };
-  const staff = isStaff(viewer.profile.role);
+  const staff = isStaff(viewer.profile.role) && purpose === "remove";
   const own = viewer.club?.id === campaign.club_id && can(viewer.profile.role, "club:manage");
-  if (!staff && !own) return { error: "Vous ne pouvez pas modifier cette campagne." };
+  if (!staff && !own) return { error: "Seuls les gestionnaires du club peuvent compléter cette campagne." };
   if (!staff && !EDITABLE_CAMPAIGN.includes(campaign.status)) {
     return { error: "Le dossier est envoyé : photos et devis ne se modifient plus. Écrivez à l'équipe Tribune si besoin." };
   }
@@ -395,7 +416,7 @@ export async function deleteCampaignDocument(_: FormState, form: FormData): Prom
     .eq("id", text(form, "document_id"))
     .maybeSingle<{ id: string; campaign_id: string; file_path: string; kind: string }>();
   if (!doc) return { error: "Justificatif introuvable." };
-  const found = await editableCampaign(doc.campaign_id);
+  const found = await editableCampaign(doc.campaign_id, "remove");
   if ("error" in found) return { error: found.error };
   await admin.from("campaign_documents").delete().eq("id", doc.id);
   await admin.storage.from("campaign-documents").remove([doc.file_path]);
@@ -458,14 +479,17 @@ export async function uploadCampaignPhoto(_: FormState, form: FormData): Promise
 
 type PhotoRow = { id: string; campaign_id: string; file_path: string };
 
-async function photoWithRights(photoId: string): Promise<{ photo: PhotoRow; campaign: CampaignRef; actor: string } | { error: string }> {
+async function photoWithRights(
+  photoId: string,
+  purpose: "add" | "remove" = "add",
+): Promise<{ photo: PhotoRow; campaign: CampaignRef; actor: string } | { error: string }> {
   const { data: photo } = await createAdminClient()
     .from("campaign_photos")
     .select("id, campaign_id, file_path")
     .eq("id", photoId)
     .maybeSingle<PhotoRow>();
   if (!photo) return { error: "Photo introuvable." };
-  const found = await editableCampaign(photo.campaign_id);
+  const found = await editableCampaign(photo.campaign_id, purpose);
   return "error" in found ? found : { photo, ...found };
 }
 
@@ -482,7 +506,7 @@ export async function setCampaignCover(_: FormState, form: FormData): Promise<Fo
 }
 
 export async function deleteCampaignPhoto(_: FormState, form: FormData): Promise<FormState> {
-  const found = await photoWithRights(text(form, "photo_id"));
+  const found = await photoWithRights(text(form, "photo_id"), "remove");
   if ("error" in found) return { error: found.error };
   const { photo, campaign, actor } = found;
   const admin = createAdminClient();
@@ -529,6 +553,7 @@ export async function postNews(_: FormState, form: FormData): Promise<FormState>
   });
   if (error) return { error: dbErrorMessage(error) };
   revalidatePath(campaignId ? `/club/campagnes/${campaignId}` : "/club");
+  revalidatePath("/club/actualites");
   revalidatePath("/actualites");
   revalidatePath(`/clubs/${viewer.club.slug}`);
   return {

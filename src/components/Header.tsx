@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { navigationFor } from "@/lib/navigation";
-import { NavLinks } from "@/components/NavLinks";
+import { ROLE_LABELS } from "@/lib/rbac";
+import { MainNav } from "@/components/MainNav";
+import { UserMenu } from "@/components/UserMenu";
 
 export async function Header() {
   const viewer = await getViewer();
@@ -20,7 +22,10 @@ export async function Header() {
             Tribune<small>{nav.tagline}</small>
           </span>
         </Link>
-        <NavLinks items={nav.items} />
+        <MainNav
+          items={nav.items}
+          mobileLinks={viewer ? [] : [{ href: "/connexion", label: "Connexion" }, { href: "/inscription", label: "Créer un compte" }]}
+        />
         <div className="user-menu">
           {viewer ? (
             <>
@@ -36,22 +41,16 @@ export async function Header() {
                 </svg>
                 {viewer.unread ? <span className="count">{viewer.unread > 99 ? "99+" : viewer.unread}</span> : null}
               </Link>
-              <Link className="account" href="/compte" title={nav.accountLabel}>
-                <span className="avatar">
-                  {(viewer.profile.first_name[0] + viewer.profile.last_name[0]).toUpperCase()}
-                </span>
-                <span className="small">{viewer.profile.first_name}</span>
-              </Link>
-              {/* Vrai formulaire (rechargement complet) : voir app/auth/deconnexion/route.ts. */}
-              <form action="/auth/deconnexion" method="post">
-                <button className="link-btn" type="submit">
-                  Déconnexion
-                </button>
-              </form>
+              <UserMenu
+                initials={(viewer.profile.first_name[0] + viewer.profile.last_name[0]).toUpperCase()}
+                firstName={viewer.profile.first_name}
+                role={ROLE_LABELS[viewer.profile.role]}
+                links={nav.accountLinks}
+              />
             </>
           ) : (
             <>
-              <Link className="link-btn" href="/connexion">
+              <Link className="btn btn-ghost-light btn-sm hide-sm" href="/connexion">
                 Connexion
               </Link>
               <Link className="btn btn-gold btn-sm" href="/inscription">

@@ -19,7 +19,7 @@ type DirectoryClub = Pick<Club, "id" | "slug" | "name" | "short_name" | "sport" 
 const STEPS: [string, string][] = [
   ["Créez votre compte", "« Je représente un club » : votre compte personnel, confirmé par un code SMS."],
   ["Remplissez le dossier du club", "Identité du club, siège, représentant légal et compte de versement au nom du club."],
-  ["Ajoutez les documents", "Au moins un document qui atteste l'existence du club, puis envoyez le dossier."],
+  ["Ajoutez les documents", "Un document qui atteste l'existence du club et la pièce d'identité du représentant légal, puis envoyez la demande."],
   ["L'équipe Tribune vérifie", "Existence du club, représentant légal, compte de versement. Elle peut demander des compléments."],
   ["Lancez votre première campagne", "Objectif, budget, durée de collecte, contribution minimum, jalons et photo du projet."],
 ];

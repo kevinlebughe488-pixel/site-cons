@@ -12,11 +12,10 @@ import { getSettings } from "@/lib/settings";
 import { listPriceReferences } from "@/lib/campaigns";
 import type { ComplianceReport } from "@/lib/compliance";
 import type { BudgetLine, Campaign, CampaignDocument, CampaignPhoto, CampaignUpdate, Milestone, PublicationFee } from "@/lib/types";
-import { ComplianceReportView } from "@/components/ComplianceReport";
 import { CampaignDocuments } from "../CampaignDocuments";
-import { CampaignEditor } from "../CampaignEditor";
+import { CampaignWizard } from "../CampaignWizard";
+import { checkCampaignStep, type CampaignDraft } from "@/lib/campaign-draft";
 import { CampaignPhotos } from "../CampaignPhotos";
-import { FeesNotice } from "../FeesNotice";
 
 export const metadata: Metadata = { title: "Gérer la campagne" };
 
@@ -24,7 +23,7 @@ type Detail = Campaign & { budget: BudgetLine[]; milestones: Milestone[]; update
 
 export default async function ManageCampaignPage(props: PageProps<"/club/campagnes/[id]">) {
   const { id } = await props.params;
-  const { erreur } = await props.searchParams;
+  const { etape, ok } = await props.searchParams;
   const viewer = await requirePermission("club:manage", `/club/campagnes/${id}`);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
@@ -55,78 +54,76 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
   const photos = [...c.photos].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
   const timing = campaignTiming(c);
 
+  // Parcours en étapes (brouillon ou corrections demandées) : valeurs enregistrées et première étape à faire.
+  const askedStep = Number(etape) || 0;
+  const draft: CampaignDraft | null = editable
+    ? {
+        title: c.title,
+        category: c.category,
+        summary: c.summary,
+        description: c.description,
+        goal: String(Number(c.goal_amount)),
+        duration_days: String(c.duration_days),
+        min_contribution: String(Number(c.min_contribution)),
+        max_contribution: c.max_contribution === null ? "" : String(Number(c.max_contribution)),
+        budget: budget.map((b) => ({
+          label: b.label,
+          amount: String(Number(b.amount)),
+          quantity: String(Number(b.quantity)),
+          reference_id: b.reference_id ?? "",
+        })),
+        milestones: milestones.map((m) => ({ label: m.label, target: m.target_label })),
+      }
+    : null;
+  const hasDevis = docs.some((d) => d.kind === "devis" || d.kind === "facture");
+  const firstTodo = draft
+    ? (([1, 2, 3, 4] as const).find((n) => checkCampaignStep(n, draft) !== null) ?? (photos.length && hasDevis ? 6 : 5))
+    : 1;
+
   return (
     <div className="wrap page">
       <div className="crumbs muted">
-        <Link href="/club">← Espace club</Link>
+        <Link href="/club/campagnes">← Campagnes du club</Link>
       </div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", margin: "10px 0 20px" }}>
         <h1 style={{ fontSize: "clamp(2rem,4.5vw,2.6rem)" }}>{c.title}</h1>
         <CampaignPill status={c.status} />
       </div>
-      {typeof erreur === "string" ? <p className="flash error">Brouillon enregistré, mais pas encore envoyé : {erreur}</p> : null}
-      {c.review_note && ["changes_requested", "rejected", "suspended"].includes(c.status) ? (
+      {c.review_note && ["rejected", "suspended"].includes(c.status) ? (
         <p className={`flash ${c.status === "changes_requested" ? "info" : "error"}`}>
           <b>Note de l&apos;équipe Tribune :</b> {c.review_note}
         </p>
       ) : null}
       {c.status === "in_review" ? (
-        <p className="flash info">Envoyée le {formatDate(c.submitted_at)}. L&apos;équipe Tribune instruit le dossier ; vous serez informé de la décision ici.</p>
+        <section className="thanks" role="status">
+          <span className="thanks-ic" aria-hidden="true">
+            ✓
+          </span>
+          <div>
+            <h2>{ok === "envoyee" ? "Merci, votre campagne est envoyée !" : "Votre campagne est en cours de revue"}</h2>
+            <p>
+              {ok === "envoyee" ? "Elle est maintenant entre les mains de l'équipe Tribune. " : `Envoyée le ${formatDate(c.submitted_at)}. `}
+              L&apos;équipe vérifie que le projet est clair, faisable, cohérent et authentique (elle peut appeler vos
+              fournisseurs), puis la publie ou vous demande des corrections. Vous serez prévenu ici et dans vos notifications.
+            </p>
+            <p className="small muted">Pendant la revue, la campagne ne peut plus être modifiée.</p>
+          </div>
+        </section>
       ) : null}
 
-      {editable ? <FeesNotice publicationFee={settings.publication_fee} /> : null}
-      {editable ? (
-        <div className="split">
-          <CampaignEditor
-            publicationFee={settings.publication_fee}
-            today={todayInKinshasa()}
-            references={references}
-            initial={{
-              id: c.id,
-              title: c.title,
-              category: c.category,
-              summary: c.summary,
-              description: c.description,
-              goal: String(Number(c.goal_amount)),
-              duration_days: String(c.duration_days),
-              min_contribution: String(Number(c.min_contribution)),
-              max_contribution: c.max_contribution === null ? "" : String(Number(c.max_contribution)),
-              budget: budget.map((b) => ({
-                label: b.label,
-                amount: String(Number(b.amount)),
-                quantity: String(Number(b.quantity)),
-                reference_id: b.reference_id ?? "",
-              })),
-              milestones: milestones.map((m) => ({ label: m.label, target: m.target_label })),
-            }}
-          />
-          <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
-            {control ? (
-              <div className="panel">
-                <h3>Contrôle avant envoi</h3>
-                <ComplianceReportView report={control} />
-                <p className="small muted" style={{ marginTop: 10 }}>
-                  Mis à jour à chaque enregistrement. Un point rouge empêche l&apos;envoi en revue.
-                </p>
-              </div>
-            ) : null}
-            <div className="panel">
-              <h3>Photos de la situation actuelle</h3>
-              <p className="small muted" style={{ marginBottom: 10 }}>
-                Montrez aux supporters de quoi il s&apos;agit : la pelouse aujourd&apos;hui, le vestiaire, le matériel usé… Jusqu&apos;à 6
-                photos, chacune avec une légende.
-              </p>
-              <CampaignPhotos campaignId={c.id} photos={photos} coverPath={c.cover_path} editable today={todayInKinshasa()} />
-            </div>
-            <div className="panel">
-              <h3>Devis des fournisseurs</h3>
-              <p className="small muted" style={{ marginBottom: 10 }}>
-                L&apos;équipe Tribune contacte le fournisseur pour vérifier que la campagne est réelle et les prix justes.
-              </p>
-              <CampaignDocuments campaignId={c.id} documents={docs} editable />
-            </div>
-          </aside>
-        </div>
+      {editable && draft ? (
+        <CampaignWizard
+          key={c.id}
+          step={askedStep >= 1 && askedStep <= 6 ? askedStep : firstTodo}
+          campaign={{ id: c.id, status: c.status, review_note: c.review_note, cover_path: c.cover_path }}
+          photos={photos}
+          docs={docs}
+          report={control}
+          publicationFee={settings.publication_fee}
+          today={todayInKinshasa()}
+          references={references}
+          initial={draft}
+        />
       ) : (
         <div className="split">
           <div style={{ display: "grid", gap: 24 }}>
@@ -233,7 +230,9 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
               <div className="panel">
                 <h3>Photos de la situation actuelle</h3>
                 <CampaignPhotos campaignId={c.id} photos={photos} coverPath={c.cover_path} editable={false} today={todayInKinshasa()} />
-                <p className="small muted" style={{ marginTop: 8 }}>Pour les changer, écrivez à l&apos;équipe Tribune.</p>
+                <p className="small muted" style={{ marginTop: 8 }}>
+                  Les photos ne se changent plus après l&apos;envoi. Pour en faire retirer une, écrivez à l&apos;équipe Tribune.
+                </p>
               </div>
             ) : null}
             {["published", "suspended", "funded", "failed"].includes(c.status) && viewer.club?.status === "verified" ? (

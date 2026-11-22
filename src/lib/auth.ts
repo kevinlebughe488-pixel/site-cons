@@ -80,3 +80,14 @@ export function safeReturnPath(value: unknown, fallback = "/compte"): string {
     ? value
     : fallback;
 }
+
+/**
+ * Pages de l'espace d'un club vérifié (ou suspendu) : gestionnaire du club. Pendant
+ * l'inscription, le dossier se trouve sur /club : on y renvoie.
+ */
+export async function requireClubSpace(returnTo: string): Promise<Viewer & { club: Club }> {
+  const viewer = await requirePermission("club:manage", returnTo);
+  const club = viewer.club;
+  if (!club || (club.status !== "verified" && club.status !== "suspended")) redirect("/club");
+  return { ...viewer, club };
+}

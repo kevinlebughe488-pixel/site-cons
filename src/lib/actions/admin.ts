@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { OkKey } from "@/app/admin/OkNotice";
@@ -14,9 +13,7 @@ import { startRefund, syncContribution, syncRefund } from "@/lib/payments/servic
 import { activeGateway } from "@/lib/payments";
 import { PawapayGateway } from "@/lib/payments/pawapay";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cleanFileName, readUpload } from "@/lib/uploads";
-import { CLUB_DOCUMENT_MAX_BYTES, CLUB_DOCUMENT_MAX_COUNT, UNDER_REVIEW } from "@/lib/club-dossier";
-import { CAMPAIGN_CATEGORIES, CLUB_DOCUMENT_KINDS, CLUB_REVIEW_CRITERIA, REVIEW_CRITERIA, type ClubStatus } from "@/lib/types";
+import { CAMPAIGN_CATEGORIES, CLUB_REVIEW_CRITERIA, REVIEW_CRITERIA, type ClubStatus } from "@/lib/types";
 
 // Chaque action vérifie la permission côté application, puis la base de données
 // revérifie le rôle dans la fonction appelée (double contrôle).
@@ -195,58 +192,6 @@ export async function addClubMember(_: FormState, form: FormData): Promise<FormS
   const { data: user } = await supabase.from("profiles").select("id").eq("email", email).maybeSingle();
   if (!user) return { error: "Aucun compte avec cet e-mail. La personne doit d'abord s'inscrire." };
   return rpc("club:assign_member", "admin_add_club_member", { p_club_id: text(form, "club_id"), p_user_id: user.id }, "Gestionnaire ajouté au club : la personne est prévenue.", ["/admin/clubs"]);
-}
-
-/**
- * Ajoute au dossier d'un club une pièce reçue par l'équipe Tribune (par e-mail,
- * remise en main propre…), tant que le dossier est en cours d'examen. La pièce
- * est visible par le club ; le journal d'audit indique qu'elle vient de l'équipe.
- */
-export async function addClubDocument(_: FormState, form: FormData): Promise<FormState> {
-  const viewer = await viewerWith("club:review");
-  if ("error" in viewer) return { error: viewer.error };
-  const clubId = text(form, "club_id");
-  const kind = text(form, "kind");
-  if (!CLUB_DOCUMENT_KINDS.some((k) => k.id === kind)) return { error: "Choisissez le type de document." };
-  const file = await readUpload(form.get("file"), { maxBytes: CLUB_DOCUMENT_MAX_BYTES, allowPdf: true, label: "un fichier (PDF ou photo)" });
-  if ("error" in file) return { error: file.error };
-
-  // Clé service_role : l'équipe n'écrit jamais directement dans la table ni dans le bucket privé.
-  const admin = createAdminClient();
-  const { data: club } = await admin.from("clubs").select("id, status").eq("id", clubId).maybeSingle<{ id: string; status: ClubStatus }>();
-  if (!club) return { error: "Club introuvable." };
-  if (!UNDER_REVIEW.includes(club.status)) return { error: "Ce dossier n'est plus en cours d'examen : aucun document ne peut y être ajouté." };
-  const { count } = await admin.from("club_documents").select("id", { count: "exact", head: true }).eq("club_id", clubId);
-  if ((count ?? 0) >= CLUB_DOCUMENT_MAX_COUNT) return { error: `Le dossier compte déjà ${CLUB_DOCUMENT_MAX_COUNT} documents : le club doit en retirer un.` };
-
-  const path = `${clubId}/${randomUUID()}.${file.ext}`;
-  const { error: uploadError } = await admin.storage.from("club-documents").upload(path, file.bytes, { contentType: file.mime, upsert: false });
-  if (uploadError) return { error: "Envoi du document impossible pour le moment. Réessayez." };
-  const fileName = cleanFileName(form.get("file"), `document.${file.ext}`);
-  const { error } = await admin.from("club_documents").insert({
-    club_id: clubId,
-    kind,
-    file_path: path,
-    file_name: fileName,
-    mime_type: file.mime,
-    size_bytes: file.bytes.length,
-    uploaded_by: viewer.profile.id,
-  });
-  if (error) {
-    await admin.storage.from("club-documents").remove([path]);
-    return { error: "Enregistrement du document impossible. Réessayez." };
-  }
-  await admin.from("audit_log").insert({
-    actor_id: viewer.profile.id,
-    action: "club.document_ajoute",
-    entity_type: "club",
-    entity_id: clubId,
-    details: { type: kind, fichier: fileName, par: "équipe Tribune" },
-  });
-  revalidatePath("/admin/clubs");
-  revalidatePath("/admin");
-  revalidatePath("/club");
-  return { success: "Document ajouté au dossier (visible aussi par le club)." };
 }
 
 export async function setClubPayout(_: FormState, form: FormData): Promise<FormState> {

@@ -132,8 +132,9 @@ export function checkDossier(values: Record<string, string | undefined>, only?: 
 // Les conditions « obligatoires » sont exactement celles que la base vérifie
 // avant l'envoi du dossier (submit_club_registration) et avant la vérification
 // d'un dossier que le club n'a pas (re)envoyé (club_dossier_complete) :
-// un document attestant l'existence du club, l'adresse du siège, le téléphone
-// du représentant légal et le titulaire du compte de versement. Les autres
+// un document attestant l'existence du club, la pièce d'identité du
+// représentant légal, l'adresse du siège, le téléphone du représentant légal
+// et le titulaire du compte de versement. Les autres
 // champs obligatoires (nom, sigle, ville, date de création, fonction du
 // représentant…) sont contrôlés dès l'enregistrement du dossier.
 // ---------------------------------------------------------------------
@@ -169,6 +170,11 @@ export function requiredItems(priv: PrivatePart, kinds: readonly string[]): Doss
       id: "existence",
       label: "Un document attestant l'existence du club (statuts, enregistrement officiel ou attestation d'affiliation)",
       ok: kinds.some((k) => (PROOF_KINDS as readonly string[]).includes(k)),
+    },
+    {
+      id: "identite",
+      label: "La pièce d'identité du représentant légal",
+      ok: kinds.includes("identite_representant"),
     },
     { id: "siege", label: "L'adresse du siège", ok: !!priv?.address },
     { id: "representant", label: "Le représentant légal et son téléphone", ok: !!priv?.rep_phone },
