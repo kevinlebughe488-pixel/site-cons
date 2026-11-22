@@ -1,9 +1,10 @@
 import { uploadClubLogo } from "@/lib/actions/club";
-import { ActionForm, SubmitButton } from "@/components/forms";
+import { ActionForm } from "@/components/forms";
 import { FileField } from "@/components/FileField";
 import { Crest } from "@/components/visuals";
 import type { Club } from "@/lib/types";
 
+/** Logo du club, facultatif : envoyé dès que l'image est choisie, l'aperçu se met à jour. */
 export function LogoUpload({ club }: { club: Pick<Club, "id" | "short_name" | "color_primary" | "color_secondary" | "logo_path"> }) {
   return (
     <ActionForm action={uploadClubLogo}>
@@ -14,17 +15,16 @@ export function LogoUpload({ club }: { club: Pick<Club, "id" | "short_name" | "c
           <FileField
             id={`logo-${club.id}`}
             name="logo"
-            label="Logo du club"
-            hint="PNG, JPEG ou WebP, 1 Mo maximum, de préférence carré sur fond transparent."
+            label={club.logo_path ? "Changer le logo" : "Logo du club"}
+            hint="PNG, JPEG ou WebP, 1 Mo maximum, de préférence carré sur fond transparent. Sans logo, un blason aux couleurs du club est dessiné."
             accept="image/png,image/jpeg,image/webp"
             maxSide={1024}
             maxBytes={1024 * 1024}
+            required={false}
+            autoSubmit
           />
         </div>
       </div>
-      <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="Envoi…">
-        Envoyer le logo
-      </SubmitButton>
     </ActionForm>
   );
 }

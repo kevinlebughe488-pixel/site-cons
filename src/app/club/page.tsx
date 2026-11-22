@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
 import { can, canUseClubSpace, isStaff } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
-import { deleteClubDocument, postNews, submitClubDossier, updateClubInfo } from "@/lib/actions/club";
+import { deleteClubDocument, postNews, updateClubInfo } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { LogoUpload } from "@/components/LogoUpload";
 import { CampaignPill, Crest, FieldSvg, Pill } from "@/components/visuals";
@@ -14,8 +14,8 @@ import { formatBytes } from "@/lib/images";
 import { formatPhone, maskPhone } from "@/lib/phone";
 import { providerLabel } from "@/lib/payments/providers";
 import { CLUB_DOCUMENT_KINDS, type Campaign, type Club, type ClubDocument, type ClubPrivate, type CampaignUpdate } from "@/lib/types";
-import { ClubDossierForm, EMPTY_DOSSIER, type DossierValues } from "./ClubDossierForm";
-import { DocumentUpload } from "./DocumentUpload";
+import { EMPTY_DOSSIER, type DossierValues } from "@/lib/club-dossier";
+import { ClubWizard } from "./ClubWizard";
 
 export const metadata: Metadata = { title: "Espace club" };
 
@@ -29,7 +29,7 @@ const NEXT_STEP: Partial<Record<Campaign["status"], string>> = {
 };
 
 const OK_MESSAGES: Record<string, string> = {
-  dossier_ouvert: "Dossier du club créé. Ajoutez maintenant les documents du club, puis envoyez le dossier pour vérification.",
+  dossier_ouvert: "Informations enregistrées. Ajoutez maintenant les documents du club (et son logo si vous le souhaitez).",
   dossier_envoye: "Dossier envoyé. L'équipe Tribune le vérifie : vous serez prévenu ici et dans vos notifications.",
 };
 
@@ -140,8 +140,9 @@ export default async function ClubPage(props: PageProps<"/club">) {
   // L'équipe Tribune n'a pas d'espace club : ses clubs sont dans le back-office.
   if (isStaff(viewer.profile.role)) redirect("/admin/clubs");
   if (!canUseClubSpace(viewer.profile.role)) redirect("/acces-refuse");
-  const { ok } = await props.searchParams;
+  const { ok, etape } = await props.searchParams;
   const okMessage = typeof ok === "string" ? OK_MESSAGES[ok] : undefined;
+  const askedStep = Number(etape) || 0;
   const club = viewer.club;
   const me = {
     name: `${viewer.profile.first_name} ${viewer.profile.last_name}`,
@@ -161,30 +162,16 @@ export default async function ClubPage(props: PageProps<"/club">) {
           </p>
         ) : null}
         {can(viewer.profile.role, "club:register") ? (
-          <div className="split">
-            <ClubDossierForm initial={EMPTY_DOSSIER} mode="create" me={me} maxDate={todayInKinshasa()} />
-            <aside className="panel">
-              <h3>La procédure de vérification</h3>
-              <ol className="steps">
-                {[
-                  ["Le club ouvre son dossier", "Les informations de ce formulaire."],
-                  ["Il ajoute ses documents", "Au moins un document attestant l'existence du club."],
-                  ["Il envoie le dossier", "Il n'est plus modifiable pendant la vérification."],
-                  ["L'équipe Tribune vérifie", "Existence du club, représentant légal, compte de versement. Elle peut demander des compléments."],
-                  ["Le club est vérifié", "Il peut alors déposer sa première campagne."],
-                ].map(([title, text], i) => (
-                  <li key={title} className={i === 0 ? "now" : ""}>
-                    <span className="dot">{i + 1}</span>
-                    <div>
-                      <b>{title}</b>
-                      <span className="small muted">{text}</span>
-                    </div>
-                    <span />
-                  </li>
-                ))}
-              </ol>
-            </aside>
-          </div>
+          <ClubWizard
+            key="nouveau"
+            initial={EMPTY_DOSSIER}
+            me={me}
+            maxDate={todayInKinshasa()}
+            step={1}
+            club={null}
+            docs={[]}
+            saved={{ info: false, payout: false }}
+          />
         ) : (
           <p className="muted">Votre rôle ne permet pas d&apos;inscrire un club.</p>
         )}
@@ -215,22 +202,44 @@ export default async function ClubPage(props: PageProps<"/club">) {
     </div>
   );
 
-  // Dossier d'inscription : en préparation, à compléter ou en vérification.
-  if (club.status === "draft" || club.status === "changes_requested" || club.status === "pending") {
-    const editable = club.status !== "pending";
+  // Dossier en préparation ou à compléter : le parcours en étapes, avec « Suivant ».
+  if (club.status === "draft" || club.status === "changes_requested") {
+    const hasProof = docs.some((d) => PROOF_KINDS.has(d.kind));
+    const saved = { info: !!priv?.rep_phone && !!priv.address, payout: !!priv?.payout_holder };
+    // Sans étape demandée : la première qui reste à faire.
+    const firstTodo = !saved.info ? 1 : !saved.payout ? 3 : !hasProof ? 4 : 5;
+    return (
+      <>
+        {head}
+        <div className="wrap page">
+          <ClubWizard
+            key={club.id}
+            initial={dossierValues(club, priv)}
+            me={me}
+            maxDate={todayInKinshasa()}
+            step={askedStep >= 1 && askedStep <= 5 ? askedStep : firstTodo}
+            club={club}
+            docs={docs}
+            saved={saved}
+            okMessage={okMessage}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // Dossier envoyé, en cours de vérification : lecture seule.
+  if (club.status === "pending") {
     const hasProof = docs.some((d) => PROOF_KINDS.has(d.kind));
     const infoOk = !!priv?.rep_phone && !!priv.address;
     const payoutOk = !!priv?.payout_holder;
-    // Chaque étape n'est cochée que si elle est vraiment faite (un ancien dossier envoyé peut manquer de documents).
-    const sent = club.status === "pending";
     const steps: [string, boolean][] = [
       ["Dossier", infoOk && payoutOk],
       ["Documents", hasProof],
-      ["Envoi", sent],
+      ["Envoi", true],
       ["Vérification", false],
       ["Club vérifié", false],
     ];
-    const current = sent ? 3 : steps.findIndex(([, done]) => !done);
     return (
       <>
         {head}
@@ -238,77 +247,58 @@ export default async function ClubPage(props: PageProps<"/club">) {
           {okMessage ? <p className="flash success">{okMessage}</p> : null}
           <div className="stepper" aria-label="Avancement du dossier">
             {steps.map(([label, done], i) => (
-              <span key={label} className={done ? "done" : i === current ? "on" : ""}>
+              <span key={label} className={done ? "done" : i === 3 ? "on" : ""}>
                 {i + 1} · {label}
                 {done ? " ✓" : ""}
               </span>
             ))}
           </div>
-          {club.status === "changes_requested" ? (
-            <p className="flash info">
-              <b>Compléments demandés par l&apos;équipe Tribune :</b> {club.review_note ?? "voir votre notification."} Modifiez le
-              dossier ou ajoutez les documents demandés, puis renvoyez-le.
-            </p>
-          ) : null}
-          {club.status === "pending" ? (
-            <p className="flash info">
-              Dossier envoyé le {formatDate(club.submitted_at)}. L&apos;équipe Tribune vérifie l&apos;existence du club, son
-              représentant légal et son compte de versement. Vous serez prévenu de sa décision. En attendant, vous pouvez
-              ajouter le logo du club.
-            </p>
-          ) : null}
-          {club.status === "draft" && !okMessage ? (
-            <p className="flash info">
-              Votre dossier n&apos;est pas encore envoyé : complétez-le, ajoutez les documents, puis envoyez-le pour
-              vérification. Aucune campagne n&apos;est possible avant la vérification du club.
-            </p>
-          ) : null}
+          <p className="flash info">
+            Demande envoyée le {formatDate(club.submitted_at)}. L&apos;équipe Tribune vérifie l&apos;existence du club, son
+            représentant légal et son compte de versement. Vous serez prévenu de sa décision ici et dans vos notifications.
+          </p>
 
           <div className="split">
-            {editable ? (
-              <ClubDossierForm initial={dossierValues(club, priv)} mode="edit" me={me} maxDate={todayInKinshasa()} />
-            ) : (
-              <div className="panel">
-                <h3>Dossier envoyé</h3>
-                <div className="recap small">
-                  <div>
-                    <span className="muted">Nom officiel · sigle</span>
-                    <span>
-                      {club.name} · {club.short_name}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="muted">Discipline</span>
-                    <span>{club.sport}</span>
-                  </div>
-                  <div>
-                    <span className="muted">Siège</span>
-                    <span>{[priv?.address, club.commune, club.city].filter(Boolean).join(", ")}</span>
-                  </div>
-                  <div>
-                    <span className="muted">Date de création</span>
-                    <span>{club.founded_on ? formatDate(club.founded_on) : club.founded_year ?? "—"}</span>
-                  </div>
-                  <div>
-                    <span className="muted">Identifiant juridique</span>
-                    <span>{priv?.legal_id ?? "—"}</span>
-                  </div>
-                  <div>
-                    <span className="muted">Représentant légal</span>
-                    <span>
-                      {club.president_name}
-                      {priv?.rep_title ? `, ${priv.rep_title}` : ""} · {formatPhone(priv?.rep_phone)}
-                      {priv?.rep_email ? ` · ${priv.rep_email}` : ""}
-                    </span>
-                  </div>
+            <div className="panel">
+              <h3>Dossier envoyé</h3>
+              <div className="recap small">
+                <div>
+                  <span className="muted">Nom officiel · sigle</span>
+                  <span>
+                    {club.name} · {club.short_name}
+                  </span>
                 </div>
-                <h4 style={{ margin: "18px 0 8px" }}>Compte de versement</h4>
-                <PayoutSummary priv={priv} />
+                <div>
+                  <span className="muted">Discipline</span>
+                  <span>{club.sport}</span>
+                </div>
+                <div>
+                  <span className="muted">Siège</span>
+                  <span>{[priv?.address, club.commune, club.city].filter(Boolean).join(", ")}</span>
+                </div>
+                <div>
+                  <span className="muted">Date de création</span>
+                  <span>{club.founded_on ? formatDate(club.founded_on) : (club.founded_year ?? "—")}</span>
+                </div>
+                <div>
+                  <span className="muted">Identifiant juridique</span>
+                  <span>{priv?.legal_id ?? "—"}</span>
+                </div>
+                <div>
+                  <span className="muted">Représentant légal</span>
+                  <span>
+                    {club.president_name}
+                    {priv?.rep_title ? `, ${priv.rep_title}` : ""} · {formatPhone(priv?.rep_phone)}
+                    {priv?.rep_email ? ` · ${priv.rep_email}` : ""}
+                  </span>
+                </div>
               </div>
-            )}
+              <h4 style={{ margin: "18px 0 8px" }}>Compte de versement</h4>
+              <PayoutSummary priv={priv} />
+            </div>
             <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
               <div className="panel">
-                <h3>{editable ? "Avant l'envoi" : "Contenu du dossier"}</h3>
+                <h3>Contenu du dossier</h3>
                 <div className="rules">
                   <Check ok={infoOk} label="Identité du club, siège et représentant légal" />
                   <Check ok={hasProof} label="Un document attestant l'existence du club (statuts, enregistrement ou affiliation)" />
@@ -316,29 +306,13 @@ export default async function ClubPage(props: PageProps<"/club">) {
                   <Check ok={docs.some((d) => d.kind === "identite_representant")} label="Pièce d'identité du représentant légal" optional />
                   <Check ok={docs.some((d) => d.kind === "compte_versement")} label="Justificatif du compte de versement" optional />
                 </div>
-                {editable ? (
-                  <ActionForm action={submitClubDossier} className="form" >
-                    <SubmitButton
-                      pendingLabel="Envoi…"
-                      disabled={!(infoOk && hasProof && payoutOk)}
-                      confirm="Envoyer le dossier à l'équipe Tribune ? Il ne sera plus modifiable pendant la vérification."
-                    >
-                      {club.status === "changes_requested" ? "Renvoyer le dossier" : "Envoyer pour vérification"}
-                    </SubmitButton>
-                  </ActionForm>
-                ) : null}
               </div>
               <div className="panel">
                 <h3>Documents du dossier</h3>
                 <p className="small muted" style={{ marginBottom: 12 }}>
                   Visibles seulement par les gestionnaires du club et l&apos;équipe Tribune.
                 </p>
-                <DocumentList docs={docs} editable={editable} />
-                {editable ? (
-                  <div style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
-                    <DocumentUpload clubId={club.id} suggested={hasProof ? "identite_representant" : "statuts"} />
-                  </div>
-                ) : null}
+                <DocumentList docs={docs} editable={false} />
               </div>
               <div className="panel">
                 <h3>Logo</h3>

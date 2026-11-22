@@ -248,6 +248,20 @@ textarea{min-height:110px;resize:vertical}
 .stepper span{font-size:.82rem;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
 .stepper span.on{background:var(--pitch);color:var(--on-pitch)}
 .stepper span.done{background:var(--ok-bg);color:var(--ok)}
+/* Inscription du club en étapes */
+.wizard{display:grid;gap:18px}
+.wizard [hidden]{display:none !important}
+.stepper.wz-steps{margin-bottom:0}
+.wz-steps button{font:inherit;font-size:.82rem;font-weight:700;padding:5px 12px;border-radius:999px;border:0;background:var(--surface-2);color:var(--muted);cursor:pointer}
+.wz-steps button.on{background:var(--pitch);color:var(--on-pitch)}
+.wz-steps button.done{background:var(--ok-bg);color:var(--ok)}
+.wz-steps button:disabled{cursor:default;opacity:.6}
+.wz-steps button.on:disabled{opacity:1}
+.wz-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.wz-docs{display:grid;gap:16px}
+.wz-optional{display:grid;gap:18px}
+.wz-optional > div + div{border-top:1px solid var(--line);padding-top:16px}
+.rules div.wz-check{grid-template-columns:22px 1fr auto;align-items:start}
 
 /* page simple */
 .page-head{background:var(--pitch);color:var(--on-pitch);position:relative;overflow:hidden}
@@ -555,6 +569,7 @@ figure.camp-figure figcaption b{color:var(--ink)}
 .dropzone .dz-text{display:grid;gap:4px;font-size:1.05rem;line-height:1.35;overflow-wrap:anywhere}
 .dropzone .dz-text u{text-underline-offset:3px}
 .dropzone.chosen .dz-text b{color:var(--ok);font-size:.95rem}
+.dropzone .dz-sending{color:var(--pitch);font-size:.95rem}
 .dropzone .dz-change{font-size:.88rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
 
 /* bloc replié (« Modifier », « Supprimer mon compte ») */

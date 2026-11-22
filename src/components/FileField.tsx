@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { formatBytes, replaceInputFile, shrinkImage } from "@/lib/images";
 
 /** Le fichier correspond-il au filtre `accept` du champ (types MIME, « image/* » ou extensions) ? */
@@ -29,6 +30,9 @@ const REQUIRED_MESSAGE = "Ce champ est obligatoire : ajoutez un fichier.";
  *
  * Le champ est obligatoire par défaut (astérisque rouge) : sans fichier, le
  * formulaire n'est pas envoyé et la zone passe en rouge avec le message.
+ *
+ * `autoSubmit` : le fichier part dès qu'il est choisi (pas de bouton « Envoyer »
+ * à ne pas oublier) et la zone indique l'envoi en cours.
  */
 export function FileField({
   id,
@@ -40,6 +44,7 @@ export function FileField({
   maxBytes,
   onBusy,
   required = true,
+  autoSubmit = false,
 }: {
   id: string;
   name: string;
@@ -52,7 +57,10 @@ export function FileField({
   onBusy?: (busy: boolean) => void;
   /** Obligatoire par défaut : le formulaire ne part pas sans fichier. */
   required?: boolean;
+  /** Envoie le formulaire dès que le fichier est prêt. */
+  autoSubmit?: boolean;
 }) {
+  const { pending } = useFormStatus();
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [chosen, setChosen] = useState(false);
@@ -127,6 +135,7 @@ export function FileField({
     setChosen(true);
     setInfo(`${sent.name} · ${formatBytes(sent.size)}${replaced ? " (photo allégée)" : ""}`);
     onBusy?.(false);
+    if (autoSubmit) input.form?.requestSubmit();
   }
 
   function onDrop(event: React.DragEvent<HTMLLabelElement>) {
@@ -169,7 +178,11 @@ export function FileField({
         onDrop={onDrop}
       >
         <FolderIcon />
-        {chosen && info ? (
+        {autoSubmit && pending && info ? (
+          <span className="dz-text">
+            <b className="dz-sending">Envoi de {info}…</b>
+          </span>
+        ) : chosen && info ? (
           <span className="dz-text">
             <b>✓ {info}</b>
             <span className="dz-change">Changer de fichier</span>

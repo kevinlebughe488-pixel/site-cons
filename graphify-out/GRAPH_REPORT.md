@@ -1,17 +1,17 @@
-# Graph Report - site-cons  (2026-11-21)
+# Graph Report - site-cons  (2026-11-22)
 
 ## Corpus Check
-- 149 files · ~103,975 words
+- 150 files · ~105,988 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: .example 2, (none) 2, .conf 1)
 
 ## Summary
-- 1072 nodes · 3383 edges · 50 communities (39 shown, 11 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.85)
+- 1086 nodes · 3437 edges · 49 communities (38 shown, 11 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 14 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7f3a8b18`
+- Built from commit: `78e3cfe7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,20 +21,20 @@
 - app/layout.tsx
 - pawapay.ts
 - actions/auth.ts
-- club/page.tsx
+- SubmitButton
 - app/layout.tsx
-- createClient
+- next
 - seed-demo.mjs
 - package.json
 - public.profiles
 - compilerOptions
 - environment
-- inscription/page.tsx
+- lib/types.ts
 - public.campaigns
 - environment
 - prix/page.tsx
-- next
-- lib/auth.ts
+- club/campagnes/[id]/page.tsx
+- ClubWizard.tsx
 - storage
 - services
 - db
@@ -44,16 +44,15 @@
 - public.clubs
 - 20261120000100_controle_conformite.sql
 - 20261101000400_communication.sql
-- dependencies
+- compte/page.tsx
 - club.ts
 - contributions/[id]/page.tsx
-- scripts
-- notifications/page.tsx
+- CampaignDocuments.tsx
+- rbac.ts
 - public.compute_campaign_compliance
 - @supabase/supabase-js
-- keys.mjs
-- comment-ca-marche/page.tsx
-- eslint-config-next
+- admin/page.tsx
+- club/page.tsx
 - CLAUDE.md
 - .claude/CLAUDE.md
 - public.clubs
@@ -61,71 +60,71 @@
 ## God Nodes (most connected - your core abstractions)
 1. `createClient()` - 96 edges
 2. `next` - 77 edges
-3. `SubmitButton()` - 60 edges
+3. `SubmitButton()` - 57 edges
 4. `formatMoney()` - 56 edges
 5. `getViewer` - 55 edges
-6. `public.campaigns` - 52 edges
-7. `text()` - 49 edges
-8. `formatDate()` - 49 edges
+6. `formatDate()` - 52 edges
+7. `public.campaigns` - 52 edges
+8. `text()` - 50 edges
 9. `public.clubs` - 48 edges
 10. `createAdminClient()` - 45 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `ClubDossierForm()` --indirect_call--> `saveClubDossier()`  [INFERRED]
-  src/app/club/ClubDossierForm.tsx → src/lib/actions/club.ts
-- `RegisterForm()` --indirect_call--> `register()`  [INFERRED]
-  src/app/inscription/RegisterForm.tsx → src/lib/actions/auth.ts
-- `LoginForm()` --indirect_call--> `signIn()`  [INFERRED]
-  src/app/connexion/LoginForm.tsx → src/lib/actions/auth.ts
-- `CodeForm()` --indirect_call--> `verifyCode()`  [INFERRED]
-  src/app/verification/CodeForm.tsx → src/lib/actions/auth.ts
-- `ChangePasswordForm()` --indirect_call--> `changePassword()`  [INFERRED]
-  src/app/compte/mot-de-passe/ChangePasswordForm.tsx → src/lib/actions/auth.ts
+- `DocumentUpload()` --indirect_call--> `uploadClubDocument()`  [INFERRED]
+  src/app/club/DocumentUpload.tsx → src/lib/actions/club.ts
+- `CampaignEditor()` --indirect_call--> `saveCampaign()`  [INFERRED]
+  src/app/club/campagnes/CampaignEditor.tsx → src/lib/actions/club.ts
+- `CampaignDocuments()` --indirect_call--> `uploadCampaignDocument()`  [INFERRED]
+  src/app/club/campagnes/CampaignDocuments.tsx → src/lib/actions/club.ts
+- `CampaignPhotos()` --indirect_call--> `uploadCampaignPhoto()`  [INFERRED]
+  src/app/club/campagnes/CampaignPhotos.tsx → src/lib/actions/club.ts
+- `CommentForm()` --indirect_call--> `postComment()`  [INFERRED]
+  src/app/campagnes/[slug]/CommentForm.tsx → src/lib/actions/community.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (50 total, 11 thin omitted)
+## Communities (49 total, 11 thin omitted)
 
 ### Community 0 - "Tribune Supporters"
 Cohesion: 0.07
 Nodes (23): 1. Créer le projet Supabase, 2. Configurer l'application, 3. Créer le premier administrateur, 4. Données de démonstration (facultatif, projet de test uniquement), Communication, Connexion et codes SMS, Contrôle de conformité des campagnes, Déploiement sur Vercel (+15 more)
 
 ### Community 1 - "lib/types.ts"
-Cohesion: 0.05
-Nodes (99): metadata, TABS, ClubRow, KIND_LABEL, metadata, PROOF, TABS, CampaignsPage() (+91 more)
+Cohesion: 0.07
+Nodes (75): metadata, NewsPage(), NewsRow, metadata, TABS, CampaignsPage(), metadata, STATUS_FILTERS (+67 more)
 
 ### Community 2 - "app/layout.tsx"
 Cohesion: 0.13
 Nodes (21): metadata, TermsPage(), COOKIES, metadata, PrivacyPage(), CookieBanner(), decide(), noop() (+13 more)
 
 ### Community 3 - "pawapay.ts"
-Cohesion: 0.07
-Nodes (30): AdminNav(), AdminLayout(), OK_MESSAGES, OkKey, OkNotice(), ContributePage(), metadata, PaymentMode (+22 more)
+Cohesion: 0.06
+Nodes (44): AdminNav(), AdminLayout(), OK_MESSAGES, OkKey, OkNotice(), GET(), POST(), POST() (+36 more)
 
 ### Community 4 - "actions/auth.ts"
-Cohesion: 0.11
-Nodes (38): server-only, Account, cancelVerification(), changePassword(), checkNewPassword(), findAccount(), notifyPasswordChanged(), REGISTER_FIELDS (+30 more)
+Cohesion: 0.06
+Nodes (68): react, GET(), ChangePasswordForm(), ChangePasswordPage(), metadata, LoginForm(), LoginHelp(), LoginPage() (+60 more)
 
-### Community 5 - "club/page.tsx"
-Cohesion: 0.05
-Nodes (102): react, AdminCampaignPage(), AdminCampaignsPage(), AdminClubsPage(), AdminCommentsPage(), metadata, Row, TABS (+94 more)
+### Community 5 - "SubmitButton"
+Cohesion: 0.14
+Nodes (37): AdminCampaignPage(), AdminCampaignsPage(), AdminClubsPage(), AdminCommentsPage(), metadata, Row, TABS, AuditLogPage() (+29 more)
 
 ### Community 6 - "app/layout.tsx"
-Cohesion: 0.21
-Nodes (11): body, display, metadata, RootLayout(), viewport, DemoBanner(), Footer(), FreshOnBack() (+3 more)
+Cohesion: 0.12
+Nodes (19): ForbiddenPage(), metadata, body, display, metadata, RootLayout(), viewport, Footer() (+11 more)
 
-### Community 7 - "createClient"
-Cohesion: 0.18
-Nodes (18): metadata, NewsPage(), NewsRow, metadata, GET(), POST(), GET(), GET() (+10 more)
+### Community 7 - "next"
+Cohesion: 0.19
+Nodes (8): nextConfig, next, server-only, @supabase/supabase-js, metadata, metadata, CLUB_PRIORITY, env
 
 ### Community 8 - "seed-demo.mjs"
-Cohesion: 0.19
-Nodes (13): CLUBS, createUser(), dateIn(), daysAgo(), db, demoPdf(), FIRST, LAST (+5 more)
+Cohesion: 0.13
+Nodes (17): anon, b64(), service, sign(), CLUBS, createUser(), dateIn(), daysAgo() (+9 more)
 
 ### Community 9 - "package.json"
-Cohesion: 0.18
-Nodes (14): devDependencies, eslint@9.39.5, @types/node@22.20.5, @types/react@19.3.0, @types/react-dom@19.3.0, typescript@5.9.3, name, private (+6 more)
+Cohesion: 0.07
+Nodes (36): config, dependencies, next@16.4.3, react@19.3.1, react-dom@19.3.1, server-only@0.0.1, @supabase/ssr@0.12.7, @supabase/supabase-js@2.118.0 (+28 more)
 
 ### Community 10 - "public.profiles"
 Cohesion: 0.08
@@ -139,9 +138,9 @@ Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 Cohesion: 0.11
 Nodes (18): environment, API_EXTERNAL_URL, GOTRUE_API_HOST, GOTRUE_API_PORT, GOTRUE_DB_DATABASE_URL, GOTRUE_DB_DRIVER, GOTRUE_DISABLE_SIGNUP, GOTRUE_EXTERNAL_EMAIL_ENABLED (+10 more)
 
-### Community 13 - "inscription/page.tsx"
-Cohesion: 0.24
-Nodes (10): GET(), GET(), AccountChoice(), ClubIcon(), Kind, metadata, RegisterPage(), SupporterIcon() (+2 more)
+### Community 13 - "lib/types.ts"
+Cohesion: 0.10
+Nodes (24): Detail, metadata, ClubRow, KIND_LABEL, metadata, PROOF, TABS, CLUB_STATUS_LABELS (+16 more)
 
 ### Community 14 - "public.campaigns"
 Cohesion: 0.13
@@ -152,16 +151,16 @@ Cohesion: 0.15
 Nodes (13): ANON_KEY, AUTH_JWT_SECRET, DATABASE_URL, ENABLE_IMAGE_TRANSFORMATION, FILE_SIZE_LIMIT, FILE_STORAGE_BACKEND_PATH, GLOBAL_S3_BUCKET, POSTGREST_URL (+5 more)
 
 ### Community 16 - "prix/page.tsx"
-Cohesion: 0.12
-Nodes (25): metadata, ReferenceFields(), addDays(), CampaignEditor(), EditorValues, Line, parse(), Step (+17 more)
+Cohesion: 0.16
+Nodes (16): metadata, ReferenceFields(), ComplianceReportView(), ICONS, SUMMARY, BLOCK_RATIO, ComplianceReport, formatRatio() (+8 more)
 
-### Community 17 - "next"
-Cohesion: 0.20
-Nodes (4): nextConfig, next, metadata, ResetPasswordPage()
+### Community 17 - "club/campagnes/[id]/page.tsx"
+Cohesion: 0.16
+Nodes (21): addDays(), CampaignEditor(), EditorValues, Line, parse(), Step, FeesNotice(), Detail (+13 more)
 
-### Community 18 - "lib/auth.ts"
-Cohesion: 0.20
-Nodes (9): ForbiddenPage(), metadata, CLUB_PRIORITY, Viewer, CLUB_SPACE_LABEL, FooterColumn, Navigation, NavLink (+1 more)
+### Community 18 - "ClubWizard.tsx"
+Cohesion: 0.13
+Nodes (23): CheckRow(), ClubWizard(), leaveInfoStep(), onStepper(), validUpTo(), KIND_LABEL, PROOF_KINDS, Props (+15 more)
 
 ### Community 19 - "storage"
 Cohesion: 0.18
@@ -199,45 +198,41 @@ Nodes (10): milestones_campaign_idx, public.campaign_milestones, campaign_docume
 Cohesion: 0.08
 Nodes (22): campaigns_goal_notify, campaigns_goal_reached, campaigns_status_notify, clubs_status_notify, notifications_unread_idx, notifications_user_idx, profiles_1_referral, public.campaign_comments (+14 more)
 
-### Community 28 - "dependencies"
-Cohesion: 0.20
-Nodes (10): dependencies, next@16.4.3, react@19.3.1, react-dom@19.3.1, server-only@0.0.1, @supabase/ssr@0.12.7, zod@4.6.7, react-dom (+2 more)
+### Community 28 - "compte/page.tsx"
+Cohesion: 0.16
+Nodes (14): metadata, Row, STATUSES, TONE, metadata, STATUS_TONE, requestAccountDeletion(), CLUB_STATUS_TONE (+6 more)
 
 ### Community 31 - "club.ts"
-Cohesion: 0.05
-Nodes (106): Detail, metadata, metadata, Row, STATUSES, TONE, POST(), POST() (+98 more)
+Cohesion: 0.07
+Nodes (84): GET(), POST(), ContributeForm(), onPhoneChange(), PRESETS, Props, GET(), GET() (+76 more)
 
 ### Community 32 - "contributions/[id]/page.tsx"
-Cohesion: 0.36
-Nodes (7): GET(), ContributionPage(), FAILURE_HINTS, metadata, StatusPoller(), providerLabel(), contributionRef()
+Cohesion: 0.23
+Nodes (10): GET(), ContributionPage(), FAILURE_HINTS, metadata, StatusPoller(), noop(), ShareButtons(), providerLabel() (+2 more)
 
-### Community 33 - "scripts"
-Cohesion: 0.25
-Nodes (8): scripts, build, dev, lint, promote, seed:demo, start, typecheck
+### Community 33 - "CampaignDocuments.tsx"
+Cohesion: 0.32
+Nodes (11): CampaignDocuments(), KIND_LABELS, accepted(), FileField(), onDrop(), prepare(), FolderIcon(), LogoUpload() (+3 more)
 
-### Community 34 - "notifications/page.tsx"
-Cohesion: 0.36
-Nodes (6): ChangePasswordPage(), metadata, icon(), metadata, NotificationsPage(), requireViewer()
+### Community 34 - "rbac.ts"
+Cohesion: 0.20
+Nodes (10): metadata, CLUB_MANAGER, COMPLIANCE, MATRIX, Permission, Role, ROLE_LABELS, ROLES (+2 more)
 
 ### Community 35 - "public.compute_campaign_compliance"
 Cohesion: 0.15
 Nodes (6): budget_lines_campaign_idx, public.campaign_budget_lines, campaign_photos_campaign_idx, campaign_photos_sha_idx, public.campaign_photos, public.compute_campaign_compliance()
 
 ### Community 36 - "@supabase/supabase-js"
-Cohesion: 0.33
-Nodes (5): @supabase/supabase-js@2.118.0, @supabase/supabase-js, [email, role = "admin"], ROLES, supabase
-
-### Community 40 - "keys.mjs"
 Cohesion: 0.50
-Nodes (4): anon, b64(), service, sign()
+Nodes (3): [email, role = "admin"], ROLES, supabase
 
-### Community 41 - "comment-ca-marche/page.tsx"
-Cohesion: 0.50
-Nodes (4): clubSteps(), HowItWorksPage(), metadata, SUPPORTER_STEPS
+### Community 40 - "admin/page.tsx"
+Cohesion: 0.24
+Nodes (9): loadDashboard(), metadata, PlanRow(), addYears(), currentPlanPeriod(), PLAN_YEARS, PlanPeriod, PlanYear (+1 more)
 
-### Community 42 - "eslint-config-next"
-Cohesion: 0.50
-Nodes (3): config, eslint-config-next@16.4.3, eslint-config-next
+### Community 41 - "club/page.tsx"
+Cohesion: 0.24
+Nodes (10): Check(), ClubPage(), dossierValues(), KIND_LABEL, metadata, NEXT_STEP, OK_MESSAGES, PayoutSummary() (+2 more)
 
 ### Community 45 - "public.clubs"
 Cohesion: 0.11
@@ -249,17 +244,17 @@ Nodes (23): public.admin_add_club_member(), public.campaign_updates, public.club
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `next` to `contributions/[id]/page.tsx`, `lib/types.ts`, `notifications/page.tsx`, `pawapay.ts`, `app/layout.tsx`, `club/page.tsx`, `app/layout.tsx`, `createClient`, `actions/auth.ts`, `package.json`, `comment-ca-marche/page.tsx`, `inscription/page.tsx`, `prix/page.tsx`, `lib/auth.ts`, `dependencies`, `club.ts`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
+- **Why does `next` connect `next` to `contributions/[id]/page.tsx`, `lib/types.ts`, `rbac.ts`, `pawapay.ts`, `actions/auth.ts`, `SubmitButton`, `app/layout.tsx`, `app/layout.tsx`, `admin/page.tsx`, `package.json`, `club/page.tsx`, `lib/types.ts`, `prix/page.tsx`, `club/campagnes/[id]/page.tsx`, `compte/page.tsx`, `club.ts`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
 - **Should `Tribune Supporters` be split into smaller, more focused modules?**
   _Cohesion score 0.06896551724137931 - nodes in this community are weakly interconnected._
-- **Why does `createClient()` connect `createClient` to `contributions/[id]/page.tsx`, `lib/types.ts`, `notifications/page.tsx`, `pawapay.ts`, `actions/auth.ts`, `club/page.tsx`, `comment-ca-marche/page.tsx`, `inscription/page.tsx`, `prix/page.tsx`, `lib/auth.ts`, `club.ts`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `club.ts` to `contributions/[id]/page.tsx`, `lib/types.ts`, `rbac.ts`, `pawapay.ts`, `actions/auth.ts`, `SubmitButton`, `next`, `admin/page.tsx`, `club/page.tsx`, `lib/types.ts`, `prix/page.tsx`, `club/campagnes/[id]/page.tsx`, `ClubWizard.tsx`, `compte/page.tsx`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
 - **Should `lib/types.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05026419184392359 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07071189679885333 - nodes in this community are weakly interconnected._
 - **Should `app/layout.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `pawapay.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.0707070707070707 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.060764587525150904 - nodes in this community are weakly interconnected._
 - **Should `actions/auth.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.1072463768115942 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06192259675405743 - nodes in this community are weakly interconnected._
