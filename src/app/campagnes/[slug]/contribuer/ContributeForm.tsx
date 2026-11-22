@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { contribute } from "@/lib/actions/contribute";
-import { Flash, SubmitButton } from "@/components/forms";
+import { Flash, SubmitButton, useFormAction } from "@/components/forms";
 import { COMMISSION_RATE, formatMoney, KYC_THRESHOLD, round2 } from "@/lib/format";
 import { DRC_PROVIDERS, guessProvider } from "@/lib/payments/providers";
 import { normalizeDrcPhone } from "@/lib/phone";
@@ -29,7 +29,7 @@ type Props = {
 };
 
 export function ContributeForm({ campaignSlug, currency, defaultPhone, cumulative, kycStatus, simulation, minAmount, remaining, alreadyGiven }: Props) {
-  const [state, action] = useActionState(contribute, {});
+  const { state, formProps } = useFormAction(contribute);
   const f = state.fields ?? {};
   const ceiling = Math.min(MAX_PER_PAYMENT, remaining ?? MAX_PER_PAYMENT);
   const presets = PRESETS.filter((v) => v >= minAmount && v <= ceiling).slice(0, 5);
@@ -50,7 +50,7 @@ export function ContributeForm({ campaignSlug, currency, defaultPhone, cumulativ
 
   return (
     <div className="split">
-      <form className="form panel" action={action} noValidate>
+      <form className="form panel" {...formProps} noValidate>
         <Flash state={state} />
         <input type="hidden" name="campaign" value={campaignSlug} />
         <div className="field">

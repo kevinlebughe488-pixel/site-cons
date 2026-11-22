@@ -18,6 +18,7 @@ function icon(kind: string): string {
   if (kind === "message_club") return "✉";
   if (kind === "nouvelle" || kind === "actualite" || kind.startsWith("nouvelle_")) return "≡";
   if (kind.includes("suspendu") || kind.includes("refuse") || kind === "campagne_non_financee") return "!";
+  if (kind === "campagne_a_instruire" || kind === "club_a_verifier") return "➜";
   if (kind.startsWith("club")) return "◆";
   return "•";
 }

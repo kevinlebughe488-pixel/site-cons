@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { register } from "@/lib/actions/auth";
-import { FieldError, Flash, SubmitButton } from "@/components/forms";
+import { FieldError, Flash, SubmitButton, useFormAction } from "@/components/forms";
 
 type Props = {
   /** « supporter » : compte personnel ; « club » : compte du représentant qui inscrira son club. */
@@ -13,7 +12,7 @@ type Props = {
 };
 
 export function RegisterForm({ kind, clubs, returnTo }: Props) {
-  const [state, action] = useActionState(register, {});
+  const { state, formProps } = useFormAction(register);
   const f = state.fields ?? {};
   const invalid = (name: string) => (state.field === name ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {});
   const club = kind === "club";
@@ -25,7 +24,7 @@ export function RegisterForm({ kind, clubs, returnTo }: Props) {
     );
   }
   return (
-    <form className="panel form" action={action} noValidate>
+    <form className="panel form" {...formProps} noValidate>
       <Flash state={state} />
       <input type="hidden" name="suite" value={returnTo} />
       <input type="hidden" name="account_type" value={kind} />

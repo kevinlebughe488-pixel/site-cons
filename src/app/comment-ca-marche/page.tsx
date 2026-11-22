@@ -23,7 +23,7 @@ function clubSteps(fee: number) {
       "Il remplit le dossier du club",
       "Nom officiel, sigle, discipline, ville et adresse du siège, date de création, identifiant juridique s'il existe, représentant légal et ses coordonnées, compte de versement au nom du club.",
     ],
-    ["Il dépose les documents", "Au moins un document qui atteste l'existence du club (statuts, enregistrement, affiliation), puis il envoie le dossier."],
+    ["Il dépose les documents", "Un document qui atteste l'existence du club (statuts, enregistrement, affiliation) et la pièce d'identité du représentant légal, puis il envoie le dossier."],
     [
       "L'équipe vérifie le club",
       "Trois contrôles : existence du club, représentant légal, compte de versement. Elle peut demander des compléments. L'inscription seule ne permet pas de lancer une campagne.",

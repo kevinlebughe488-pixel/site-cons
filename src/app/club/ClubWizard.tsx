@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { deleteClubDocument, saveClubDossier, submitClubDossier } from "@/lib/actions/club";
-import { ActionForm, FieldError, Flash, SubmitButton } from "@/components/forms";
+import { ActionForm, FieldError, Flash, SubmitButton, useFormAction } from "@/components/forms";
 import type { FormState } from "@/lib/forms";
 import { LogoUpload } from "@/components/LogoUpload";
 import { DRC_PROVIDERS, providerLabel } from "@/lib/payments/providers";
@@ -101,7 +101,7 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
   }, []);
 
   // Réponse du serveur : étape suivante si tout est enregistré, sinon retour au champ fautif.
-  const [state, action, saving] = useActionState(async (prev: FormState, form: FormData) => {
+  const { state, pending: saving, formProps } = useFormAction(async (prev: FormState, form: FormData) => {
     const result = await saveClubDossier(prev, form);
     if (result.step) {
       setDirty(false);
@@ -110,7 +110,7 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
       go(stepOfField(result.field));
     }
     return result;
-  }, {});
+  });
   const v: DossierValues = { ...initial, ...(state.fields as Partial<DossierValues> | undefined) };
 
   const [method, setMethod] = useState<DossierValues["payout_method"]>(v.payout_method);
@@ -127,7 +127,10 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
   const proofDocs = docs.filter((d) => PROOF_KINDS.includes(d.kind));
   const docsOf = (kind: ClubDocumentKind) => docs.filter((d) => d.kind === kind);
   const hasProof = proofDocs.length > 0;
-  const complete = saved.info && saved.payout && hasProof;
+  const idDocs = docs.filter((d) => d.kind === "identite_representant");
+  const hasId = idDocs.length > 0;
+  // Mêmes conditions que la base (submit_club_registration) et que le back-office (requiredItems).
+  const complete = saved.info && saved.payout && hasProof && hasId;
 
   /** Contrôle les étapes 1 à `upTo` ; en cas d'erreur, affiche la première étape fautive. */
   function validUpTo(upTo: number): boolean {
@@ -172,7 +175,7 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
 
   const reachable = (n: number) => n <= step || (!!club && n <= lastStep);
   const doneStep = (n: number) =>
-    n === 1 || n === 2 ? saved.info : n === 3 ? saved.payout : n === 4 ? hasProof : false;
+    n === 1 || n === 2 ? saved.info : n === 3 ? saved.payout : n === 4 ? hasProof && hasId : false;
 
   return (
     <div className="wizard" ref={topRef}>
@@ -205,7 +208,7 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
       ) : null}
 
       {/* Étapes 1 à 3 : un seul formulaire, les étapes cachées gardent leurs valeurs. */}
-      <form ref={formRef} className="panel form dossier" action={action} noValidate onInput={() => setDirty(true)} hidden={step > 3}>
+      <form {...formProps} ref={formRef} className="panel form dossier" noValidate onInput={() => setDirty(true)} hidden={step > 3}>
         <input type="hidden" name="next_step" ref={nextRef} defaultValue="" />
         <Flash state={state.error && !state.field ? state : {}} />
 
@@ -487,12 +490,31 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
             </div>
           </section>
           <section className="panel">
+            <h3>
+              Pièce d&apos;identité du représentant légal <span className="req">*</span>
+            </h3>
+            <p className="small muted" style={{ margin: "4px 0 12px" }}>
+              {isMe
+                ? "Votre carte d'électeur, votre passeport ou votre permis de conduire, lisible (recto, et verso si besoin)."
+                : `La carte d'électeur, le passeport ou le permis de conduire de ${initial.rep_name || "la personne qui représente le club"}, lisible.`}
+            </p>
+            <DocList docs={idDocs} />
+            <div style={{ marginTop: hasId ? 14 : 0 }}>
+              <DocumentUpload
+                clubId={club.id}
+                kind="identite_representant"
+                label={hasId ? "Ajouter le verso ou une autre pièce" : "Pièce d'identité"}
+                required={!hasId}
+              />
+            </div>
+          </section>
+          <section className="panel">
             <h3>Documents conseillés</h3>
             <p className="small muted" style={{ margin: "4px 0 12px" }}>
               Ils accélèrent la vérification ; vous pouvez envoyer le dossier sans eux.
             </p>
             <div className="wz-optional">
-              {(["identite_representant", "compte_versement", ...(isMe ? [] : ["mandat" as const])] as ClubDocumentKind[]).map((kind) => (
+              {(["compte_versement", ...(isMe ? [] : ["mandat" as const])] as ClubDocumentKind[]).map((kind) => (
                 <div key={kind}>
                   {docsOf(kind).length ? (
                     <DocList docs={docsOf(kind)} />
@@ -580,7 +602,7 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
               <CheckRow ok={saved.info} label="Le représentant légal" onEdit={() => go(2)} />
               <CheckRow ok={saved.payout} label="Le compte de versement au nom du club" onEdit={() => go(3)} />
               <CheckRow ok={hasProof} label="Un document attestant l'existence du club" onEdit={() => go(4)} />
-              <CheckRow ok={docsOf("identite_representant").length ? true : null} label="Pièce d'identité du représentant" note="conseillé" onEdit={() => go(4)} />
+              <CheckRow ok={hasId} label="La pièce d'identité du représentant légal" onEdit={() => go(4)} />
               <CheckRow ok={docsOf("compte_versement").length ? true : null} label="Justificatif du compte de versement" note="conseillé" onEdit={() => go(4)} />
               <CheckRow ok={club.logo_path ? true : null} label="Logo du club" note="facultatif" onEdit={() => go(4)} />
             </div>

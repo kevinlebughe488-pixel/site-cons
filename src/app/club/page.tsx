@@ -4,18 +4,15 @@ import { redirect } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
 import { can, canUseClubSpace, isStaff } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
-import { deleteClubDocument, postNews, updateClubInfo } from "@/lib/actions/club";
-import { ActionForm, SubmitButton } from "@/components/forms";
 import { LogoUpload } from "@/components/LogoUpload";
-import { CampaignPill, Crest, FieldSvg, Pill } from "@/components/visuals";
-import { CLUB_STATUS_LABELS, CLUB_STATUS_TONE, PAYOUT_METHOD_LABELS, updateStatusLabel } from "@/lib/labels";
-import { formatDate, formatMoney, todayInKinshasa } from "@/lib/format";
-import { formatBytes } from "@/lib/images";
-import { formatPhone, maskPhone } from "@/lib/phone";
-import { providerLabel } from "@/lib/payments/providers";
+import { CampaignPill, Crest, FieldSvg, Pill, ProgressBar } from "@/components/visuals";
+import { CLUB_STATUS_LABELS, updateStatusLabel } from "@/lib/labels";
+import { formatDate, formatMoney, plural, todayInKinshasa } from "@/lib/format";
+import { formatPhone } from "@/lib/phone";
 import { CLUB_DOCUMENT_KINDS, type Campaign, type Club, type ClubDocument, type ClubPrivate, type CampaignUpdate } from "@/lib/types";
 import { EMPTY_DOSSIER, type DossierValues } from "@/lib/club-dossier";
 import { ClubWizard } from "./ClubWizard";
+import { Check, DocumentList, PayoutSummary } from "./parts";
 
 export const metadata: Metadata = { title: "Espace club" };
 
@@ -30,11 +27,9 @@ const NEXT_STEP: Partial<Record<Campaign["status"], string>> = {
 
 const OK_MESSAGES: Record<string, string> = {
   dossier_ouvert: "Informations enregistrées. Ajoutez maintenant les documents du club (et son logo si vous le souhaitez).",
-  dossier_envoye: "Dossier envoyé. L'équipe Tribune le vérifie : vous serez prévenu ici et dans vos notifications.",
 };
 
 const PROOF_KINDS = new Set(CLUB_DOCUMENT_KINDS.filter((k) => k.proof).map((k) => k.id));
-const KIND_LABEL = Object.fromEntries(CLUB_DOCUMENT_KINDS.map((k) => [k.id, k.label]));
 
 function dossierValues(club: Club, priv: ClubPrivate | null): DossierValues {
   const phone = (v: string | null | undefined) => (v ? formatPhone(v) : "");
@@ -64,75 +59,9 @@ function dossierValues(club: Club, priv: ClubPrivate | null): DossierValues {
   };
 }
 
-/** Compte de versement, masqué : seuls les derniers chiffres apparaissent. */
-function PayoutSummary({ priv }: { priv: ClubPrivate | null }) {
-  if (!priv) return <p className="small muted">Aucun compte de versement enregistré.</p>;
-  return (
-    <div className="recap small">
-      <div>
-        <span className="muted">Type</span>
-        <span>{PAYOUT_METHOD_LABELS[priv.payout_method]}</span>
-      </div>
-      <div>
-        <span className="muted">Titulaire</span>
-        <span>{priv.payout_holder || "—"}</span>
-      </div>
-      {priv.payout_method === "bank" ? (
-        <div>
-          <span className="muted">{priv.bank_name ?? "Banque"}</span>
-          <span className="num">•••• {priv.bank_account?.slice(-4)}</span>
-        </div>
-      ) : (
-        <div>
-          <span className="muted">{priv.payout_provider ? providerLabel(priv.payout_provider) : "Numéro"}</span>
-          <span className="num">{maskPhone(priv.payout_phone)}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DocumentList({ docs, editable }: { docs: ClubDocument[]; editable: boolean }) {
-  if (!docs.length) return <p className="small muted">Aucun document pour l&apos;instant.</p>;
-  return (
-    <ul className="doclist">
-      {docs.map((d) => (
-        <li key={d.id}>
-          <span className="ic" aria-hidden="true">
-            {d.mime_type === "application/pdf" ? "PDF" : "IMG"}
-          </span>
-          <span style={{ minWidth: 0 }}>
-            <a href={`/club/documents/${d.id}`} target="_blank" rel="noopener">
-              {KIND_LABEL[d.kind] ?? d.kind}
-            </a>
-            <span className="small muted" style={{ display: "block", overflowWrap: "anywhere" }}>
-              {d.file_name} · {formatBytes(d.size_bytes)} · {formatDate(d.created_at)}
-            </span>
-          </span>
-          {editable ? (
-            <ActionForm action={deleteClubDocument} className="inline-form">
-              <input type="hidden" name="document_id" value={d.id} />
-              <SubmitButton className="btn btn-ghost btn-sm" pendingLabel="…" confirm="Retirer ce document du dossier ?">
-                Retirer
-              </SubmitButton>
-            </ActionForm>
-          ) : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Check({ ok, label, optional }: { ok: boolean; label: string; optional?: boolean }) {
-  return (
-    <div>
-      <span className="ck" style={{ color: ok ? "var(--ok)" : optional ? "var(--muted)" : "var(--warn)" }}>{ok ? "✓" : optional ? "○" : "!"}</span>
-      <span>
-        {label}
-        {optional ? <span className="muted"> (conseillé)</span> : null}
-      </span>
-    </div>
-  );
+/** La date est-elle plus ancienne que `days` jours ? */
+function olderThanDays(iso: string, days: number): boolean {
+  return Date.now() - new Date(iso).getTime() > days * 86_400_000;
 }
 
 export default async function ClubPage(props: PageProps<"/club">) {
@@ -244,7 +173,20 @@ export default async function ClubPage(props: PageProps<"/club">) {
       <>
         {head}
         <div className="wrap page">
-          {okMessage ? <p className="flash success">{okMessage}</p> : null}
+          <section className="thanks" role="status">
+            <span className="thanks-ic" aria-hidden="true">
+              ✓
+            </span>
+            <div>
+              <h2>{ok === "dossier_envoye" ? "Merci d'avoir envoyé votre demande !" : "Votre demande est en cours de validation"}</h2>
+              <p>
+                {ok === "dossier_envoye" ? "Elle est maintenant en cours de validation par l'équipe Tribune. " : `Envoyée le ${formatDate(club.submitted_at)}. `}
+                L&apos;équipe vérifie l&apos;existence du club, son représentant légal et son compte de versement. Vous serez
+                prévenu de sa décision ici et dans vos notifications ; si un document manque, elle vous dira lequel.
+              </p>
+              <p className="small muted">En attendant, votre dossier ne peut plus être modifié. Vous pouvez le relire ci-dessous.</p>
+            </div>
+          </section>
           <div className="stepper" aria-label="Avancement du dossier">
             {steps.map(([label, done], i) => (
               <span key={label} className={done ? "done" : i === 3 ? "on" : ""}>
@@ -253,10 +195,6 @@ export default async function ClubPage(props: PageProps<"/club">) {
               </span>
             ))}
           </div>
-          <p className="flash info">
-            Demande envoyée le {formatDate(club.submitted_at)}. L&apos;équipe Tribune vérifie l&apos;existence du club, son
-            représentant légal et son compte de versement. Vous serez prévenu de sa décision ici et dans vos notifications.
-          </p>
 
           <div className="split">
             <div className="panel">
@@ -303,7 +241,7 @@ export default async function ClubPage(props: PageProps<"/club">) {
                   <Check ok={infoOk} label="Identité du club, siège et représentant légal" />
                   <Check ok={hasProof} label="Un document attestant l'existence du club (statuts, enregistrement ou affiliation)" />
                   <Check ok={payoutOk} label="Compte de versement au nom du club" />
-                  <Check ok={docs.some((d) => d.kind === "identite_representant")} label="Pièce d'identité du représentant légal" optional />
+                  <Check ok={docs.some((d) => d.kind === "identite_representant")} label="Pièce d'identité du représentant légal" />
                   <Check ok={docs.some((d) => d.kind === "compte_versement")} label="Justificatif du compte de versement" optional />
                 </div>
               </div>
@@ -325,197 +263,208 @@ export default async function ClubPage(props: PageProps<"/club">) {
     );
   }
 
-  // Club vérifié (ou suspendu) : campagnes, actualités, présentation.
-  const [{ data }, { data: fees }, { data: newsData }] = await Promise.all([
+  // Club vérifié (ou suspendu) : tableau de bord. L'en-tête et les rubriques
+  // (campagnes, actualités, profil du club) viennent de la mise en page de l'espace club.
+  const [{ data }, { data: fees }, { data: newsData }, { data: stats }] = await Promise.all([
     supabase.from("campaigns").select("*").eq("club_id", club.id).order("created_at", { ascending: false }),
-    supabase.from("publication_fees").select("campaign_id").is("paid_at", null),
+    supabase.from("publication_fees").select("campaign_id, amount, currency").is("paid_at", null),
     supabase
       .from("campaign_updates")
       .select("id, campaign_id, club_id, audience, title, body, status, review_note, created_at, published_at")
       .eq("club_id", club.id)
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(20),
+    supabase.rpc("club_stats", { p_club_id: club.id }).maybeSingle<{ supporters: number; raised: number; funded: number; active: number }>(),
   ]);
   const campaigns = (data ?? []) as Campaign[];
   const news = (newsData ?? []) as CampaignUpdate[];
-  const unpaid = new Set((fees ?? []).map((f: { campaign_id: string }) => f.campaign_id));
-  const canCreate = club.status === "verified" && can(viewer.profile.role, "club:manage");
-  const titleOf = new Map(campaigns.map((c) => [c.id, c.title]));
+  const unpaid = new Map(((fees ?? []) as { campaign_id: string; amount: number; currency: string }[]).map((f) => [f.campaign_id, f]));
+  const running = campaigns.filter((c) => c.status === "published" || c.status === "funded");
+  const { data: openMilestones } = running.length
+    ? await supabase
+        .from("campaign_milestones")
+        .select("id, campaign_id, label, position")
+        .in("campaign_id", running.filter((c) => c.status === "funded").map((c) => c.id))
+        .is("done_at", null)
+        .order("position")
+    : { data: [] };
+
+  // Ce que le club a à faire, du plus urgent au moins urgent.
+  type Todo = { tone: "bad" | "warn" | "info"; title: string; text?: string; href: string; cta: string };
+  const todos: Todo[] = [];
+  for (const c of campaigns) {
+    if (c.status === "changes_requested") {
+      todos.push({ tone: "bad", title: `Corriger « ${c.title} »`, text: c.review_note ?? "L'équipe Tribune demande des corrections.", href: `/club/campagnes/${c.id}`, cta: "Corriger" });
+    }
+  }
+  for (const c of campaigns) {
+    const fee = unpaid.get(c.id);
+    if (fee) {
+      todos.push({
+        tone: "warn",
+        title: `Régler les frais de publication de « ${c.title} »`,
+        text: `${formatMoney(fee.amount, fee.currency)} : l'équipe Tribune vous indique comment payer.`,
+        href: `/club/campagnes/${c.id}`,
+        cta: "Voir",
+      });
+    }
+  }
+  for (const m of (openMilestones ?? []) as { id: string; campaign_id: string; label: string }[]) {
+    const c = campaigns.find((k) => k.id === m.campaign_id);
+    if (c && !todos.some((t) => t.href === `/club/campagnes/${c.id}` && t.title.startsWith("Prouver"))) {
+      todos.push({ tone: "warn", title: `Prouver le jalon « ${m.label} »`, text: `Campagne « ${c.title} » : la preuve débloque la tranche suivante.`, href: `/club/campagnes/${c.id}`, cta: "Ajouter la preuve" });
+    }
+  }
+  const lastNews = new Map<string, string>();
+  for (const u of news) if (u.campaign_id && u.status === "published" && u.published_at && !lastNews.has(u.campaign_id)) lastNews.set(u.campaign_id, u.published_at);
+  for (const c of campaigns.filter((k) => k.status === "published")) {
+    const last = lastNews.get(c.id);
+    if (!last || olderThanDays(last, 30)) {
+      todos.push({ tone: "info", title: `Donner des nouvelles de « ${c.title} »`, text: last ? `Dernière nouvelle le ${formatDate(last)}.` : "Aucune nouvelle publiée depuis le lancement.", href: `/club/campagnes/${c.id}`, cta: "Publier" });
+    }
+  }
+  for (const c of campaigns.filter((k) => k.status === "draft")) {
+    todos.push({ tone: "info", title: `Terminer la campagne « ${c.title} »`, text: "Brouillon : complétez-la puis envoyez-la en revue.", href: `/club/campagnes/${c.id}`, cta: "Reprendre" });
+  }
+  if (!club.logo_path) {
+    todos.push({ tone: "info", title: "Ajouter le logo du club", text: "Sans logo, un blason aux couleurs du club est affiché.", href: "/club/profil", cta: "Ajouter" });
+  }
 
   return (
-    <>
-      {head}
-      <div className="wrap page">
-        {club.status === "suspended" ? (
-          <p className="flash error">Le club est suspendu{club.review_note ? ` : ${club.review_note}` : "."}</p>
-        ) : null}
-
-        <div className="sec-head">
-          <h2 style={{ fontSize: "1.8rem" }}>Mes campagnes</h2>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {club.status === "verified" ? (
-              <Link className="btn btn-ghost btn-sm" href={`/clubs/${club.slug}`}>
-                Page publique du club
-              </Link>
-            ) : null}
-            {canCreate ? (
-              <Link className="btn btn-primary btn-sm" href="/club/campagnes/nouvelle">
-                Nouvelle campagne
-              </Link>
-            ) : null}
-          </div>
+    <div className="wrap page">
+      {club.status === "suspended" ? (
+        <p className="flash error">
+          Le club est suspendu{club.review_note ? ` : ${club.review_note}` : "."} Ses campagnes ne collectent plus ; écrivez à l&apos;équipe
+          Tribune pour la suite.
+        </p>
+      ) : null}
+      <div className="kpis" style={{ marginTop: 0 }}>
+        <div className="kpi">
+          <div className="l">Collecté au total</div>
+          <div className="v num">{formatMoney(Number(stats?.raised ?? 0))}</div>
+          <div className="d">contributions confirmées</div>
         </div>
-        {campaigns.length ? (
-          <div className="tbl-wrap" style={{ marginBottom: 36 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Campagne</th>
-                  <th>Statut</th>
-                  <th className="r">Collecté</th>
-                  <th className="r">Objectif</th>
-                  <th>Prochaine étape</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((c) => (
-                  <tr key={c.id}>
-                    <td>
-                      <Link href={`/club/campagnes/${c.id}`}>{c.title}</Link>
-                    </td>
-                    <td>
-                      <CampaignPill status={c.status} />
-                    </td>
-                    <td className="r num">{formatMoney(c.raised_amount, c.currency)}</td>
-                    <td className="r num">{formatMoney(c.goal_amount, c.currency)}</td>
-                    <td className="small">{unpaid.has(c.id) ? "Régler les frais d'instruction et de publication" : (NEXT_STEP[c.status] ?? "—")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="panel empty" style={{ marginBottom: 36 }}>
-            <p>
-              <b>Aucune campagne pour l&apos;instant.</b>
-            </p>
-            {canCreate ? <p className="small muted">Créez votre première campagne : elle reste un brouillon tant que vous ne l&apos;envoyez pas.</p> : null}
-          </div>
-        )}
+        <div className="kpi">
+          <div className="l">Supporters contributeurs</div>
+          <div className="v num">{Number(stats?.supporters ?? 0)}</div>
+          <div className="d">au moins une contribution</div>
+        </div>
+        <div className="kpi">
+          <div className="l">Campagnes en cours</div>
+          <div className="v num">{Number(stats?.active ?? 0)}</div>
+          <div className="d">{Number(stats?.funded ?? 0)} financée(s) au total</div>
+        </div>
+      </div>
 
-        <div className="split half" style={{ marginBottom: 28 }}>
-          <div className="panel">
-            <h3>Publier une actualité du club</h3>
-            <p className="small muted" style={{ marginBottom: 12 }}>
-              Résultats, vie du club, remerciements : publiée tout de suite sur la page du club et envoyée à ses supporters
-              (ceux qui le suivent et les contributeurs de ses campagnes). Pour une nouvelle liée à un projet, ou un message
-              aux seuls contributeurs, passez par la page de la campagne.
-            </p>
-            <p className="small muted" style={{ marginBottom: 12 }}>
-              L&apos;équipe Tribune relit les publications et retire celles qui ne respectent pas les règles (promesse non
-              tenue, données personnelles, propos injurieux) : vous recevez alors le motif.
-            </p>
-            {club.status === "verified" ? (
-              <ActionForm action={postNews}>
-                <input type="hidden" name="audience" value="public" />
-                <div className="field">
-                  <label htmlFor="news-title">Titre</label>
-                  <input type="text" id="news-title" name="title" maxLength={140} />
-                </div>
-                <div className="field">
-                  <label htmlFor="news-body">Texte</label>
-                  <textarea id="news-body" name="body" />
-                </div>
-                <SubmitButton className="btn btn-primary btn-sm" pendingLabel="Publication…">
-                  Publier
-                </SubmitButton>
-              </ActionForm>
+      <div className="split">
+        <div style={{ display: "grid", gap: 28, alignContent: "start" }}>
+          <section>
+            <h2 style={{ fontSize: "1.6rem", marginBottom: 12 }}>À faire</h2>
+            {todos.length ? (
+              <ul className="todo-list">
+                {todos.map((t, i) => (
+                  <li key={`${t.href}-${i}`}>
+                    <span className={`dot ${t.tone}`} aria-hidden="true" />
+                    <span>
+                      <b>{t.title}</b>
+                      {t.text ? <span className="small muted">{t.text} </span> : null}
+                      <Link className="small" href={t.href}>
+                        {t.cta} →
+                      </Link>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <p className="small muted">Indisponible tant que le club est suspendu.</p>
+              <div className="panel empty">
+                <p className="muted">Rien à faire pour l&apos;instant : tout est à jour.</p>
+              </div>
             )}
-          </div>
+          </section>
+
+          <section>
+            <div className="sec-head">
+              <h2 style={{ fontSize: "1.6rem" }}>Mes campagnes</h2>
+              <Link href="/club/campagnes">Toutes les campagnes →</Link>
+            </div>
+            {campaigns.length ? (
+              <div className="camp-cards">
+                {campaigns.slice(0, 4).map((c) => (
+                  <Link key={c.id} className="camp-card" href={`/club/campagnes/${c.id}`}>
+                    <span className="top">
+                      <b>{c.title}</b>
+                      <CampaignPill status={c.status} />
+                    </span>
+                    {["published", "funded", "failed", "suspended"].includes(c.status) ? (
+                      <>
+                        <ProgressBar raised={c.raised_amount} goal={c.goal_amount} />
+                        <span className="small muted num">
+                          {formatMoney(c.raised_amount, c.currency)} sur {formatMoney(c.goal_amount, c.currency)} · {plural(c.backers_count, "supporter")}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="small muted">
+                        Objectif {formatMoney(c.goal_amount, c.currency)} · {NEXT_STEP[c.status] ?? ""}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="panel empty">
+                <p>
+                  <b>Aucune campagne pour l&apos;instant.</b>
+                </p>
+                {club.status === "verified" ? (
+                  <p className="small muted" style={{ margin: "6px 0 12px" }}>
+                    Créez votre première campagne : un parcours en six étapes, enregistré à chaque étape.
+                  </p>
+                ) : null}
+                {club.status === "verified" ? (
+                  <Link className="btn btn-primary btn-sm" href="/club/campagnes/nouvelle">
+                    Nouvelle campagne
+                  </Link>
+                ) : null}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
           <div className="panel">
-            <h3>Nouvelles et messages envoyés</h3>
+            <h3>Dernières actualités</h3>
             {news.length ? (
-              news.map((u) => (
+              news.slice(0, 3).map((u) => (
                 <div className="update" key={u.id}>
                   <span className="small muted">
-                    {formatDate(u.created_at)} · {u.campaign_id ? (titleOf.get(u.campaign_id) ?? "Campagne") : "Actualité du club"}
-                    {u.audience === "contributors" ? " · contributeurs seulement" : ""}
+                    {formatDate(u.created_at)} · {u.campaign_id ? (campaigns.find((c) => c.id === u.campaign_id)?.title ?? "Campagne") : "Actualité du club"}
                   </span>
                   <h4>
                     {u.title} <Pill tone={updateStatusLabel(u).tone}>{updateStatusLabel(u).label}</Pill>
                   </h4>
-                  {u.status === "rejected" && u.review_note ? <p className="small muted">Motif : {u.review_note}</p> : null}
                 </div>
               ))
             ) : (
-              <p className="small muted">Aucune nouvelle pour l&apos;instant.</p>
+              <p className="small muted">Aucune actualité publiée.</p>
             )}
+            {club.status === "verified" ? (
+              <Link className="btn btn-ghost btn-sm" href="/club/actualites" style={{ marginTop: 10 }}>
+                Publier une actualité
+              </Link>
+            ) : null}
           </div>
-        </div>
-
-        <div className="split half">
           <div className="panel">
-            <h3>Présentation du club</h3>
-            <ActionForm action={updateClubInfo}>
-              <div className="two">
-                <div className="field">
-                  <label htmlFor="city">Ville</label>
-                  <input type="text" id="city" name="city" defaultValue={club.city} />
-                </div>
-                <div className="field">
-                  <label htmlFor="commune">Commune</label>
-                  <input type="text" id="commune" name="commune" defaultValue={club.commune ?? ""} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="contact_phone">Téléphone de contact</label>
-                <input type="tel" id="contact_phone" name="contact_phone" defaultValue={formatPhone(club.contact_phone)} />
-              </div>
-              <div className="two">
-                <div className="field">
-                  <label htmlFor="color_primary">Couleur principale</label>
-                  <input type="color" id="color_primary" name="color_primary" defaultValue={club.color_primary} />
-                </div>
-                <div className="field">
-                  <label htmlFor="color_secondary">Couleur secondaire</label>
-                  <input type="color" id="color_secondary" name="color_secondary" defaultValue={club.color_secondary} />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="description">Présentation</label>
-                <textarea id="description" name="description" defaultValue={club.description} />
-              </div>
-              <SubmitButton className="btn btn-ghost btn-sm">Enregistrer</SubmitButton>
-            </ActionForm>
+            <h3>Le club</h3>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", margin: "8px 0 12px" }}>
+              <Crest club={club} size={44} />
+              <span className="small muted">{[club.city, club.commune].filter(Boolean).join(", ")}</span>
+            </div>
+            <Link className="btn btn-ghost btn-sm" href="/club/profil">
+              Présentation, logo et compte de versement
+            </Link>
           </div>
-          <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
-            <div className="panel">
-              <h3>Logo</h3>
-              <LogoUpload club={club} />
-            </div>
-            <div className="panel">
-              <h3>Compte de versement</h3>
-              <PayoutSummary priv={priv} />
-              <div className="recap small" style={{ marginTop: 8 }}>
-                <div>
-                  <span className="muted">Statut du club</span>
-                  <Pill tone={CLUB_STATUS_TONE[club.status]}>{CLUB_STATUS_LABELS[club.status]}</Pill>
-                </div>
-              </div>
-              <p className="small muted" style={{ marginTop: 10 }}>
-                Pour changer de compte de versement, écrivez à l&apos;équipe Tribune : le changement est vérifié pour
-                éviter les détournements.
-              </p>
-            </div>
-            <div className="panel">
-              <h3>Documents du dossier</h3>
-              <DocumentList docs={docs} editable={false} />
-            </div>
-          </div>
-        </div>
+        </aside>
       </div>
-    </>
+    </div>
   );
 }

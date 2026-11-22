@@ -34,6 +34,8 @@ type Row = Contribution & {
 export default async function AdminTransactionsPage(props: PageProps<"/admin/transactions">) {
   const { profile } = await requirePermission("transaction:read", "/admin/transactions");
   const sp = await props.searchParams;
+  // Deux sortes de mouvements d'argent : les contributions des supporters et les frais facturés aux clubs.
+  if (sp.vue === "frais") return <FeesView />;
   const status = (STATUSES as string[]).includes(String(sp.statut)) ? (sp.statut as ContributionStatus) : "";
   const campaignId = typeof sp.campagne === "string" && /^[0-9a-f-]{36}$/.test(sp.campagne) ? sp.campagne : "";
 
@@ -56,6 +58,7 @@ export default async function AdminTransactionsPage(props: PageProps<"/admin/tra
   return (
     <>
       <h2>Transactions</h2>
+      <TransactionsIntro current="contributions" />
       <p className="muted" style={{ marginBottom: 16 }}>
         Chaque contribution, son état chez l&apos;opérateur et sa commission. Les paiements restés en attente sont
         revérifiés auprès de pawaPay à l&apos;ouverture de cette page.
@@ -163,7 +166,112 @@ export default async function AdminTransactionsPage(props: PageProps<"/admin/tra
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="muted">
-                  Aucune transaction.
+                  Aucune contribution{status || campaignId ? " avec ce filtre" : " pour l'instant"} : une contribution apparaît ici dès
+                  qu&apos;un supporter lance un paiement sur une campagne publiée.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/** Ce que la page montre, et les deux vues : contributions des supporters, frais facturés aux clubs. */
+function TransactionsIntro({ current }: { current: "contributions" | "frais" }) {
+  return (
+    <>
+      <p className="note info" style={{ margin: "8px 0 14px" }}>
+        <b className="ic">i</b>
+        <span>
+          Seuls les mouvements d&apos;argent apparaissent ici : les contributions des supporters (Mobile Money) et les frais
+          d&apos;instruction et de publication facturés à un club quand sa campagne est publiée. Vérifier un club ou instruire une
+          campagne ne crée pas de transaction : ces décisions sont inscrites au <Link href="/admin/journal">journal d&apos;audit</Link>.
+        </span>
+      </p>
+      <nav className="tabs" aria-label="Sorte de transactions">
+        <Link href="/admin/transactions" aria-current={current === "contributions" ? "page" : undefined}>
+          Contributions des supporters
+        </Link>
+        <Link href="/admin/transactions?vue=frais" aria-current={current === "frais" ? "page" : undefined}>
+          Frais facturés aux clubs
+        </Link>
+      </nav>
+    </>
+  );
+}
+
+type FeeRow = {
+  campaign_id: string;
+  amount: number;
+  currency: string;
+  invoiced_at: string;
+  paid_at: string | null;
+  payment_ref: string | null;
+  campaign: { title: string; club: { name: string } | null } | null;
+};
+
+/** Frais d'instruction et de publication : facturés à la publication, réglés par le club, enregistrés par un administrateur. */
+async function FeesView() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("publication_fees")
+    .select("campaign_id, amount, currency, invoiced_at, paid_at, payment_ref, campaign:campaigns(title, club:clubs(name))")
+    .order("invoiced_at", { ascending: false })
+    .limit(200);
+  const fees = (data ?? []) as unknown as FeeRow[];
+  const due = fees.filter((f) => !f.paid_at).reduce((s, f) => s + Number(f.amount), 0);
+  const paid = fees.filter((f) => f.paid_at).reduce((s, f) => s + Number(f.amount), 0);
+  return (
+    <>
+      <h2>Transactions</h2>
+      <TransactionsIntro current="frais" />
+      <p className="small muted" style={{ marginBottom: 10 }}>
+        {fees.length} facture(s) · {formatMoney(paid)} réglés · {formatMoney(due)} à encaisser. Le règlement s&apos;enregistre sur la
+        page de la campagne.
+      </p>
+      <div className="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Facturés le</th>
+              <th>Campagne</th>
+              <th>Club</th>
+              <th className="r">Montant</th>
+              <th>État</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fees.map((f) => (
+              <tr key={f.campaign_id}>
+                <td className="num small" style={{ whiteSpace: "nowrap" }}>
+                  {formatDate(f.invoiced_at)}
+                </td>
+                <td className="small">
+                  <Link href={`/admin/campagnes/${f.campaign_id}`}>{f.campaign?.title ?? "Campagne"}</Link>
+                </td>
+                <td className="small">{f.campaign?.club?.name ?? "—"}</td>
+                <td className="r num">{formatMoney(f.amount, f.currency)}</td>
+                <td className="small">
+                  {f.paid_at ? (
+                    <>
+                      <Pill tone="ok">Réglés le {formatDate(f.paid_at)}</Pill>
+                      {f.payment_ref ? <div className="muted">Réf. {f.payment_ref}</div> : null}
+                    </>
+                  ) : (
+                    <Link href={`/admin/campagnes/${f.campaign_id}`}>
+                      <Pill tone="warn">À encaisser</Pill>
+                    </Link>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {fees.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="muted">
+                  Aucun frais facturé pour l&apos;instant : ils le sont à la publication d&apos;une campagne (montant réglé dans le tableau
+                  de bord).
                 </td>
               </tr>
             ) : null}

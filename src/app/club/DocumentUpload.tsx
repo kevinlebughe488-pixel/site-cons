@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { uploadClubDocument } from "@/lib/actions/club";
-import { Flash } from "@/components/forms";
+import { Flash, useFormAction } from "@/components/forms";
 import { FileField } from "@/components/FileField";
 import { CLUB_DOCUMENT_KINDS, type ClubDocumentKind } from "@/lib/types";
 
@@ -31,11 +30,11 @@ export function DocumentUpload({
   hint?: string;
   required?: boolean;
 }) {
-  const [state, action] = useActionState(uploadClubDocument, {});
+  const { state, formProps } = useFormAction(uploadClubDocument, { resetOnSuccess: true });
   const options = CLUB_DOCUMENT_KINDS.filter((k) => !kinds || kinds.includes(k.id));
   const id = `${clubId}-${kind ?? "choix"}`;
   return (
-    <form action={action} className="form" style={{ gap: 12 }}>
+    <form {...formProps} className="form" style={{ gap: 12 }}>
       <Flash state={state} />
       <input type="hidden" name="club_id" value={clubId} />
       {kind ? (

@@ -111,8 +111,14 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
             <CampaignDocuments
               campaignId={c.id}
               documents={(documents ?? []) as CampaignDocument[]}
-              editable={can(role, "campaign:review") && ["draft", "changes_requested", "in_review"].includes(c.status)}
+              editable={false}
+              removable={can(role, "campaign:review")}
             />
+            {(documents ?? []).length === 0 ? (
+              <p className="small" style={{ color: "var(--bad)", marginTop: 8 }}>
+                Aucun devis envoyé par le club : demandez-lui des corrections. L&apos;équipe n&apos;envoie pas de fichier à sa place.
+              </p>
+            ) : null}
           </div>
 
           <div className="panel">
@@ -160,7 +166,8 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
               campaignId={c.id}
               photos={[...c.photos].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at))}
               coverPath={c.cover_path}
-              editable={can(role, "campaign:review")}
+              editable={false}
+              removable={can(role, "campaign:review")}
               today={todayInKinshasa()}
             />
           </div>

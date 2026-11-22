@@ -3,7 +3,6 @@ import { can, isStaff, type Role } from "@/lib/rbac";
 import { addClubMember, reviewClub, setClubPayout } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Crest, Pill, logoUrl } from "@/components/visuals";
-import { StaffDocumentUpload } from "./StaffDocumentUpload";
 import { CLUB_STATUS_LABELS, CLUB_STATUS_TONE, PAYOUT_METHOD_LABELS } from "@/lib/labels";
 import { formatDate, plural } from "@/lib/format";
 import { formatBytes } from "@/lib/images";
@@ -49,7 +48,6 @@ export type DossierRow = {
 
 /** Pièces et informations facultatives : elles aident à décider, sans bloquer la vérification. */
 const OPTIONAL_PIECES: { kind: ClubDocumentKind; label: string; note: string }[] = [
-  { kind: "identite_representant", label: "Pièce d'identité du représentant légal", note: "conseillé" },
   { kind: "compte_versement", label: "Justificatif du compte de versement", note: "conseillé" },
   { kind: "mandat", label: "Mandat du demandeur", note: "attendu si le demandeur n'est pas le représentant légal" },
   { kind: "pv_dirigeants", label: "Procès-verbal désignant les dirigeants", note: "facultatif" },
@@ -247,8 +245,8 @@ export function ClubDossier({ row, role, tab, single }: { row: DossierRow; role:
               </ul>
             ) : (
               <p className="small cr-missing">
-                Aucun document dans le dossier. Le club n&apos;a encore ajouté aucune pièce
-                {underReview && can(role, "club:review") ? " ; vous pouvez en ajouter une reçue autrement (« Ajouter un document reçu du club », dans le bloc Décision)" : ""}.
+                Aucun document dans le dossier : le club n&apos;a encore ajouté aucune pièce. C&apos;est à lui de les envoyer
+                depuis son espace ; demandez-lui des compléments si besoin.
               </p>
             )}
             {docs.length && !required[0].ok ? (
@@ -688,16 +686,6 @@ export function ClubDossier({ row, role, tab, single }: { row: DossierRow; role:
             </>
           ) : null}
 
-          {underReview && can(role, "club:review") ? (
-            <details className="cr-more" open={docs.length === 0}>
-              <summary>Ajouter un document reçu du club</summary>
-              <p className="small muted">
-                Pour une pièce reçue par e-mail ou remise en main propre. Elle rejoint le dossier et reste visible par le
-                club.
-              </p>
-              <StaffDocumentUpload clubId={c.id} />
-            </details>
-          ) : null}
         </aside>
       </div>
     </details>
