@@ -423,14 +423,32 @@ details.box summary{cursor:pointer;font-weight:700}
 .side .money b.raised{font-size:2.4rem}
 
 /* ---- partage ---- */
-.share{display:flex;gap:8px;flex-wrap:wrap}
-.share-btn{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font-weight:700;font-size:.88rem;text-decoration:none;cursor:pointer}
-.share-btn:hover{border-color:var(--muted)}
+/* Une seule rangée de boutons ronds, sans retour à la ligne : si la place manque, elle défile.
+   La marge négative compense la marge intérieure qui évite de rogner le contour de focus.
+   width:0 + min-width : la rangée prend toute la largeur sans jamais élargir le panneau qui la
+   contient (panneaux placés dans une grille, comme la colonne de droite d'une campagne). */
+.share{position:relative;margin:-4px;width:0;min-width:calc(100% + 8px)}
+.share-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:4px}
+.share-btn{flex:none;display:inline-grid;place-items:center;width:44px;height:44px;padding:0;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:50%;text-decoration:none;cursor:pointer;transition:transform .12s ease,border-color .12s,filter .12s}
+.share-btn svg{width:20px;height:20px}
+.share-btn:hover{border-color:var(--muted);transform:translateY(-1px)}
+.share-btn:focus-visible{border-radius:50%;outline-offset:1px}
 .share-btn.wa{background:#1f8f4e;border-color:#1f8f4e;color:#fff}
 .share-btn.fb{background:#1b5fc4;border-color:#1b5fc4;color:#fff}
 .share-btn.x{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .share-btn.tg{background:#1f7fb8;border-color:#1f7fb8;color:#fff}
-.share.compact .share-btn{padding:6px 12px;font-size:.84rem}
+.share-btn.wa:hover,.share-btn.fb:hover,.share-btn.x:hover,.share-btn.tg:hover{filter:brightness(1.1)}
+.share-btn.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.share.compact .share-row{gap:6px}
+.share.compact .share-btn{width:38px;height:38px}
+.share.compact .share-btn svg{width:18px;height:18px}
+@media (max-width:480px){.share-row{gap:6px}.share-btn{width:40px;height:40px}}
+/* Bulle « Lien copié » au-dessus du bouton de copie (toujours présente pour les lecteurs d'écran). */
+.share-toast{position:absolute;bottom:calc(100% + 2px);left:clamp(44px,var(--x,50%),calc(100% - 44px));transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:999px;padding:4px 10px;font-size:.78rem;font-weight:700;line-height:1.2;white-space:nowrap;pointer-events:none;animation:share-toast .15s ease-out}
+.share-toast::after{content:"";position:absolute;top:100%;left:50%;margin-left:-5px;border:5px solid transparent;border-top-color:var(--ink)}
+.share-toast:empty{padding:0;opacity:0;animation:none}
+.share-toast:empty::after{display:none}
+@keyframes share-toast{from{opacity:0;transform:translate(-50%,4px)}}
 
 /* ---- commentaires ---- */
 .comments{list-style:none;margin:0;padding:0;display:grid;gap:12px}
