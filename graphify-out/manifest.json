@@ -222,9 +222,9 @@
     "semantic_hash": ""
   },
   "src/app/club/campagnes/[id]/page.tsx": {
-    "mtime": 1795374149.188843,
-    "seen": 1795374779.1655223,
-    "ast_hash": "fa4d17989b9f039802cd0bac7cda1c2f",
+    "mtime": 1795448736.4744442,
+    "seen": 1795448889.2369602,
+    "ast_hash": "1e6229e145ffc7cb886772ae12e3f1e6",
     "semantic_hash": ""
   },
   "src/app/club/campagnes/nouvelle/page.tsx": {
@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "src/app/club/page.tsx": {
-    "mtime": 1795374076.7874806,
-    "seen": 1795374779.1655383,
-    "ast_hash": "cd150edf0a925406c3b4515b1ebe34b8",
+    "mtime": 1795448794.825783,
+    "seen": 1795448889.236967,
+    "ast_hash": "daee5711e38470dae4d7687ed76382fe",
     "semantic_hash": ""
   },
   "src/app/clubs/[slug]/page.tsx": {
@@ -474,9 +474,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/club.ts": {
-    "mtime": 1795374422.3489127,
-    "seen": 1795374779.165668,
-    "ast_hash": "67c80222c43e0ea4de992e770736ee60",
+    "mtime": 1795448794.8253605,
+    "seen": 1795448889.2370596,
+    "ast_hash": "bc819d23caaf4289be34e9abe208dc9b",
     "semantic_hash": ""
   },
   "src/lib/actions/community.ts": {
@@ -918,9 +918,9 @@
     "semantic_hash": ""
   },
   "src/app/club/actualites/page.tsx": {
-    "mtime": 1795374111.638728,
-    "seen": 1795374779.1655092,
-    "ast_hash": "4ea64d6ddd178514e4367b87923f88e6",
+    "mtime": 1795448794.8239398,
+    "seen": 1795448889.236952,
+    "ast_hash": "11f3499fd854dc37bf946dd1d92cc196",
     "semantic_hash": ""
   },
   "src/app/club/campagnes/CampaignWizard.tsx": {
@@ -975,6 +975,12 @@
     "mtime": 1795374389.1518927,
     "seen": 1795374779.1657877,
     "ast_hash": "b3e449f29aa67633136f27615c79acd6",
+    "semantic_hash": ""
+  },
+  "src/app/club/actualites/NewsForm.tsx": {
+    "mtime": 1795448773.3562965,
+    "seen": 1795448889.2369497,
+    "ast_hash": "5510083d75d05a4755dc53b14f03bf70",
     "semantic_hash": ""
   },
   "package-lock.json": {

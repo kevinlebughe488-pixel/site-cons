@@ -320,7 +320,7 @@ export default async function ClubPage(props: PageProps<"/club">) {
   for (const c of campaigns.filter((k) => k.status === "published")) {
     const last = lastNews.get(c.id);
     if (!last || olderThanDays(last, 30)) {
-      todos.push({ tone: "info", title: `Donner des nouvelles de « ${c.title} »`, text: last ? `Dernière nouvelle le ${formatDate(last)}.` : "Aucune nouvelle publiée depuis le lancement.", href: `/club/campagnes/${c.id}`, cta: "Publier" });
+      todos.push({ tone: "info", title: `Donner des nouvelles de « ${c.title} »`, text: last ? `Dernière nouvelle le ${formatDate(last)}.` : "Aucune nouvelle publiée depuis le lancement.", href: `/club/actualites?campagne=${c.id}`, cta: "Publier une nouvelle" });
     }
   }
   for (const c of campaigns.filter((k) => k.status === "draft")) {
