@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireClubSpace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { postNews } from "@/lib/actions/club";
-import { ActionForm, SubmitButton } from "@/components/forms";
 import { Pill } from "@/components/visuals";
 import { formatDate } from "@/lib/format";
 import { updateStatusLabel } from "@/lib/labels";
 import type { CampaignUpdate } from "@/lib/types";
+import { NewsForm } from "./NewsForm";
 
 export const metadata: Metadata = { title: "Actualités du club" };
 
-export default async function ClubNewsPage() {
+export default async function ClubNewsPage(props: PageProps<"/club/actualites">) {
   const { club } = await requireClubSpace("/club/actualites");
+  const { campagne } = await props.searchParams;
   const supabase = await createClient();
   const [{ data: newsData }, { data: campaignData }] = await Promise.all([
     supabase
@@ -21,40 +21,28 @@ export default async function ClubNewsPage() {
       .eq("club_id", club.id)
       .order("created_at", { ascending: false })
       .limit(30),
-    supabase.from("campaigns").select("id, title").eq("club_id", club.id),
+    supabase.from("campaigns").select("id, title, status, backers_count").eq("club_id", club.id).order("created_at", { ascending: false }),
   ]);
   const news = (newsData ?? []) as CampaignUpdate[];
-  const titleOf = new Map(((campaignData ?? []) as { id: string; title: string }[]).map((c) => [c.id, c.title]));
+  const campaignRows = (campaignData ?? []) as { id: string; title: string; status: string; backers_count: number }[];
+  const titleOf = new Map(campaignRows.map((c) => [c.id, c.title]));
+  // Nouvelles possibles une fois la campagne publiée (comme le vérifie la base).
+  const newsCampaigns = campaignRows
+    .filter((c) => ["published", "suspended", "funded", "failed"].includes(c.status))
+    .map((c) => ({ id: c.id, title: c.title, backers: c.backers_count }));
 
   return (
     <div className="wrap page">
       <div className="split half">
         <div className="panel">
-          <h2 style={{ fontSize: "1.5rem" }}>Publier une actualité du club</h2>
+          <h2 style={{ fontSize: "1.5rem" }}>Publier une nouvelle</h2>
           <p className="small muted" style={{ margin: "8px 0 12px" }}>
-            Résultats, vie du club, remerciements : publiée tout de suite sur la page du club et envoyée à ses supporters (ceux
-            qui le suivent et les contributeurs de ses campagnes). Pour une nouvelle liée à un projet, ou un message aux seuls
-            contributeurs, passez par la page de la campagne (rubrique Campagnes).
-          </p>
-          <p className="small muted" style={{ marginBottom: 12 }}>
-            L&apos;équipe Tribune relit les publications et retire celles qui ne respectent pas les règles (promesse non tenue,
-            données personnelles, propos injurieux) : vous recevez alors le motif.
+            Une actualité du club, une nouvelle d&apos;une campagne publiée ou un message à ses seuls contributeurs : tout se publie
+            ici, tout de suite, et les destinataires sont prévenus. L&apos;équipe Tribune relit les publications et retire celles qui
+            ne respectent pas les règles (promesse non tenue, données personnelles, propos injurieux) : vous recevez alors le motif.
           </p>
           {club.status === "verified" ? (
-            <ActionForm action={postNews}>
-              <input type="hidden" name="audience" value="public" />
-              <div className="field">
-                <label htmlFor="news-title">Titre</label>
-                <input type="text" id="news-title" name="title" maxLength={140} required minLength={3} />
-              </div>
-              <div className="field">
-                <label htmlFor="news-body">Texte</label>
-                <textarea id="news-body" name="body" required minLength={10} />
-              </div>
-              <SubmitButton className="btn btn-primary btn-sm" pendingLabel="Publication…">
-                Publier
-              </SubmitButton>
-            </ActionForm>
+            <NewsForm campaigns={newsCampaigns} preselected={typeof campagne === "string" ? campagne : null} />
           ) : (
             <p className="small muted">Indisponible tant que le club est suspendu.</p>
           )}

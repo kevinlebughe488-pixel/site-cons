@@ -38,7 +38,7 @@ export default async function AdminClubsPage(props: PageProps<"/admin/clubs">) {
     supabase
       .from("clubs")
       .select(
-        "*, reviewer:profiles!clubs_reviewed_by_fkey(first_name, last_name), members:club_members(member_role, created_at, profile:profiles(first_name, last_name, email, phone, role)), private:club_private(*), documents:club_documents(id, club_id, kind, file_name, mime_type, size_bytes, created_at, uploaded_by, uploader:profiles(first_name, last_name, role))",
+        "*, reviewer:profiles!clubs_reviewed_by_fkey(first_name, last_name), members:club_members(member_role, created_at, user_id, profile:profiles(first_name, last_name, email, phone, role)), private:club_private(*), documents:club_documents(id, club_id, kind, file_name, mime_type, size_bytes, created_at, uploaded_by, uploader:profiles(first_name, last_name, role))",
       )
       .eq("status", status)
       .order(status === "pending" ? "submitted_at" : "created_at", { ascending: status === "pending" }),

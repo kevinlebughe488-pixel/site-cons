@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { completeMilestone, postNews } from "@/lib/actions/club";
+import { completeMilestone } from "@/lib/actions/club";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { CampaignPill, Pill, ProgressBar } from "@/components/visuals";
 import { updateStatusLabel } from "@/lib/labels";
@@ -235,50 +235,15 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                 </p>
               </div>
             ) : null}
-            {["published", "suspended", "funded", "failed"].includes(c.status) && viewer.club?.status === "verified" ? (
+            {/* Les nouvelles se publient depuis la rubrique Actualités (un seul formulaire pour le club) ; ici, leur suivi. */}
+            {["published", "suspended", "funded", "failed"].includes(c.status) ? (
               <div className="panel">
-                <h3>Publier une nouvelle</h3>
-                <ActionForm action={postNews}>
-                  <input type="hidden" name="campaign_id" value={c.id} />
-                  <fieldset className="audience">
-                    <legend className="small" style={{ fontWeight: 700 }}>
-                      Destinataires
-                    </legend>
-                    <label className="check">
-                      <input type="radio" name="audience" value="public" defaultChecked />
-                      <span>
-                        <b>Tout le monde</b> · <span className="small muted">publiée sur la page de la campagne, contributeurs prévenus</span>
-                      </span>
-                    </label>
-                    <label className="check">
-                      <input type="radio" name="audience" value="contributors" />
-                      <span>
-                        <b>Seulement les contributeurs</b> ·{" "}
-                        <span className="small muted">message réservé aux {plural(c.backers_count, "supporter")} qui ont contribué</span>
-                      </span>
-                    </label>
-                  </fieldset>
-                  <div className="field">
-                    <label htmlFor="title">Titre</label>
-                    <input type="text" id="title" name="title" maxLength={140} />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="body">Texte</label>
-                    <textarea id="body" name="body" placeholder="Où en est le projet ? Un merci, une échéance, une photo publiée…" />
-                  </div>
-                  <SubmitButton className="btn btn-primary btn-sm" pendingLabel="Publication…">
-                    Publier
-                  </SubmitButton>
-                  <p className="small muted">
-                    Publiée tout de suite, destinataires prévenus. L&apos;équipe Tribune peut retirer une publication contraire
-                    aux règles (promesse non tenue, données personnelles, propos injurieux) : vous recevez alors le motif.
+                <h3>Nouvelles de la campagne</h3>
+                {updates.length ? null : (
+                  <p className="small muted" style={{ marginBottom: 10 }}>
+                    Aucune nouvelle pour l&apos;instant. Tenez les supporters au courant au moins une fois par mois.
                   </p>
-                </ActionForm>
-              </div>
-            ) : null}
-            {updates.length ? (
-              <div className="panel">
-                <h3>Nouvelles envoyées</h3>
+                )}
                 {updates.map((u) => (
                   <div className="update" key={u.id}>
                     <span className="small muted">
@@ -286,9 +251,18 @@ export default async function ManageCampaignPage(props: PageProps<"/club/campagn
                       <Pill tone={updateStatusLabel(u).tone}>{updateStatusLabel(u).label}</Pill>
                     </span>
                     <h4>{u.title}</h4>
-                    {u.status === "rejected" && u.review_note ? <p className="small muted">Motif : {u.review_note}</p> : null}
+                    {u.status === "rejected" && u.review_note ? (
+                      <p className="small muted">
+                        {u.published_at ? "Motif du retrait" : "Motif"} : {u.review_note}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
+                {viewer.club?.status === "verified" ? (
+                  <Link className="btn btn-ghost btn-sm" href={`/club/actualites?campagne=${c.id}`} style={{ marginTop: 10 }}>
+                    Publier une nouvelle sur cette campagne
+                  </Link>
+                ) : null}
               </div>
             ) : null}
           </aside>

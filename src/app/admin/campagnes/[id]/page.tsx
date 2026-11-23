@@ -334,7 +334,14 @@ export default async function AdminCampaignPage(props: PageProps<"/admin/campagn
                     <Link href={`/admin/clubs?statut=${c.club.status}`}>Clubs</Link>.
                   </p>
                 ) : (
-                  <SubmitButton className="btn btn-ghost btn-sm">{c.status === "published" ? "Suspendre la campagne" : "Réactiver la campagne"}</SubmitButton>
+                  <>
+                    <SubmitButton className="btn btn-ghost btn-sm">{c.status === "published" ? "Suspendre la campagne" : "Réactiver la campagne"}</SubmitButton>
+                    <p className="small muted">
+                      {c.status === "published"
+                        ? "La collecte s'arrête ; contributeurs et club sont prévenus. À la reprise, la date de fin est repoussée de la durée de la suspension."
+                        : "La collecte reprend, avec une date de fin repoussée de la durée de la suspension ; contributeurs et club sont prévenus."}
+                    </p>
+                  </>
                 )}
               </ActionForm>
             </div>

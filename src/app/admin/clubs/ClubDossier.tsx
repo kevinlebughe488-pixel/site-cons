@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { can, isStaff, type Role } from "@/lib/rbac";
-import { addClubMember, reviewClub, setClubPayout } from "@/lib/actions/admin";
+import { addClubMember, removeClubMember, reviewClub, setClubPayout } from "@/lib/actions/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Crest, Pill, logoUrl } from "@/components/visuals";
 import { CLUB_STATUS_LABELS, CLUB_STATUS_TONE, PAYOUT_METHOD_LABELS } from "@/lib/labels";
@@ -22,7 +22,7 @@ type Doc = ClubDocument & { uploaded_by: string | null; uploader: { first_name: 
 export type ClubRow = Club & {
   reviewed_at: string | null;
   reviewer: { first_name: string; last_name: string } | null;
-  members: { member_role: "owner" | "manager"; created_at: string; profile: Person | null }[];
+  members: { member_role: "owner" | "manager"; created_at: string; user_id: string; profile: Person | null }[];
   private: ClubPrivate | ClubPrivate[] | null;
   documents: Doc[];
 };
@@ -68,6 +68,7 @@ const HISTORY_LABELS: Record<string, string> = {
   "club.reactivate": "Club réactivé",
   "club.compte_versement": "Compte de versement changé",
   "club.membre_ajoute": "Gestionnaire ajouté",
+  "club.membre_retire": "Gestionnaire retiré",
 };
 
 /** Dernière décision, pour la ligne de résumé de chaque dossier. */
@@ -139,6 +140,8 @@ export function ClubDossier({ row, role, tab, single }: { row: DossierRow; role:
   // À ouvrir d'emblée : ce qui attend une décision (ou le seul dossier de l'onglet).
   const needsAction = c.status === "pending" || (c.status === "draft" && complete) || single;
   const owner = c.members.find((m) => m.member_role === "owner")?.profile ?? null;
+  // Retrait d'un gestionnaire : administrateur, club vérifié ou suspendu, jamais le dernier.
+  const canManageMembers = can(role, "club:assign_member") && (c.status === "verified" || c.status === "suspended");
   const ownerIsRep = !!owner && [`${owner.first_name} ${owner.last_name}`, `${owner.last_name} ${owner.first_name}`].some(
     (n) => plainName(n) === plainName(c.president_name),
   );
@@ -373,19 +376,46 @@ export function ClubDossier({ row, role, tab, single }: { row: DossierRow; role:
                       <li key={i}>
                         <b>{fullName(m.profile)}</b>{" "}
                         <span className="small muted">
-                          {m.member_role === "owner" ? "a ouvert le dossier" : `ajouté·e par l'équipe le ${formatDate(m.created_at)}`}
+                          {m.member_role === "owner" ? "titulaire du dossier" : `ajouté·e par l'équipe le ${formatDate(m.created_at)}`}
                         </span>
                         <span className="small cr-line">
                           {m.profile?.email ? <a href={`mailto:${m.profile.email}`}>{m.profile.email}</a> : null}
                           {m.profile?.email && m.profile?.phone ? " · " : null}
                           {m.profile?.phone ? <a href={`tel:+${m.profile.phone}`}>{formatPhone(m.profile.phone)}</a> : null}
                         </span>
+                        {canManageMembers && c.members.length > 1 ? (
+                          <details className="cr-remove">
+                            <summary className="small">Retirer ce gestionnaire</summary>
+                            <ActionForm action={removeClubMember} className="form cr-form">
+                              <input type="hidden" name="club_id" value={c.id} />
+                              <input type="hidden" name="user_id" value={m.user_id} />
+                              <div className="field">
+                                <label htmlFor={`rm-${c.id}-${i}`}>Motif (communiqué à la personne)</label>
+                                <input type="text" id={`rm-${c.id}-${i}`} name="note" required minLength={3} maxLength={500} placeholder="Ex. : a quitté le comité du club" />
+                              </div>
+                              <SubmitButton
+                                className="btn btn-ghost btn-sm"
+                                pendingLabel="…"
+                                confirm={`Retirer ${fullName(m.profile)} des gestionnaires de « ${c.name} » ? La personne est prévenue${
+                                  m.profile?.role === "club_manager" ? " et redevient supporter si elle ne gère aucun autre club" : ""
+                                }.`}
+                              >
+                                Retirer
+                              </SubmitButton>
+                            </ActionForm>
+                          </details>
+                        ) : null}
                       </li>
                     ))}
                 </ul>
               ) : (
                 <p className="small muted">Aucun compte rattaché à ce club.</p>
               )}
+              {canManageMembers && c.members.length === 1 ? (
+                <p className="small muted">
+                  Seul gestionnaire du club : pour le remplacer, ajoutez d&apos;abord la nouvelle personne, puis retirez-le.
+                </p>
+              ) : null}
               {owner && !ownerIsRep && underReview ? (
                 <p className="small cr-warn">
                   Le demandeur n&apos;est pas le représentant légal déclaré ({c.president_name}) : vérifiez qu&apos;il est
@@ -587,7 +617,10 @@ export function ClubDossier({ row, role, tab, single }: { row: DossierRow; role:
                   Suspendre le club
                 </SubmitButton>
               </div>
-              <p className="small muted">Le club n&apos;est plus public et ses campagnes en cours sont suspendues (collectes arrêtées).</p>
+              <p className="small muted">
+                Le club n&apos;est plus public et ses campagnes en cours sont suspendues (collectes arrêtées). Elles reprendront à la
+                réactivation du club.
+              </p>
             </ActionForm>
           ) : null}
           {c.status === "suspended" && can(role, "club:suspend") ? (
@@ -600,8 +633,9 @@ export function ClubDossier({ row, role, tab, single }: { row: DossierRow; role:
                 </SubmitButton>
               </div>
               <p className="small muted">
-                Le club redevient public. Ses campagnes suspendues avec lui restent suspendues : réactivez-les une
-                par une depuis <Link href="/admin/campagnes?statut=suspended">Campagnes</Link>.
+                Le club redevient public. Ses campagnes suspendues avec lui reprennent, avec une date de fin repoussée de la
+                durée de la suspension ; contributeurs et club sont prévenus. Une campagne suspendue à part reste suspendue :
+                elle se réactive depuis <Link href="/admin/campagnes?statut=suspended">Campagnes</Link>.
               </p>
             </ActionForm>
           ) : null}

@@ -540,9 +540,10 @@ export async function postNews(_: FormState, form: FormData): Promise<FormState>
   if (!viewer.club) return { error: "Vous ne gérez aucun club." };
   const title = text(form, "title");
   const body = text(form, "body");
-  if (title.length < 3 || body.length < 10) return { error: "Donnez un titre et quelques phrases à votre nouvelle." };
+  if (title.length < 3) return { error: "Donnez un titre à votre nouvelle (3 caractères au moins).", field: "title" };
+  if (body.length < 10) return { error: `Le texte doit faire au moins 10 caractères (${body.length} pour l'instant).`, field: "body" };
   const campaignId = text(form, "campaign_id") || null;
-  const audience = text(form, "audience") === "contributors" ? "contributors" : "public";
+  const audience = text(form, "audience") === "contributors" && campaignId ? "contributors" : "public";
   const supabase = await createClient();
   const { error } = await supabase.rpc("post_club_news", {
     p_club_id: viewer.club.id,
