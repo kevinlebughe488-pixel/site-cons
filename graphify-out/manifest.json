@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "src/app/club/page.tsx": {
-    "mtime": 1795448794.825783,
-    "seen": 1795448889.236967,
-    "ast_hash": "daee5711e38470dae4d7687ed76382fe",
+    "mtime": 1795450511.8224163,
+    "seen": 1795450547.0221865,
+    "ast_hash": "36bdfcbce3e27c4f65af74463de185ed",
     "semantic_hash": ""
   },
   "src/app/clubs/[slug]/page.tsx": {
@@ -429,12 +429,6 @@
     "mtime": 1795121006.4929347,
     "seen": 1795289244.0126288,
     "ast_hash": "10dcc68b9c72d251d8e55fc0be2b811f",
-    "semantic_hash": ""
-  },
-  "src/components/LogoUpload.tsx": {
-    "mtime": 1795353506.5104365,
-    "seen": 1795354038.645622,
-    "ast_hash": "2531fe9347f7c81f5dc4ca50b44c1720",
     "semantic_hash": ""
   },
   "src/components/ShareButtons.tsx": {
@@ -630,9 +624,9 @@
     "semantic_hash": ""
   },
   "src/lib/types.ts": {
-    "mtime": 1795289220.7704132,
-    "seen": 1795289244.0126758,
-    "ast_hash": "642ffe81e685c6a092628e82bda641df",
+    "mtime": 1795450355.9479177,
+    "seen": 1795450547.0223143,
+    "ast_hash": "3e8fbdae2972e3743c2e377794f88b01",
     "semantic_hash": ""
   },
   "src/lib/uploads.ts": {
@@ -888,9 +882,9 @@
     "semantic_hash": ""
   },
   "src/app/club/ClubWizard.tsx": {
-    "mtime": 1795373438.847362,
-    "seen": 1795374779.1655042,
-    "ast_hash": "6194e07109721bc756464c82c90f5662",
+    "mtime": 1795450511.8228848,
+    "seen": 1795450547.0221686,
+    "ast_hash": "bf0ba337dfa22c806ccb4eba7722fef9",
     "semantic_hash": ""
   },
   "src/lib/club-dossier.ts": {
@@ -936,9 +930,9 @@
     "semantic_hash": ""
   },
   "src/app/club/layout.tsx": {
-    "mtime": 1795373996.8734484,
-    "seen": 1795374779.1655354,
-    "ast_hash": "48d5fa3d09aae2ebae8177f547e4c0f9",
+    "mtime": 1795450228.1723058,
+    "seen": 1795450547.0221848,
+    "ast_hash": "77bbf76dbcb3e91f5914a58612564b06",
     "semantic_hash": ""
   },
   "src/app/club/parts.tsx": {
@@ -948,9 +942,9 @@
     "semantic_hash": ""
   },
   "src/app/club/profil/page.tsx": {
-    "mtime": 1795374126.7826943,
-    "seen": 1795374779.1655428,
-    "ast_hash": "8271a5066c572a45de289bf2a440f24a",
+    "mtime": 1795450389.9873335,
+    "seen": 1795450547.02219,
+    "ast_hash": "0a6bf4aae4c546528d2764a04fac347d",
     "semantic_hash": ""
   },
   "src/components/MainNav.tsx": {
@@ -987,6 +981,24 @@
     "mtime": 1795449179.8457947,
     "seen": 1795449460.8526556,
     "ast_hash": "00ac2c8e5996358caa97f54be9da914d",
+    "semantic_hash": ""
+  },
+  "src/app/club/ClubCrestMenu.tsx": {
+    "mtime": 1795450224.200383,
+    "seen": 1795450547.0221653,
+    "ast_hash": "ddffd6438ee18cc680c43e5026bdee1a",
+    "semantic_hash": ""
+  },
+  "src/app/club/profil/ClubProfileView.tsx": {
+    "mtime": 1795450464.983686,
+    "seen": 1795450547.022189,
+    "ast_hash": "95fd9a1627e0e6ccb56aa05b16c489ad",
+    "semantic_hash": ""
+  },
+  "src/components/LogoEdit.tsx": {
+    "mtime": 1795450212.2923822,
+    "seen": 1795450547.0222383,
+    "ast_hash": "d6f4182b3580fff2f6868d6241cbc6c9",
     "semantic_hash": ""
   },
   "package-lock.json": {

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
 import { can, canUseClubSpace, isStaff } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
-import { LogoUpload } from "@/components/LogoUpload";
+import { LogoEdit } from "@/components/LogoEdit";
 import { CampaignPill, Crest, FieldSvg, Pill, ProgressBar } from "@/components/visuals";
 import { CLUB_STATUS_LABELS, updateStatusLabel } from "@/lib/labels";
 import { formatDate, formatMoney, plural, todayInKinshasa } from "@/lib/format";
@@ -252,9 +252,10 @@ export default async function ClubPage(props: PageProps<"/club">) {
                 </p>
                 <DocumentList docs={docs} editable={false} />
               </div>
-              <div className="panel">
-                <h3>Logo</h3>
-                <LogoUpload club={club} />
+              <div className="panel logo-panel">
+                <h3>Logo du club</h3>
+                <p className="small muted">Facultatif : touchez le logo pour en choisir un, il est envoyé aussitôt.</p>
+                <LogoEdit club={club} size={96} />
               </div>
             </aside>
           </div>

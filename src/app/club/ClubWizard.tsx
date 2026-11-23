@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { deleteClubDocument, saveClubDossier, submitClubDossier } from "@/lib/actions/club";
 import { ActionForm, FieldError, Flash, SubmitButton, useFormAction } from "@/components/forms";
 import type { FormState } from "@/lib/forms";
-import { LogoUpload } from "@/components/LogoUpload";
+import { LogoEdit } from "@/components/LogoEdit";
 import { DRC_PROVIDERS, providerLabel } from "@/lib/payments/providers";
 import { checkDossier, PROOF_KINDS, STEP_FIELDS, stepOfField, WIZARD_STEPS, type DossierValues } from "@/lib/club-dossier";
 import { formatBytes } from "@/lib/images";
@@ -534,8 +534,12 @@ export function ClubWizard({ initial, me, maxDate, step: initialStep, club, docs
               </div>
             </details>
           </section>
-          <section className="panel">
-            <LogoUpload club={club} />
+          <section className="panel logo-panel">
+            <h3>
+              Logo du club <span className="muted small">(facultatif)</span>
+            </h3>
+            <p className="small muted">Touchez le logo (ou le crayon) pour en choisir un : PNG, JPEG ou WebP, envoyé aussitôt.</p>
+            <LogoEdit club={club} size={96} />
           </section>
           <div className="wz-nav">
             <button type="button" className="btn btn-ghost" onClick={() => go(3)}>

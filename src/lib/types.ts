@@ -63,6 +63,8 @@ export type Club = {
   logo_path: string | null;
   status: ClubStatus;
   review_note: string | null;
+  /** Date de la dernière décision de l'équipe Tribune (vérification, suspension…). */
+  reviewed_at: string | null;
   submitted_at: string | null;
   created_at: string;
 };
