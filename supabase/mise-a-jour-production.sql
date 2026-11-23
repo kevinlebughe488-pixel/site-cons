@@ -1,8 +1,9 @@
 -- =====================================================================
 -- MISE À JOUR DE LA BASE EN PRODUCTION : à exécuter UNE SEULE FOIS dans
--- Supabase > SQL Editor (projet « tribune-supporters »), AVANT de fusionner
--- la pull request de ces changements. Reprend la migration :
---   - 20261123000100_inscription_campagnes.sql
+-- Supabase > SQL Editor (projet « tribune-supporters »), dès que possible :
+-- tant qu'elle n'est pas faite, retirer un gestionnaire est impossible et les
+-- campagnes d'un club réactivé restent suspendues. Reprend la migration :
+--   - 20261124000100_reactivation_gestionnaires.sql
 -- (les migrations précédentes sont déjà appliquées). Tout passe ou rien
 -- ne passe. Résultat attendu : « Success. No rows returned ».
 -- =====================================================================
@@ -10,71 +11,37 @@
 begin;
 
 -- =====================================================================
--- Inscription des clubs et campagnes : règles alignées sur le parcours.
---
--- 1. La pièce d'identité du représentant légal devient obligatoire pour
---    envoyer un dossier de club et pour qu'un dossier non (re)envoyé soit
---    vérifié par l'équipe (elle était seulement conseillée). Les dossiers déjà
---    envoyés restent vérifiables tels quels.
--- 2. L'équipe Tribune n'envoie plus de fichiers à la place des clubs
---    (logo, documents, devis, photos) : les règles d'accès aux fichiers ne
---    changent pas (envois faits par le serveur), seules les actions de
---    l'application le refusent désormais.
+-- 1. Club réactivé : ses campagnes reprennent.
+--    Quand un club est suspendu, ses campagnes en cours le sont avec lui. À sa
+--    réactivation, elles reprennent automatiquement et leur date de fin est
+--    repoussée de la durée de la suspension. Une campagne suspendue à part par
+--    l'équipe (pour ses propres raisons) reste suspendue jusqu'à sa propre
+--    réactivation, qui repousse elle aussi la date de fin.
+-- 2. Retrait d'un gestionnaire par un administrateur : motif obligatoire,
+--    personne prévenue, journal d'audit ; jamais le dernier gestionnaire d'un
+--    club ; la personne redevient supporter si elle ne gère aucun autre club.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- 1. Pièce d'identité du représentant légal exigée
+-- 1. Suspension retenue sur la campagne
 -- ---------------------------------------------------------------------
-create or replace function public.club_dossier_complete(p_club_id uuid) returns boolean
-language sql stable security definer set search_path = '' as $$
-  select exists (
-           select 1 from public.club_documents
-            where club_id = p_club_id and kind in ('statuts', 'enregistrement', 'affiliation'))
-     and exists (
-           select 1 from public.club_documents
-            where club_id = p_club_id and kind = 'identite_representant')
-     and exists (
-           select 1 from public.club_private
-            where club_id = p_club_id and payout_holder <> '' and rep_phone is not null and address <> '');
+alter table public.campaigns
+  add column if not exists suspended_at timestamptz,
+  add column if not exists suspended_with_club boolean not null default false;
+
+-- Campagnes déjà suspendues : celles arrêtées avec leur club se reconnaissent à leur motif.
+update public.campaigns
+   set suspended_at = coalesce(suspended_at, updated_at),
+       suspended_with_club = coalesce(review_note, '') like 'Club suspendu : %'
+ where status = 'suspended';
+
+-- Nombre de jours de suspension (jours de Kinshasa) : ce dont on repousse la date de fin.
+create or replace function public.suspension_days(p_since timestamptz, p_fallback timestamptz) returns int
+language sql stable set search_path = '' as $$
+  select greatest(0, public.kinshasa_today() - (coalesce(p_since, p_fallback, now()) at time zone 'Africa/Kinshasa')::date);
 $$;
 
-create or replace function public.submit_club_registration(p_club_id uuid) returns void
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_status text;
-begin
-  perform public.require_user();
-  if not public.is_club_member(p_club_id) then
-    raise exception 'Vous ne gérez pas ce club.' using errcode = '42501';
-  end if;
-  select status::text into v_status from public.clubs where id = p_club_id for update;
-  if v_status not in ('draft', 'changes_requested') then
-    raise exception 'Ce dossier a déjà été envoyé.';
-  end if;
-  if not exists (
-    select 1 from public.club_documents
-     where club_id = p_club_id and kind in ('statuts', 'enregistrement', 'affiliation')
-  ) then
-    raise exception 'Ajoutez au moins un document attestant l''existence du club : statuts, enregistrement officiel ou attestation d''affiliation.';
-  end if;
-  if not exists (
-    select 1 from public.club_documents where club_id = p_club_id and kind = 'identite_representant'
-  ) then
-    raise exception 'Ajoutez la pièce d''identité du représentant légal (carte d''électeur, passeport ou permis de conduire).';
-  end if;
-  if not exists (
-    select 1 from public.club_private where club_id = p_club_id and payout_holder <> '' and rep_phone is not null and address <> ''
-  ) then
-    raise exception 'Complétez l''adresse du siège, le représentant légal et le compte de versement avant d''envoyer le dossier.';
-  end if;
-
-  update public.clubs set status = 'pending', submitted_at = now() where id = p_club_id;
-  perform public.write_audit('club.dossier_envoye', 'club', p_club_id::text,
-    jsonb_build_object('documents', (select count(*) from public.club_documents where club_id = p_club_id)));
-end $$;
-
--- Même fonction de décision, avec la liste à jour de ce qui manque à un dossier incomplet.
--- Décisions : verify | request_changes | reject (équipe), suspend | reactivate (administrateur).
+-- Décisions sur un club : verify | request_changes | reject (équipe), suspend | reactivate (administrateur).
 create or replace function public.review_club(p_club_id uuid, p_decision text, p_note text default null, p_criteria text[] default null)
 returns void
 language plpgsql security definer set search_path = '' as $$
@@ -82,6 +49,7 @@ declare
   v_actor uuid;
   v_status text;
   v_new text;
+  v_resumed int := 0;
 begin
   if p_decision in ('verify', 'request_changes', 'reject') then
     v_actor := public.require_staff();
@@ -128,64 +96,134 @@ begin
      where m.club_id = p_club_id and m.user_id = p.id and p.role = 'supporter';
   end if;
   if v_new = 'suspended' then
-    update public.campaigns set status = 'suspended', review_note = 'Club suspendu : ' || trim(p_note)
+    -- Les campagnes en cours s'arrêtent avec le club ; on retient quand et pourquoi.
+    update public.campaigns
+       set status = 'suspended', review_note = 'Club suspendu : ' || trim(p_note), suspended_at = now(), suspended_with_club = true
      where club_id = p_club_id and status = 'published';
+  end if;
+  if p_decision = 'reactivate' then
+    -- Club réactivé : ses campagnes suspendues avec lui reprennent, et leur date de fin est
+    -- repoussée de la durée de la suspension (les supporters ne perdent pas de jours de collecte).
+    -- Contributeurs et club sont prévenus par campaigns_status_notify (« La campagne reprend »).
+    -- Une campagne suspendue à part par l'équipe reste suspendue jusqu'à sa propre décision.
+    update public.campaigns c
+       set status = 'published',
+           end_date = c.end_date + public.suspension_days(c.suspended_at, c.updated_at),
+           review_note = null, suspended_at = null, suspended_with_club = false
+     where c.club_id = p_club_id and c.status = 'suspended' and c.suspended_with_club;
+    get diagnostics v_resumed = row_count;
   end if;
 
   perform public.write_audit('club.' || p_decision, 'club', p_club_id::text,
     jsonb_build_object('note', p_note, 'statut_precedent', v_status) || case when p_decision = 'verify'
-      then jsonb_build_object('controles', to_jsonb(p_criteria)) else '{}'::jsonb end);
+      then jsonb_build_object('controles', to_jsonb(p_criteria))
+      when p_decision = 'reactivate' then jsonb_build_object('campagnes_reprises', v_resumed)
+      else '{}'::jsonb end);
 end $$;
 
--- ---------------------------------------------------------------------
--- 3. L'équipe Tribune est prévenue de ce qu'elle doit traiter
--- ---------------------------------------------------------------------
--- Avant, un dossier de club envoyé ou une campagne envoyée en revue n'apparaissait
--- que dans les compteurs du tableau de bord : la conformité et les administrateurs
--- reçoivent maintenant une notification, avec le lien vers la page à traiter.
-create or replace function public.staff_ids() returns uuid[]
-language sql stable security definer set search_path = '' as $$
-  select coalesce(array_agg(id), '{}') from public.profiles where role in ('compliance', 'admin');
-$$;
-
-create or replace function public.clubs_notify_staff() returns trigger
-language plpgsql security definer set search_path = '' as $$
-begin
-  perform public.notify(public.staff_ids(), 'club_a_verifier',
-    case when old.status = 'changes_requested' then 'Dossier de club renvoyé : ' else 'Nouveau dossier de club : ' end || new.name,
-    'Le club a envoyé son dossier pour vérification.', '/admin/clubs?statut=pending', null, new.id);
-  return null;
-end $$;
-
-drop trigger if exists clubs_notify_staff on public.clubs;
-create trigger clubs_notify_staff
-  after update of status on public.clubs
-  for each row when (new.status = 'pending' and old.status is distinct from 'pending')
-  execute function public.clubs_notify_staff();
-
-create or replace function public.campaigns_notify_staff() returns trigger
+-- Suspension et réactivation d'une campagne seule (administrateur).
+create or replace function public.set_campaign_suspension(p_campaign_id uuid, p_suspend boolean, p_note text default null) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_club text;
+  v_status public.campaign_status;
+  v_club_status public.club_status;
+  v_days int := 0;
 begin
-  select name into v_club from public.clubs where id = new.club_id;
-  perform public.notify(public.staff_ids(), 'campagne_a_instruire',
-    case when old.status = 'changes_requested' then 'Campagne corrigée à instruire : ' else 'Campagne à instruire : ' end || new.title,
-    coalesce(v_club, 'Un club') || ' demande la publication (objectif ' || public.fmt_money(new.goal_amount, new.currency) || ').',
-    '/admin/campagnes/' || new.id, new.id, new.club_id);
-  return null;
+  perform public.require_admin();
+  select c.status, k.status into v_status, v_club_status
+    from public.campaigns c join public.clubs k on k.id = c.club_id
+   where c.id = p_campaign_id
+     for update of c;
+  if v_status is null then
+    raise exception 'Campagne introuvable.';
+  end if;
+  if p_suspend and v_status <> 'published' then
+    raise exception 'Seule une campagne en cours peut être suspendue.';
+  end if;
+  if not p_suspend and v_status <> 'suspended' then
+    raise exception 'Cette campagne n''est pas suspendue.';
+  end if;
+  if not p_suspend and v_club_status <> 'verified' then
+    raise exception 'Le club de cette campagne n''est pas vérifié (suspendu ?) : réactivez d''abord le club depuis la page Clubs.';
+  end if;
+  if p_suspend and coalesce(trim(p_note), '') = '' then
+    raise exception 'Indiquez le motif de la suspension.';
+  end if;
+  if p_suspend then
+    update public.campaigns
+       set status = 'suspended', review_note = trim(p_note), suspended_at = now(), suspended_with_club = false
+     where id = p_campaign_id;
+  else
+    -- Reprise : la date de fin est repoussée de la durée de la suspension.
+    select public.suspension_days(suspended_at, updated_at) into v_days from public.campaigns where id = p_campaign_id;
+    update public.campaigns
+       set status = 'published', end_date = end_date + v_days, suspended_at = null, suspended_with_club = false
+     where id = p_campaign_id;
+  end if;
+  perform public.write_audit(case when p_suspend then 'campagne.suspendue' else 'campagne.reactivee' end,
+    'campaign', p_campaign_id::text,
+    jsonb_build_object('note', p_note) || case when p_suspend then '{}'::jsonb else jsonb_build_object('jours_ajoutes', v_days) end);
 end $$;
 
-drop trigger if exists campaigns_notify_staff on public.campaigns;
-create trigger campaigns_notify_staff
-  after update of status on public.campaigns
-  for each row when (new.status = 'in_review' and old.status is distinct from 'in_review')
-  execute function public.campaigns_notify_staff();
+-- ---------------------------------------------------------------------
+-- 2. Retrait d'un gestionnaire
+-- ---------------------------------------------------------------------
+create or replace function public.admin_remove_club_member(p_club_id uuid, p_user_id uuid, p_note text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_club public.clubs;
+  v_role public.club_member_role;
+  v_email text;
+  v_name text;
+begin
+  perform public.require_admin();
+  if coalesce(trim(p_note), '') = '' then
+    raise exception 'Indiquez le motif du retrait : il est communiqué à la personne.';
+  end if;
+  select * into v_club from public.clubs where id = p_club_id for update;
+  if v_club.id is null then
+    raise exception 'Club introuvable.';
+  end if;
+  select member_role into v_role from public.club_members where club_id = p_club_id and user_id = p_user_id;
+  if v_role is null then
+    raise exception 'Ce compte ne gère pas ce club.';
+  end if;
+  if (select count(*) from public.club_members where club_id = p_club_id) <= 1 then
+    raise exception 'C''est le dernier gestionnaire du club : ajoutez d''abord la personne qui le remplace, puis retirez-le.';
+  end if;
+  select email, trim(first_name || ' ' || last_name) into v_email, v_name from public.profiles where id = p_user_id;
 
+  delete from public.club_members where club_id = p_club_id and user_id = p_user_id;
+  -- Le compte qui avait ouvert le dossier part : le plus ancien gestionnaire restant le remplace.
+  if v_role = 'owner' then
+    update public.club_members set member_role = 'owner'
+     where club_id = p_club_id
+       and user_id = (select user_id from public.club_members where club_id = p_club_id order by created_at limit 1);
+  end if;
+  -- Sans autre club vérifié ou suspendu, la personne redevient supporter.
+  if not exists (
+    select 1 from public.club_members m join public.clubs c on c.id = m.club_id
+     where m.user_id = p_user_id and c.status in ('verified', 'suspended')
+  ) then
+    update public.profiles set role = 'supporter' where id = p_user_id and role = 'club_manager';
+  end if;
+
+  perform public.notify(array[p_user_id], 'club_gestionnaire_retire', 'Vous ne gérez plus ' || v_club.name,
+    trim(p_note), '/compte', null, p_club_id);
+  perform public.notify(public.club_member_ids(p_club_id), 'club_gestionnaire_retire',
+    coalesce(nullif(v_name, ''), 'Un gestionnaire') || ' ne gère plus le club', trim(p_note), '/club', null, p_club_id);
+  perform public.write_audit('club.membre_retire', 'club', p_club_id::text,
+    jsonb_build_object('utilisateur', p_user_id, 'email', v_email, 'note', trim(p_note)));
+end $$;
+
+-- ---------------------------------------------------------------------
+-- Droits
+-- ---------------------------------------------------------------------
 revoke execute on function
-  public.staff_ids(),
-  public.clubs_notify_staff(),
-  public.campaigns_notify_staff()
+  public.suspension_days(timestamptz, timestamptz),
+  public.admin_remove_club_member(uuid, uuid, text)
 from public, anon, authenticated;
+
+grant execute on function public.admin_remove_club_member(uuid, uuid, text) to authenticated;
 
 commit;

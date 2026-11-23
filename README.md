@@ -75,6 +75,7 @@ Les revenus suivent le plan d'affaires (§ 11.2) :
    - `supabase/migrations/20261121000100_publication_directe_roles.sql` (nouvelles publiées directement par les clubs et retirées au besoin, dossier en préparation vérifiable, rôles)
    - `supabase/migrations/20261122000200_back_office_clubs.sql` (vérification des clubs : dossier « compléments demandés » complet vérifiable, ajout de gestionnaires contrôlé, réactivation des campagnes d'un club vérifié seulement)
    - `supabase/migrations/20261123000100_inscription_campagnes.sql` (pièce d'identité du représentant exigée, l'équipe prévenue des dossiers et campagnes à traiter)
+   - `supabase/migrations/20261124000100_reactivation_gestionnaires.sql` (campagnes qui reprennent à la réactivation du club, retrait d'un gestionnaire)
 
    Ou, avec la [CLI Supabase](https://supabase.com/docs/guides/cli) : `supabase link --project-ref <ref>` puis `supabase db push`.
 3. Dans **Authentication → URL Configuration** :
@@ -166,7 +167,13 @@ club, représentant légal, compte de versement) pour le vérifier, ou demande d
 corrige et renvoie, ou l'équipe le vérifie directement s'il est complet), ou refuse. Un dossier encore « en préparation » (jamais envoyé) peut aussi être vérifié
 par l'équipe s'il est complet (mêmes conditions que l'envoi) ; incomplet, le back-office indique ce qui
 manque et l'équipe peut demander des compléments ou refuser. L'équipe n'envoie aucun fichier à la place
-du club (logo, documents, devis, photos) : elle peut seulement retirer une photo ou un devis inapproprié. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
+du club (logo, documents, devis, photos) : elle peut seulement retirer une photo ou un devis inapproprié.
+
+Suspension et réactivation : un club suspendu arrête ses campagnes en cours ; à sa réactivation, elles
+reprennent d'elles-mêmes, avec une date de fin repoussée de la durée de la suspension (contributeurs et club
+prévenus). Une campagne suspendue à part par l'équipe se réactive seule, avec la même prolongation. Un
+administrateur peut retirer un gestionnaire (motif communiqué à la personne, journal d'audit), jamais le
+dernier gestionnaire d'un club ; sans autre club, la personne redevient supporter. Seul un club vérifié dépose une campagne. Chaque étape est notifiée au
 club et inscrite au journal d'audit.
 
 Les données sensibles (adresse, coordonnées du représentant, compte de versement) sont dans la table

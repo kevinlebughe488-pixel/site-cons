@@ -715,3 +715,6 @@ span.cr-thumb{font-size:.72rem;font-weight:800;color:var(--muted)}
 .bo-upload input[type=file]{max-width:100%;font-size:.9rem}
 @media (max-width:1100px){.cr-body{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.cr-cols,.cr-check{grid-template-columns:minmax(0,1fr)}.cr-history .log li{grid-template-columns:minmax(0,1fr);gap:2px}}
+.cr-remove{margin-top:6px}
+.cr-remove summary{cursor:pointer;color:var(--bad);font-weight:600}
+.cr-remove .cr-form{margin-top:8px}

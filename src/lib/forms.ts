@@ -30,6 +30,8 @@ export function keepFields(form: FormData, names: string[]): Record<string, stri
 /** Message lisible pour une erreur renvoyée par la base. */
 export function dbErrorMessage(error: PostgrestError | null | undefined, fallback = "L'opération a échoué. Réessayez."): string {
   if (!error) return fallback;
+  // Fonction absente de la base : la mise à jour SQL de production n'a pas encore été exécutée.
+  if (error.code === "PGRST202") return "Cette action demande une mise à jour de la base : exécutez supabase/mise-a-jour-production.sql dans Supabase.";
   // Les fonctions de la base lèvent des messages déjà rédigés en français (code P0001).
   if (error.code === "P0001" || error.code === "42501") return error.message;
   if (error.code === "23505") return error.message.startsWith("Ce numéro") ? error.message : "Cette valeur est déjà utilisée.";

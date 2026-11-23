@@ -194,6 +194,22 @@ export async function addClubMember(_: FormState, form: FormData): Promise<FormS
   return rpc("club:assign_member", "admin_add_club_member", { p_club_id: text(form, "club_id"), p_user_id: user.id }, "Gestionnaire ajouté au club : la personne est prévenue.", ["/admin/clubs"]);
 }
 
+/**
+ * Retire un gestionnaire d'un club (administrateur). Motif obligatoire, communiqué à la
+ * personne ; jamais le dernier gestionnaire (la base le refuse aussi).
+ */
+export async function removeClubMember(_: FormState, form: FormData): Promise<FormState> {
+  const note = text(form, "note");
+  if (note.length < 3) return { error: "Indiquez le motif du retrait : il est communiqué à la personne." };
+  return rpc(
+    "club:assign_member",
+    "admin_remove_club_member",
+    { p_club_id: text(form, "club_id"), p_user_id: text(form, "user_id"), p_note: note.slice(0, 500) },
+    "Gestionnaire retiré du club : la personne est prévenue.",
+    ["/admin/clubs"],
+  );
+}
+
 export async function setClubPayout(_: FormState, form: FormData): Promise<FormState> {
   const method = text(form, "payout_method") === "bank" ? "bank" : "mobile_money";
   const holder = text(form, "payout_holder");
